@@ -4,6 +4,11 @@
  * surface tables only; never writes. Every section is isolated in its own
  * try/catch so a missing/renamed table degrades to an empty list instead of
  * failing the whole snapshot — mirrors the pattern in `lib/identity/stats.ts`.
+ *
+ * Identity 2.1: ownership-only public modules.
+ * - UGC: campaigns the profile owner created/manages (vendor brand), not joined.
+ * - Affiliate / Marketplace: membership flags only; financial metrics stay private.
+ * - Community: Owner / Admin managed communities only.
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -11,7 +16,20 @@ import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
+export interface UgcOwnedCampaign {
+  campaignId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  coverImage: string | null;
+  createdAt: string | null;
+}
+
 export interface UgcModuleSnapshot {
+  /** True when the user owns/manages at least one UGC campaign brand. */
+  isOwner: boolean;
+  ownedCampaigns: UgcOwnedCampaign[];
+  /** @deprecated kept for older clients — always empty on public identity. */
   isCreator: boolean;
   recentCampaigns: Array<{
     campaignId: string;
@@ -35,6 +53,7 @@ export interface AffiliateModuleSnapshot {
   isAffiliate: boolean;
   affiliateCode: string | null;
   tier: string | null;
+  /** Private — never expose on public identity responses. */
   totalClicks: number;
   totalConversions: number;
   totalEarnings: number;
@@ -45,12 +64,25 @@ export interface AffiliateModuleSnapshot {
 export interface MarketplaceModuleSnapshot {
   isVendor: boolean;
   businessName: string | null;
+  businessSlug: string | null;
+  /** Private — never expose on public identity responses. */
   productsCount: number;
   totalRevenue: number;
   totalSales: number;
 }
 
 export interface CommunityModuleSnapshot {
+  /** Communities the user owns or administers (not mere membership). */
+  communitiesManaged: Array<{
+    communityId: string;
+    name: string;
+    slug: string;
+    avatarUrl: string | null;
+    description: string | null;
+    role: "owner" | "admin";
+    memberCount?: number;
+  }>;
+  /** @deprecated alias for older clients — same as communitiesManaged. */
   communitiesJoined: Array<{
     communityId: string;
     name: string;
@@ -71,8 +103,22 @@ export interface ModuleSnapshots {
   computedAt: string;
 }
 
+export interface ModulePresence {
+  ugc: boolean;
+  affiliate: boolean;
+  marketplace: boolean;
+  community: boolean;
+  any: boolean;
+}
+
 function emptyUgc(): UgcModuleSnapshot {
-  return { isCreator: false, recentCampaigns: [], recentSubmissions: [] };
+  return {
+    isOwner: false,
+    ownedCampaigns: [],
+    isCreator: false,
+    recentCampaigns: [],
+    recentSubmissions: [],
+  };
 }
 
 function emptyAffiliate(): AffiliateModuleSnapshot {
@@ -89,60 +135,62 @@ function emptyAffiliate(): AffiliateModuleSnapshot {
 }
 
 function emptyMarketplace(): MarketplaceModuleSnapshot {
-  return { isVendor: false, businessName: null, productsCount: 0, totalRevenue: 0, totalSales: 0 };
+  return {
+    isVendor: false,
+    businessName: null,
+    businessSlug: null,
+    productsCount: 0,
+    totalRevenue: 0,
+    totalSales: 0,
+  };
 }
 
 function emptyCommunity(): CommunityModuleSnapshot {
-  return { communitiesJoined: [] };
+  return { communitiesManaged: [], communitiesJoined: [] };
 }
 
 async function getUgcSnapshot(db: ServiceClient, userId: string): Promise<UgcModuleSnapshot> {
   try {
-    const { data: influencer } = await db
-      .from("influencers")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!influencer?.id) return emptyUgc();
+    const { data: vendors } = await db.from("vendors").select("id").eq("user_id", userId);
+    const brandIds = (vendors ?? []).map((v) => v.id).filter(Boolean);
+    if (brandIds.length === 0) return emptyUgc();
 
-    const [{ data: participants }, { data: submissions }] = await Promise.all([
-      db
-        .from("ugc_campaign_participants")
-        .select("campaign_id, status, joined_at, campaign:ugc_campaigns(id, title, status)")
-        .eq("influencer_id", influencer.id)
-        .order("joined_at", { ascending: false })
-        .limit(10),
-      db
-        .from("ugc_submissions")
-        .select("id, campaign_id, post_url, platform, status, total_views_earned, total_earnings, created_at")
-        .eq("influencer_id", influencer.id)
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ]);
+    const { data: campaigns } = await db
+      .from("ugc_campaigns")
+      .select(
+        "id, title, description, status, created_at, media:ugc_campaign_media(url, thumbnail_url, order_index, usage)",
+      )
+      .in("brand_id", brandIds)
+      .order("created_at", { ascending: false })
+      .limit(12);
 
-    const recentCampaigns = (participants ?? []).map((p) => {
-      const campaign = p.campaign as { id?: string; title?: string; status?: string } | Array<{ id?: string; title?: string; status?: string }> | null;
-      const c = Array.isArray(campaign) ? campaign[0] : campaign;
+    const ownedCampaigns: UgcOwnedCampaign[] = (campaigns ?? []).map((c) => {
+      const media = (c.media as Array<{
+        url?: string;
+        thumbnail_url?: string;
+        order_index?: number;
+        usage?: string;
+      }> | null) ?? [];
+      const sorted = [...media].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      const cover =
+        sorted.find((m) => m.usage === "cover" || m.usage === "thumbnail") ?? sorted[0] ?? null;
       return {
-        campaignId: p.campaign_id,
-        title: c?.title ?? "Untitled campaign",
-        status: c?.status ?? p.status,
-        joinedAt: p.joined_at ?? null,
+        campaignId: c.id,
+        title: c.title ?? "Untitled campaign",
+        description: typeof c.description === "string" ? c.description : null,
+        status: c.status ?? "draft",
+        coverImage: cover?.thumbnail_url ?? cover?.url ?? null,
+        createdAt: c.created_at ?? null,
       };
     });
 
-    const recentSubmissions = (submissions ?? []).map((s) => ({
-      submissionId: s.id,
-      campaignId: s.campaign_id,
-      postUrl: s.post_url,
-      platform: s.platform,
-      status: s.status,
-      totalViews: Number(s.total_views_earned ?? 0),
-      totalEarnings: Number(s.total_earnings ?? 0),
-      createdAt: s.created_at,
-    }));
-
-    return { isCreator: true, recentCampaigns, recentSubmissions };
+    return {
+      isOwner: ownedCampaigns.length > 0,
+      ownedCampaigns,
+      isCreator: ownedCampaigns.length > 0,
+      recentCampaigns: [],
+      recentSubmissions: [],
+    };
   } catch (err) {
     console.error("getModuleSnapshots: ugc section failed", err);
     return emptyUgc();
@@ -154,7 +202,7 @@ async function getAffiliateSnapshot(db: ServiceClient, userId: string): Promise<
     const { data: affiliate } = await db
       .from("affiliates")
       .select(
-        "affiliate_code, tier, total_clicks, total_conversions, total_earnings, pending_earnings, available_balance"
+        "affiliate_code, tier, total_clicks, total_conversions, total_earnings, pending_earnings, available_balance",
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -180,20 +228,16 @@ async function getMarketplaceSnapshot(db: ServiceClient, userId: string): Promis
   try {
     const { data: vendor } = await db
       .from("vendors")
-      .select("id, business_name, total_revenue, total_sales")
+      .select("id, business_name, business_slug, total_revenue, total_sales")
       .eq("user_id", userId)
       .maybeSingle();
     if (!vendor) return emptyMarketplace();
 
-    const { count: productsCount } = await db
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("vendor_id", vendor.id);
-
     return {
       isVendor: true,
       businessName: vendor.business_name ?? null,
-      productsCount: productsCount ?? 0,
+      businessSlug: vendor.business_slug ?? null,
+      productsCount: 0,
       totalRevenue: Number(vendor.total_revenue ?? 0),
       totalSales: Number(vendor.total_sales ?? 0),
     };
@@ -205,27 +249,23 @@ async function getMarketplaceSnapshot(db: ServiceClient, userId: string): Promis
 
 async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<CommunityModuleSnapshot> {
   try {
-    const [{ data: points }, { data: owned }, { data: memberships }] = await Promise.all([
-      db
-        .from("member_points")
-        .select("community_id, total_points, level, community:communities(id, name, slug, avatar_url, member_count, settings)")
-        .eq("user_id", userId),
+    const [{ data: owned }, { data: memberships }] = await Promise.all([
       db
         .from("communities")
-        .select("id, name, slug, avatar_url, member_count, settings, owner_id")
+        .select("id, name, slug, avatar_url, description, member_count, settings, owner_id")
         .eq("owner_id", userId)
         .eq("is_active", true),
       db
         .from("community_memberships")
-        .select("community_id, role, community:communities(id, name, slug, avatar_url, member_count, settings)")
+        .select(
+          "community_id, role, community:communities(id, name, slug, avatar_url, description, member_count, settings, is_active)",
+        )
         .eq("user_id", userId)
-        .eq("status", "active"),
+        .eq("status", "active")
+        .in("role", ["owner", "admin"]),
     ]);
 
-    const byId = new Map<
-      string,
-      CommunityModuleSnapshot["communitiesJoined"][number]
-    >();
+    const byId = new Map<string, CommunityModuleSnapshot["communitiesManaged"][number]>();
 
     for (const row of owned ?? []) {
       byId.set(row.id, {
@@ -233,8 +273,7 @@ async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<
         name: row.name ?? "Community",
         slug: row.slug ?? "",
         avatarUrl: row.avatar_url ?? null,
-        totalPoints: 0,
-        level: 1,
+        description: typeof row.description === "string" ? row.description : null,
         role: "owner",
         memberCount: resolveCommunityMemberCount({
           slug: row.slug,
@@ -251,21 +290,25 @@ async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<
             name?: string;
             slug?: string;
             avatar_url?: string;
+            description?: string;
             member_count?: number;
             settings?: unknown;
+            is_active?: boolean;
           }
         | Array<{
             id?: string;
             name?: string;
             slug?: string;
             avatar_url?: string;
+            description?: string;
             member_count?: number;
             settings?: unknown;
+            is_active?: boolean;
           }>
         | null;
       const c = Array.isArray(community) ? community[0] : community;
-      if (!c?.id) continue;
-      const role = (row.role as string | null) ?? "member";
+      if (!c?.id || c.is_active === false) continue;
+      const role = row.role === "owner" ? "owner" : "admin";
       const existing = byId.get(c.id);
       const memberCount = resolveCommunityMemberCount({
         slug: c.slug,
@@ -274,12 +317,7 @@ async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<
       });
       if (existing) {
         existing.memberCount = memberCount;
-        if (existing.role !== "owner") {
-          existing.role =
-            role === "admin" || role === "moderator" || role === "owner"
-              ? role
-              : "member";
-        }
+        if (role === "owner") existing.role = "owner";
         continue;
       }
       byId.set(c.id, {
@@ -287,63 +325,26 @@ async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<
         name: c.name ?? "Community",
         slug: c.slug ?? "",
         avatarUrl: c.avatar_url ?? null,
+        description: typeof c.description === "string" ? c.description : null,
+        role,
+        memberCount,
+      });
+    }
+
+    const managed = [...byId.values()];
+    return {
+      communitiesManaged: managed,
+      communitiesJoined: managed.map((c) => ({
+        communityId: c.communityId,
+        name: c.name,
+        slug: c.slug,
+        avatarUrl: c.avatarUrl,
         totalPoints: 0,
         level: 1,
-        role:
-          role === "owner" || role === "admin" || role === "moderator"
-            ? role
-            : "member",
-        memberCount,
-      });
-    }
-
-    for (const row of points ?? []) {
-      const community = row.community as
-        | {
-            id?: string;
-            name?: string;
-            slug?: string;
-            avatar_url?: string;
-            member_count?: number;
-            settings?: unknown;
-          }
-        | Array<{
-            id?: string;
-            name?: string;
-            slug?: string;
-            avatar_url?: string;
-            member_count?: number;
-            settings?: unknown;
-          }>
-        | null;
-      const c = Array.isArray(community) ? community[0] : community;
-      const id = c?.id ?? row.community_id;
-      if (!id) continue;
-      const existing = byId.get(id);
-      const memberCount = resolveCommunityMemberCount({
-        slug: c?.slug,
-        member_count: c?.member_count,
-        settings: c?.settings,
-      });
-      if (existing) {
-        existing.totalPoints = Number(row.total_points ?? 0);
-        existing.level = Number(row.level ?? 1);
-        existing.memberCount = existing.memberCount ?? memberCount;
-        continue;
-      }
-      byId.set(id, {
-        communityId: id,
-        name: c?.name ?? "Community",
-        slug: c?.slug ?? "",
-        avatarUrl: c?.avatar_url ?? null,
-        totalPoints: Number(row.total_points ?? 0),
-        level: Number(row.level ?? 1),
-        role: "member",
-        memberCount,
-      });
-    }
-
-    return { communitiesJoined: [...byId.values()] };
+        role: c.role,
+        memberCount: c.memberCount,
+      })),
+    };
   } catch (err) {
     console.error("getModuleSnapshots: community section failed", err);
     return emptyCommunity();
@@ -371,4 +372,67 @@ export async function getModuleSnapshots(userId: string): Promise<ModuleSnapshot
   ]);
 
   return { ugc, affiliate, marketplace, community, computedAt: new Date().toISOString() };
+}
+
+export function modulePresenceFromSnapshots(snapshots: ModuleSnapshots): ModulePresence {
+  const ugc = snapshots.ugc.ownedCampaigns.length > 0;
+  const affiliate = snapshots.affiliate.isAffiliate;
+  const marketplace = snapshots.marketplace.isVendor;
+  const community = snapshots.community.communitiesManaged.length > 0;
+  return {
+    ugc,
+    affiliate,
+    marketplace,
+    community,
+    any: ugc || affiliate || marketplace || community,
+  };
+}
+
+/**
+ * Public-safe module slice — strips private financial / inventory metrics.
+ * Used by the public identity modules API for every viewer (including owner
+ * on the public profile page). Private dashboards keep full metrics.
+ */
+export function toPublicModuleSlice(
+  surface: "ugc" | "affiliate" | "marketplace" | "community",
+  snapshots: ModuleSnapshots,
+): UgcModuleSnapshot | AffiliateModuleSnapshot | MarketplaceModuleSnapshot | CommunityModuleSnapshot {
+  if (surface === "ugc") {
+    const ugc = snapshots.ugc;
+    return {
+      isOwner: ugc.ownedCampaigns.length > 0,
+      ownedCampaigns: ugc.ownedCampaigns,
+      isCreator: ugc.ownedCampaigns.length > 0,
+      recentCampaigns: [],
+      recentSubmissions: [],
+    };
+  }
+  if (surface === "affiliate") {
+    const a = snapshots.affiliate;
+    return {
+      isAffiliate: a.isAffiliate,
+      affiliateCode: null,
+      tier: a.isAffiliate ? a.tier : null,
+      totalClicks: 0,
+      totalConversions: 0,
+      totalEarnings: 0,
+      pendingEarnings: 0,
+      availableBalance: 0,
+    };
+  }
+  if (surface === "marketplace") {
+    const m = snapshots.marketplace;
+    return {
+      isVendor: m.isVendor,
+      businessName: m.businessName,
+      businessSlug: m.businessSlug,
+      productsCount: 0,
+      totalRevenue: 0,
+      totalSales: 0,
+    };
+  }
+  return {
+    communitiesManaged: snapshots.community.communitiesManaged,
+    communitiesJoined: snapshots.community.communitiesJoined,
+  };
 }

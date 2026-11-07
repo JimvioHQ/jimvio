@@ -12,6 +12,11 @@ import {
   resolveIdentitySection,
   type IdentityV2SectionId,
 } from "@/lib/identity/v2-sections";
+import {
+  resolvePrimaryIdentityLabel,
+  shouldShowCreatorProgramBadge,
+} from "@/lib/identity/identity-types";
+import { formatPublicCountry, shortBioPreview } from "@/lib/identity/public-location";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
@@ -41,7 +46,13 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
 
   const displayName = profile.fullName || profile.username || "Jimvio member";
   const availability = AVAILABILITY_META[profile.availability] ?? AVAILABILITY_META.open;
-  const location = [profile.city, profile.country].filter(Boolean).join(", ");
+  const location = formatPublicCountry(profile.country);
+  const identityLabel = resolvePrimaryIdentityLabel(profile.industries, profile.specialties);
+  const showCreatorBadge = shouldShowCreatorProgramBadge(identityLabel, {
+    isInfluencer: payload.isInfluencer,
+    xp: levelProgress.xp,
+  });
+  const shortBio = shortBioPreview(profile.bio);
   const jimvioFollowers = payload.jimvioFollowers ?? 0;
   const jimvioFollowing = payload.jimvioFollowing ?? 0;
 
@@ -54,15 +65,38 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
     });
   }, [payload.social]);
 
-  const tabs: IdentityTab[] = useMemo(
-    () =>
-      IDENTITY_V2_SECTIONS.map((section) => ({
-        id: section.id,
-        label: section.label,
-        href: `${pathname}?tab=${section.id}#${section.id}`,
-      })),
-    [pathname],
-  );
+  const tabs: IdentityTab[] = useMemo(() => {
+    const experience = payload.resume.filter(
+      (e) => e.entryType === "experience" || e.entryType === "industry",
+    );
+    const education = payload.resume.filter(
+      (e) => e.entryType === "education" || e.entryType === "certification",
+    );
+    const businessEntries = payload.resume.filter(
+      (e) => e.entryType === "brand" || e.entryType === "campaign",
+    );
+    const presence = payload.modulePresence;
+    const visible = new Set<IdentityV2SectionId>(["overview"]);
+    if (experience.length > 0) visible.add("experience");
+    if (education.length > 0) visible.add("education");
+    if (profile.skills.length > 0) visible.add("skills");
+    if (payload.portfolio.length > 0) visible.add("portfolio");
+    if (businessEntries.length > 0 || presence?.any) visible.add("business");
+    if (
+      isOwner ||
+      payload.canBook ||
+      profile.contactPreferences.in_app ||
+      profile.contactPreferences.email ||
+      profile.contactPreferences.booking
+    ) {
+      visible.add("services");
+    }
+    return IDENTITY_V2_SECTIONS.filter((section) => visible.has(section.id)).map((section) => ({
+      id: section.id,
+      label: section.label,
+      href: `${pathname}?tab=${section.id}#${section.id}`,
+    }));
+  }, [pathname, payload, profile, isOwner]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -155,13 +189,25 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                       {location}
                     </IdentityPill>
                   ) : null}
-                  <IdentityPill tone="accent">{levelProgress.levelLabel} Creator</IdentityPill>
+                  {identityLabel ? (
+                    <IdentityPill tone="accent">{identityLabel}</IdentityPill>
+                  ) : null}
+                  {showCreatorBadge ? (
+                    <IdentityPill tone="accent">
+                      {levelProgress.levelLabel} Creator
+                    </IdentityPill>
+                  ) : null}
                   <IdentityPill tone={availability.tone}>{availability.label}</IdentityPill>
                 </div>
 
                 {profile.headline ? (
                   <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[#111827] sm:text-[15px]">
                     {profile.headline}
+                  </p>
+                ) : null}
+                {shortBio && shortBio !== profile.headline ? (
+                  <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#6B7280]">
+                    {shortBio}
                   </p>
                 ) : null}
               </div>
@@ -242,7 +288,11 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
       <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[13.5px] font-semibold text-[#111827]">
-            {levelProgress.levelLabel} Creator status
+            {showCreatorBadge
+              ? `${levelProgress.levelLabel} Creator status`
+              : identityLabel
+                ? `${identityLabel} on Jimvio`
+                : "Jimvio Identity"}
           </p>
           <p className="mt-0.5 text-[12.5px] text-[#6B7280]">
             Public information controlled by profile owner. Private data stays private.

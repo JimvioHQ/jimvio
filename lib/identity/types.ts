@@ -620,6 +620,15 @@ export interface IdentityProfileCore {
   reviewCount: number;
 }
 
+/** Which Business & Creator modules have public owned content. */
+export interface IdentityModulePresence {
+  ugc: boolean;
+  affiliate: boolean;
+  marketplace: boolean;
+  community: boolean;
+  any: boolean;
+}
+
 /** Unified, privacy-aware payload consumed directly by the Identity UI. */
 export interface IdentityProfilePayload {
   profile: IdentityProfileCore;
@@ -638,4 +647,8 @@ export interface IdentityProfilePayload {
   isOwner: boolean;
   canBook: boolean;
   restricted: boolean;
+  /** Owned-only module presence for conditional public rendering. */
+  modulePresence?: IdentityModulePresence;
+  /** True when the user has an influencers row (creator program participant). */
+  isInfluencer?: boolean;
 }

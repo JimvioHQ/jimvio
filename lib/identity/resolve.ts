@@ -12,6 +12,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { resolveProfileFollowerCount } from "@/lib/community/follower-count";
 import { levelProgress as computeLevelProgress } from "./levels";
+import {
+  getModuleSnapshots,
+  modulePresenceFromSnapshots,
+} from "./module-snapshots";
 import { canViewFullDetails, canViewIdentity, privacyFieldVisible } from "./privacy";
 import { computeCreatorStats } from "./stats";
 import type {
@@ -466,6 +470,8 @@ async function buildProfilePayload(
       isOwner: isSelf,
       canBook: false,
       restricted: true,
+      modulePresence: { ugc: false, affiliate: false, marketplace: false, community: false, any: false },
+      isInfluencer: false,
     };
   }
 
@@ -493,6 +499,8 @@ async function buildProfilePayload(
     { data: aiInsightsRow },
     creatorStats,
     reviews,
+    moduleSnapshots,
+    { data: influencerRow },
   ] = await Promise.all([
     socialsQuery,
     portfolioQuery,
@@ -505,7 +513,12 @@ async function buildProfilePayload(
       : Promise.resolve({ data: null }),
     computeCreatorStats(profile.id),
     loadPublicReviews(db, profile.id),
+    getModuleSnapshots(profile.id),
+    db.from("influencers").select("id").eq("user_id", profile.id).maybeSingle(),
   ]);
+
+  const modulePresence = modulePresenceFromSnapshots(moduleSnapshots);
+  const isInfluencer = Boolean(influencerRow?.id);
 
   const badges = ((userBadges ?? []) as unknown as UserBadge[])
     .map((ub) => ub.badge)
@@ -520,9 +533,10 @@ async function buildProfilePayload(
       ...profileCore,
       bio: privacyFieldVisible(custom, "showBio") ? profileCore.bio : null,
       website: privacyFieldVisible(custom, "showWebsite") ? profileCore.website : null,
-      city: privacyFieldVisible(custom, "showLocation") ? profileCore.city : null,
+      // Public identity is country-only — never expose city to visitors.
+      city: null,
       country: privacyFieldVisible(custom, "showLocation") ? profileCore.country : null,
-      languages: privacyFieldVisible(custom, "showSkills") ? profileCore.languages : [],
+      languages: [],
       skills: privacyFieldVisible(custom, "showSkills") ? profileCore.skills : [],
     };
     if (!privacyFieldVisible(custom, "showSocial")) {
@@ -531,6 +545,9 @@ async function buildProfilePayload(
       // Visitors only see accounts the person proved are theirs.
       publicSocial = publicSocial.filter((a) => a.isVerified || a.platform === "website");
     }
+  } else {
+    // Owner preview of the public page still uses country-only location display
+    // in the UI; keep city in the payload for settings editors only.
   }
 
   return {
@@ -553,6 +570,8 @@ async function buildProfilePayload(
     isOwner: isSelf,
     canBook,
     restricted: false,
+    modulePresence,
+    isInfluencer,
   };
 }
 

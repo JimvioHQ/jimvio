@@ -8,7 +8,7 @@
 export const CREATOR_PROFILE_REQUIRED_FIELDS = [
   { id: "fullName", label: "Full name" },
   { id: "username", label: "Username" },
-  { id: "categories", label: "What you create" },
+  { id: "categories", label: "What best describes you" },
   { id: "headline", label: "Headline" },
   { id: "bio", label: "Bio" },
   { id: "country", label: "Country" },

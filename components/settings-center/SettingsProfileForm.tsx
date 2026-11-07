@@ -45,7 +45,7 @@ import {
   settingsTextareaClass,
 } from "./settings-ui";
 import { LockedCountryField } from "@/components/geo/LockedCountryField";
-import { CategoryPicker } from "@/components/identity/CategoryPicker";
+import { IdentityTypePicker } from "@/components/identity/IdentityTypePicker";
 import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
 import { SocialAccountsManager } from "@/components/identity/SocialAccountsManager";
 import { IdentityPortfolioManager } from "@/components/identity/IdentityPortfolioManager";
@@ -297,7 +297,11 @@ export function SettingsProfileForm({
 
       <div className="mx-auto max-w-3xl">
         <div className="space-y-5">
-          <SettingsCard title="About you" description="Who you are and what you make." icon={<UserRound className="h-4 w-4" />}>
+          <SettingsCard
+            title="Basic identity"
+            description="Name, username, and profile images shown across Jimvio."
+            icon={<UserRound className="h-4 w-4" />}
+          >
             <div className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <SettingsField label="First name" htmlFor="settings-first-name">
@@ -350,13 +354,33 @@ export function SettingsProfileForm({
                   />
                 </SettingsField>
               </div>
-              <div id="field-categories" className="scroll-mt-24">
-                <SettingsField label="What you create *">
-                  <CategoryPicker value={categories} onChange={setCategories} />
-                </SettingsField>
-              </div>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            title="Identity type"
+            description="How you appear professionally across Jimvio."
+            icon={<BadgeCheck className="h-4 w-4" />}
+          >
+            <div id="field-categories" className="scroll-mt-24">
+              <SettingsField label="What best describes you? *">
+                <IdentityTypePicker value={categories} onChange={setCategories} />
+              </SettingsField>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            title="Professional headline & bio"
+            description="Your headline appears in the profile header. The full biography stays in Overview."
+            icon={<Briefcase className="h-4 w-4" />}
+          >
+            <div className="space-y-4">
               <div id="field-headline" className="scroll-mt-24">
-                <SettingsField label="Headline *" htmlFor="settings-headline" hint="One line under your name, e.g. “Afrobeats dancer from Kigali”.">
+                <SettingsField
+                  label="Professional headline *"
+                  htmlFor="settings-headline"
+                  hint="One clear line under your name — who you are and what you do."
+                >
                   <input
                     id="settings-headline"
                     className={settingsInputClass}
@@ -367,14 +391,14 @@ export function SettingsProfileForm({
                 </SettingsField>
               </div>
               <div id="field-bio" className="scroll-mt-24">
-                <SettingsField label="Bio *" htmlFor="settings-bio" error={fieldErrors.bio}>
+                <SettingsField label="Full biography *" htmlFor="settings-bio" error={fieldErrors.bio}>
                   <textarea
                     id="settings-bio"
                     className={settingsTextareaClass}
                     value={bio}
                     maxLength={bioMax}
                     rows={5}
-                    placeholder="Tell brands and the community about you, your content and your audience."
+                    placeholder="Share your professional story, focus areas, and the value you offer."
                     onChange={(e) => setBio(e.target.value)}
                   />
                   <p className="mt-1.5 text-right text-[12px] text-[#9CA3AF]">
@@ -386,19 +410,39 @@ export function SettingsProfileForm({
             </div>
           </SettingsCard>
 
-          <SettingsCard title="Location & languages" icon={<MapPin className="h-4 w-4" />}>
+          <SettingsCard
+            title="Country & public details"
+            description="Only your country appears on the public profile. City stays private."
+            icon={<MapPin className="h-4 w-4" />}
+          >
             <div className="grid gap-4 sm:grid-cols-2">
-              <SettingsField label="City" htmlFor="settings-city">
-                <input id="settings-city" className={settingsInputClass} value={city} onChange={(e) => setCity(e.target.value)} />
-              </SettingsField>
-              <div id="field-country" className="scroll-mt-24">
+              <div id="field-country" className="scroll-mt-24 sm:col-span-2">
                 <SettingsField label="Country">
                   <LockedCountryField fallback={country || null} />
                 </SettingsField>
               </div>
+              <SettingsField
+                label="City (private)"
+                htmlFor="settings-city"
+                hint="Stored for your account — never shown on the public profile."
+              >
+                <input
+                  id="settings-city"
+                  className={settingsInputClass}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+              </SettingsField>
               <div className="sm:col-span-2">
-                <SettingsField label="Languages you speak">
-                  <TagInput values={languages} onChange={setLanguages} placeholder="English, Kinyarwanda… press Enter" />
+                <SettingsField
+                  label="Languages you speak"
+                  hint="Saved privately for account preferences — not shown on the public Overview."
+                >
+                  <TagInput
+                    values={languages}
+                    onChange={setLanguages}
+                    placeholder="English, Kinyarwanda… press Enter"
+                  />
                 </SettingsField>
               </div>
             </div>
@@ -416,7 +460,11 @@ export function SettingsProfileForm({
 
           <IdentityPortfolioManager initialItems={initialPayload.portfolio} />
 
-          <SettingsCard title="Skills & work" description="Shown to brands looking for creators." icon={<Briefcase className="h-4 w-4" />}>
+          <SettingsCard
+            title="Skills & work"
+            description="Skills, availability, and professional links shown when public."
+            icon={<Briefcase className="h-4 w-4" />}
+          >
             <div className="space-y-4">
               <SettingsField label="Skills">
                 <TagInput values={skills} onChange={setSkills} placeholder="Video editing, voice-over… press Enter" />
