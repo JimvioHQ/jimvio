@@ -9,9 +9,13 @@
 export const PRIORITY_POPULAR_USERNAMES: readonly string[] = [
   "barick",
   "p7provider",
+  "primefxinvest",
+  "quantforg",
 ];
 
 /** Community slugs that should appear in Trending when publicly discoverable. */
 export const PRIORITY_TRENDING_COMMUNITY_SLUGS: readonly string[] = [
   "p7provider",
+  "primefx-invest",
+  "quantforg",
 ];

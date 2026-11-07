@@ -14,13 +14,16 @@ import {
   Home,
   Layers,
   MessageSquare,
+  Plus,
   Radio,
+  Settings2,
   Target,
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
-import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { useFeedHubSnapshot, useFeedUser } from "@/lib/feed/use-feed-user";
+import { fetchPinsShared } from "@/lib/community/pins-client";
 import { manageCommunityHref } from "@/lib/community/owner-console/nav";
 
 export type SidebarItem =
@@ -140,13 +143,18 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const { user: feedUser, isAuthenticated, isLoading: authLoading } = useFeedUser();
   const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
-  const [communities, setCommunities] = useState<CommunityRow[]>([]);
+  const hubSnapshot = useFeedHubSnapshot();
+  const initialUserIdRef = useRef<string | null>(feedUser?.id ?? null);
+  const [communities, setCommunities] = useState<CommunityRow[]>(() => hubSnapshot?.joined ?? []);
   const [pinned, setPinned] = useState<CommunityRow[]>([]);
-  const [ownedCommunities, setOwnedCommunities] = useState<CommunityRow[]>([]);
-  const [communitiesLoading, setCommunitiesLoading] = useState(true);
+  /** Server-verified manage target; null → "Create Community". */
+  const [manage, setManage] = useState<{ slug: string; name: string } | null>(
+    () => hubSnapshot?.manage ?? null,
+  );
+  const [communitiesLoading, setCommunitiesLoading] = useState(() => !hubSnapshot);
   const [communitiesError, setCommunitiesError] = useState(false);
   const [user, setUser] = useState(userProp ?? null);
-  const lastGoodCommunitiesRef = useRef<CommunityRow[]>([]);
+  const lastGoodCommunitiesRef = useRef<CommunityRow[]>(hubSnapshot?.joined ?? []);
 
   useEffect(() => {
     if (userProp) {
@@ -157,19 +165,33 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       setUser({
         name: feedUser.fullName ?? feedUser.displayName,
         avatarUrl: feedUser.avatarUrl,
-        level: 1,
+        level: hubSnapshot?.level ?? 1,
         role: "Creator",
         verified: false,
-        xp: 0,
-        xpGoal: 1,
+        xp: hubSnapshot?.xp ?? 0,
+        xpGoal: 1000,
       });
       return;
     }
     if (!authLoading && !isAuthenticated) setUser(null);
-  }, [userProp, feedUser, isAuthenticated, authLoading]);
+  }, [userProp, feedUser, isAuthenticated, authLoading, hubSnapshot]);
 
   useEffect(() => {
     let cancelled = false;
+
+    async function loadPins() {
+      const pinJson = await fetchPinsShared();
+      if (cancelled || !pinJson) return;
+      const pinsMapped: CommunityRow[] = [];
+      for (const pin of (pinJson.pins ?? []) as Array<{ community?: CommunityRow | null }>) {
+        const c = pin.community;
+        if (c?.id && c?.slug && c?.name) {
+          pinsMapped.push({ id: c.id, name: c.name, slug: c.slug, avatar_url: c.avatar_url ?? null });
+        }
+      }
+      setPinned(pinsMapped);
+    }
+
     async function load() {
       // Wait for auth hydration — never treat "still loading" as signed-out empty.
       if (authLoading && !userProp && !feedUser?.id) {
@@ -183,131 +205,97 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         lastGoodCommunitiesRef.current = [];
         setCommunities([]);
         setPinned([]);
-        setOwnedCommunities([]);
+        setManage(null);
         setCommunitiesLoading(false);
         setCommunitiesError(false);
         return;
       }
 
-      // Soft refresh: keep existing list visible while refetching.
+      // Server snapshot (hub layout): communities, manage access and level are
+      // already known — only pins are fetched, no Supabase round trips.
+      if (hubSnapshot && (!feedUser?.id || feedUser.id === initialUserIdRef.current)) {
+        void loadPins();
+        return;
+      }
+
+      // Fallback (no server snapshot): one auth read, then everything in parallel.
       if (lastGoodCommunitiesRef.current.length === 0) {
         setCommunitiesLoading(true);
       }
       setCommunitiesError(false);
       const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      const authUserId = feedUser?.id ?? authUser?.id;
+      const authUserId =
+        feedUser?.id ?? (await supabase.auth.getUser()).data.user?.id ?? null;
       if (!authUserId || cancelled) {
-        // Auth still resolving — preserve last known-good.
         if (!cancelled && lastGoodCommunitiesRef.current.length === 0) {
           setCommunitiesLoading(true);
         }
         return;
       }
 
-      if (!userProp) {
-        const [profRes, pointsRes] = await Promise.all([
-          supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUserId).maybeSingle(),
-          supabase.from("member_points").select("total_points, level").eq("user_id", authUserId).order("total_points", { ascending: false }).limit(1).maybeSingle(),
-        ]);
-        if (!cancelled && profRes.data) {
-          const level = pointsRes.data?.level ?? 1;
-          const xp = pointsRes.data?.total_points ?? 0;
-          setUser({
-            name: profRes.data.full_name ?? profRes.data.username ?? "Member",
-            avatarUrl: profRes.data.avatar_url,
-            level,
-            role: "Creator",
-            verified: true,
-            xp: xp % 1000,
-            xpGoal: 1000,
-          });
-        }
-      }
-
-      const { data, error } = await supabase
-        .from("community_memberships")
-        .select("communities!inner(id, name, slug, avatar_url, is_active)")
-        .eq("user_id", authUserId)
-        .eq("status", "active")
-        .eq("communities.is_active", true)
-        .limit(20);
-
+      const [profRes, pointsRes, joinedRes, ownedRes] = await Promise.all([
+        userProp
+          ? Promise.resolve({ data: null })
+          : supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUserId).maybeSingle(),
+        userProp
+          ? Promise.resolve({ data: null })
+          : supabase.from("member_points").select("total_points, level").eq("user_id", authUserId).order("total_points", { ascending: false }).limit(1).maybeSingle(),
+        supabase
+          .from("community_memberships")
+          .select("communities!inner(id, name, slug, avatar_url, is_active)")
+          .eq("user_id", authUserId)
+          .eq("status", "active")
+          .eq("communities.is_active", true)
+          .limit(20),
+        supabase
+          .from("communities")
+          .select("id, name, slug, avatar_url")
+          .eq("owner_id", authUserId)
+          .eq("is_active", true)
+          .order("name")
+          .limit(8),
+        loadPins(),
+      ]);
       if (cancelled) return;
 
-      if (error) {
+      const prof = profRes.data as { full_name: string | null; username: string | null; avatar_url: string | null } | null;
+      if (prof) {
+        const points = pointsRes.data as { level?: number | null; total_points?: number | null } | null;
+        setUser({
+          name: prof.full_name ?? prof.username ?? "Member",
+          avatarUrl: prof.avatar_url,
+          level: points?.level ?? 1,
+          role: "Creator",
+          verified: true,
+          xp: (points?.total_points ?? 0) % 1000,
+          xpGoal: 1000,
+        });
+      }
+
+      if (joinedRes.error) {
         setCommunitiesError(true);
-        // Keep last known-good list; do not wipe to [].
-        if (lastGoodCommunitiesRef.current.length === 0) {
-          setCommunitiesLoading(false);
-        } else {
-          setCommunitiesLoading(false);
-        }
+        setCommunitiesLoading(false);
         return;
       }
 
       const mapped: CommunityRow[] = [];
-      for (const row of data ?? []) {
-        const raw = (row as { communities: CommunityRow | CommunityRow[] | null })
-          .communities;
+      for (const row of joinedRes.data ?? []) {
+        const raw = (row as { communities: CommunityRow | CommunityRow[] | null }).communities;
         const c = Array.isArray(raw) ? raw[0] : raw;
         if (c?.id && c?.slug && c?.name) {
-          mapped.push({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            avatar_url: c.avatar_url ?? null,
-          });
+          mapped.push({ id: c.id, name: c.name, slug: c.slug, avatar_url: c.avatar_url ?? null });
         }
       }
       lastGoodCommunitiesRef.current = mapped;
       setCommunities(mapped);
       setCommunitiesError(false);
-
-      const { data: ownedRows } = await supabase
-        .from("communities")
-        .select("id, name, slug, avatar_url")
-        .eq("owner_id", authUserId)
-        .eq("is_active", true)
-        .order("name")
-        .limit(8);
-      if (!cancelled) {
-        setOwnedCommunities(
-          (ownedRows ?? []).map((c: { id: string; name: string; slug: string; avatar_url: string | null }) => ({
-            id: c.id,
-            name: c.name,
-            slug: c.slug,
-            avatar_url: c.avatar_url ?? null,
-          }))
-        );
-      }
-
-      try {
-        const pinRes = await fetch("/api/c/pins", { cache: "no-store" });
-        if (pinRes.ok && !cancelled) {
-          const pinJson = await pinRes.json();
-          const pinsMapped: CommunityRow[] = [];
-          for (const pin of pinJson.pins ?? []) {
-            const c = pin.community;
-            if (c?.id && c?.slug && c?.name) {
-              pinsMapped.push({
-                id: c.id,
-                name: c.name,
-                slug: c.slug,
-                avatar_url: c.avatar_url ?? null,
-              });
-            }
-          }
-          setPinned(pinsMapped);
-        }
-      } catch {
-        /* optional */
-      }
-      if (!cancelled) setCommunitiesLoading(false);
+      const owned = (ownedRes.data ?? []) as { slug: string; name: string }[];
+      setManage(owned[0] ? { slug: owned[0].slug, name: owned[0].name } : null);
+      setCommunitiesLoading(false);
     }
     void load();
     return () => { cancelled = true; };
-  }, [userProp, isAuthenticated, feedUser?.id, authLoading]);
+  }, [userProp, isAuthenticated, feedUser?.id, authLoading, hubSnapshot]);
 
   const profile = user ?? GUEST_PROFILE;
   const isGuest = !authLoading && !isAuthenticated && !userProp;
@@ -342,14 +330,26 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
               </p>
             </div>
           </Link>
-          {ownedCommunities.length > 0 ? (
+          {manage ? (
             <Link
-              href={manageCommunityHref(ownedCommunities[0]!.slug)}
-              className="mt-3 flex min-h-9 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-semibold text-orange-600 transition hover:bg-orange-100"
+              href={manageCommunityHref(manage.slug)}
+              className="mt-3 flex min-h-9 items-center justify-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-semibold text-orange-600 transition hover:bg-orange-100"
+              aria-label={`Manage ${manage.name}`}
             >
+              <Settings2 className="h-3.5 w-3.5" aria-hidden />
               Manage Community
             </Link>
-          ) : null}
+          ) : !communitiesLoading || isGuest ? (
+            <Link
+              href={isGuest ? "/login?next=/communities/create" : "/communities/create"}
+              className="mt-3 flex min-h-9 items-center justify-center gap-1.5 rounded-lg bg-[#fd5000] px-3 text-xs font-semibold text-white transition hover:bg-[#e64800]"
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              Create Community
+            </Link>
+          ) : (
+            <span className="mt-3 block h-9 animate-pulse rounded-lg bg-gray-100" aria-hidden />
+          )}
         </div>
 
         <nav className="space-y-0.5 p-3">

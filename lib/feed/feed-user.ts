@@ -6,9 +6,30 @@ export type FeedUser = {
   avatarUrl: string | null;
 };
 
+export type FeedHubCommunity = {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+};
+
+/**
+ * Server snapshot for the Communities sidebar so "My communities" and the
+ * Create / Manage Community action render in the first paint. Manage access
+ * is decided server-side (owner, or staff role that can enter the console).
+ */
+export type FeedHubSnapshot = {
+  joined: FeedHubCommunity[];
+  /** First community the viewer can manage, or null → show Create Community. */
+  manage: { slug: string; name: string } | null;
+  level: number;
+  xp: number;
+};
+
 export type FeedAuthInitial = {
   isAuthenticated: boolean;
   user: FeedUser | null;
+  hub?: FeedHubSnapshot | null;
 };
 
 export function toDisplayName(fullName: string | null, username: string | null): string {

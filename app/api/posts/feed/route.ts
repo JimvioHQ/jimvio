@@ -17,6 +17,7 @@ import { assertCommunityPublish, withPublishAs, type PublishAs } from "@/lib/fee
 import { getAuthorizedPostDestinations } from "@/lib/community/post-destinations";
 import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
+import { parseFeedAvoidIds } from "@/lib/feed/feed-session-head";
 import {
   isUpstreamUnavailable,
   UpstreamUnavailableError,
@@ -63,12 +64,17 @@ async function getPublicDiscoveryFeed(
     communityId: searchParams.get("community_id"),
     draftsOnly: searchParams.get("drafts") === "1",
     tag: searchParams.get("tag"),
+    avoidIds: parseFeedAvoidIds(searchParams.get("avoid")),
   });
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
   return NextResponse.json(
-    { posts: result.posts, next_cursor: result.next_cursor },
+    {
+      posts: result.posts,
+      next_cursor: result.next_cursor,
+      session_cursor: result.session_cursor ?? null,
+    },
     { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
   );
 }
@@ -210,6 +216,7 @@ export async function GET(req: NextRequest) {
         useRanking,
         filter,
         verifiedCommunityIds,
+        avoidIds: parseFeedAvoidIds(searchParams.get("avoid")),
         signal: AbortSignal.timeout(12_000),
       });
 
@@ -267,7 +274,7 @@ export async function GET(req: NextRequest) {
       });
 
       return NextResponse.json(
-        { posts, next_cursor: global.next_cursor },
+        { posts, next_cursor: global.next_cursor, session_cursor: global.session_cursor },
         { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
       );
     } catch (err) {

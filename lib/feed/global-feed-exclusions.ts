@@ -28,7 +28,10 @@ export function getGlobalFeedRotationBucket(now = Date.now()): number {
   } catch {
     /* keep Math.random fallback */
   }
-  return now * 1_000_000 + entropy;
+  // Keep the seed inside Number.MAX_SAFE_INTEGER so it round-trips exactly
+  // through the cursor string (the previous now * 1e6 exceeded 2^53 and lost
+  // most of its entropy to float rounding).
+  return (now % 1_000_000_000) * 1_000_000 + entropy;
 }
 
 export type GlobalFeedCursor = {

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Image as ImageIcon,
+  Link2,
   List,
   Loader2,
   MapPin,
@@ -113,6 +114,10 @@ export function PostComposer({
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  /** Hard guard against double submits (state updates are async). */
+  const submittingRef = useRef(false);
+  /** Media item being replaced by the next file pick. */
+  const replaceIdRef = useRef<string | null>(null);
 
   // Authorized destinations only (owned first) — server-deduped by community id.
   useEffect(() => {
@@ -202,6 +207,13 @@ export function PostComposer({
   const mentions = useMemo(() => extractMentions(body), [body]);
   const hashtags = useMemo(() => extractHashtags(body), [body]);
   const charsLeft = COMPOSER_MAX_CHARS - body.length;
+  const hasPollOptions = pollOptions.filter((o) => o.trim()).length >= 2;
+  const canPublish =
+    !saving &&
+    !media.some((m) => m.status === "uploading") &&
+    (mode === "poll"
+      ? hasPollOptions
+      : body.trim().length > 0 || media.some((m) => m.status === "ready"));
 
   const uploadOne = useCallback(async (file: File) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -253,6 +265,11 @@ export function PostComposer({
   const handleFiles = useCallback(
     (files: FileList | File[] | null) => {
       if (!files) return;
+      const replaceId = replaceIdRef.current;
+      replaceIdRef.current = null;
+      if (replaceId && files.length) {
+        setMedia((prev) => prev.filter((m) => m.id !== replaceId));
+      }
       for (const file of Array.from(files)) {
         if (file.type.startsWith("image/") || file.type.startsWith("video/")) {
           void uploadOne(file);
@@ -268,7 +285,26 @@ export function PostComposer({
     await uploadOne(item.file);
   }
 
+  function pickFiles(kind: "image" | "video" | "any", replaceId: string | null = null) {
+    const input = fileRef.current;
+    if (!input) return;
+    replaceIdRef.current = replaceId;
+    input.accept = kind === "image" ? "image/*,.gif" : kind === "video" ? "video/*" : "image/*,video/*,.gif";
+    input.multiple = !replaceId;
+    input.click();
+  }
+
+  // Page composer grows with its content instead of scrolling inside a box.
+  useEffect(() => {
+    if (!isPage) return;
+    const el = textRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.6))}px`;
+  }, [body, isPage, expanded, preview]);
+
   async function submit(asDraft = false) {
+    if (submittingRef.current) return;
     if (!communityId) {
       toast.error("Join a community to post");
       window.location.href = "/communities";
@@ -292,6 +328,7 @@ export function PostComposer({
       return;
     }
 
+    submittingRef.current = true;
     setSaving(true);
     try {
       const images = readyMedia.filter((m) => m.kind === "image").map((m) => m.url);
@@ -380,11 +417,14 @@ export function PostComposer({
           communityId: created.community?.id ?? created.post?.community_id ?? communityId,
           post: created.post ?? null,
         });
-        router.refresh();
+        // The page variant navigates to the feed itself (fresh SSR); only the
+        // inline composer needs to refresh the current route.
+        if (!onPublished) router.refresh();
       }
     } catch {
       toast.error("Network error");
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
@@ -607,7 +647,11 @@ export function PostComposer({
                 }}
                 placeholder={`What's on your mind, ${displayName}?`}
                 rows={isPage ? 6 : 4}
-                className="w-full resize-none break-words rounded-xl bg-[var(--color-surface-secondary)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:bg-[var(--color-surface-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
+                aria-label="Post text"
+                className={cn(
+                  "w-full resize-none break-words rounded-xl bg-[var(--color-surface-secondary)] px-4 py-3 text-[15px] leading-relaxed text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:bg-[var(--color-surface-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30",
+                  isPage && "min-h-[160px] overflow-y-auto",
+                )}
               />
             ) : (
               <button
@@ -727,37 +771,65 @@ export function PostComposer({
           )}
 
           {media.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
               {media.map((m) => (
                 <div
                   key={m.id}
-                  className="relative h-20 w-20 overflow-hidden rounded-lg border border-gray-100 bg-gray-50"
+                  className="group relative aspect-square overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
                 >
                   {m.url && m.kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.url} alt={m.alt || m.name} className="h-full w-full object-cover" />
                   ) : m.url && m.kind === "video" ? (
-                    <video src={m.url} className="h-full w-full object-cover" muted />
+                    <video src={m.url} className="h-full w-full object-cover" muted playsInline />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] text-gray-400">
-                      {m.status === "uploading" ? `${m.progress}%` : "Failed"}
+                    <div className="flex h-full flex-col items-center justify-center gap-1.5 px-2 text-[11px] text-[var(--color-text-muted)]">
+                      {m.status === "uploading" ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                          <span className="tabular-nums">{m.progress}%</span>
+                          <span className="h-1 w-full overflow-hidden rounded-full bg-gray-200">
+                            <span
+                              className="block h-full bg-[#fd5000] transition-[width]"
+                              style={{ width: `${m.progress}%` }}
+                            />
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-medium text-red-600">Upload failed</span>
+                      )}
                     </div>
                   )}
-                  {m.status === "failed" && (
+                  {m.kind === "video" && m.url ? (
+                    <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <Video className="h-3 w-3" aria-hidden /> Video
+                    </span>
+                  ) : null}
+                  {m.status === "failed" ? (
                     <button
                       type="button"
                       onClick={() => void retryUpload(m)}
-                      className="absolute inset-x-0 bottom-0 bg-black/60 text-[10px] text-white"
+                      className="absolute inset-x-1.5 bottom-1.5 rounded-md bg-black/70 py-1 text-[11px] font-semibold text-white"
                     >
                       Retry
                     </button>
-                  )}
+                  ) : null}
+                  {m.status === "ready" ? (
+                    <button
+                      type="button"
+                      onClick={() => pickFiles(m.kind, m.id)}
+                      className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                    >
+                      Replace
+                    </button>
+                  ) : null}
                   <button
                     type="button"
+                    aria-label={`Remove ${m.name}`}
                     onClick={() => setMedia((prev) => prev.filter((x) => x.id !== m.id))}
-                    className="absolute right-0.5 top-0.5 rounded-full bg-black/50 p-0.5 text-white"
+                    className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/75"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))}
@@ -765,37 +837,55 @@ export function PostComposer({
           )}
 
           {linkPreview && (
-            <div className="truncate rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-              Link preview · {linkPreview}
-            </div>
+            <a
+              href={linkPreview}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-w-0 items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 transition-colors hover:border-[#fd5000]/30"
+            >
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-surface)] text-[#fd5000] ring-1 ring-[var(--color-border)]">
+                <Link2 className="h-4 w-4" aria-hidden />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold text-[var(--color-text-primary)]">
+                  {linkHost(linkPreview)}
+                </span>
+                <span className="block truncate text-[11px] text-[var(--color-text-muted)]">{linkPreview}</span>
+              </span>
+            </a>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Users className="h-3.5 w-3.5 text-gray-400" />
-            {AUDIENCE_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setAudience(opt.id)}
-                className={cn(
-                  "rounded-full px-2.5 py-1 text-[11px] font-medium",
-                  audience === opt.id
-                    ? "bg-orange-50 text-orange-600"
-                    : "text-gray-500 hover:bg-gray-100"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-400">
-              <MapPin className="h-3 w-3" />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Who can see this post">
+              <Users className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
+              {AUDIENCE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={audience === opt.id}
+                  onClick={() => setAudience(opt.id)}
+                  className={cn(
+                    "min-h-8 rounded-full border px-3 text-[12px] font-medium transition-colors",
+                    audience === opt.id
+                      ? "border-[#fd5000]/30 bg-[#fd5000]/10 text-[#fd5000]"
+                      : "border-transparent text-gray-500 hover:bg-gray-100"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <label className="inline-flex min-h-8 min-w-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 text-[12px] text-gray-500 focus-within:border-[#fd5000]/40 sm:w-48">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value.slice(0, 120))}
-                placeholder="Location"
-                className="w-28 border-0 bg-transparent outline-none placeholder:text-gray-400"
+                placeholder="Add location"
+                aria-label="Location"
+                className="min-w-0 flex-1 border-0 bg-transparent outline-none placeholder:text-gray-400"
               />
-            </span>
+            </label>
           </div>
 
           {aiOpen ? (
@@ -810,85 +900,80 @@ export function PostComposer({
             />
           ) : null}
 
-          <div className="flex flex-col gap-3 border-t border-[var(--color-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 scrollbar-hide">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)] active:bg-[var(--color-surface-secondary)]"
-              >
-                <ImageIcon className="h-3.5 w-3.5" /> Photo
-              </button>
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)] active:bg-[var(--color-surface-secondary)]"
-              >
-                <Video className="h-3.5 w-3.5" /> Video
-              </button>
-              <button
-                type="button"
-                onClick={() => openComposer("poll")}
-                className={cn(
-                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors hover:bg-[var(--color-surface-secondary)] active:bg-[var(--color-surface-secondary)]",
-                  mode === "poll" ? "bg-[#FF5A1F]/10 text-[#FF5A1F]" : "text-[var(--color-text-secondary)]"
-                )}
-              >
-                <List className="h-3.5 w-3.5" /> Poll
-              </button>
-              <Link
-                href="/communities/live"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.assign("/communities/live");
-                }}
-                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-[#FF5A1F]/10 px-3 py-2 text-xs font-semibold text-[#FF5A1F] transition-colors hover:bg-[#FF5A1F]/15 active:bg-[#FF5A1F]/20"
-              >
-                <Radio className="h-3.5 w-3.5" /> Go Live
-              </Link>
-              <Link
-                href="/communities/missions"
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-              >
-                <SquareArrowUpRight className="h-3.5 w-3.5" /> Mission
-              </Link>
-              <button
-                type="button"
+          <div>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+              Add to your post
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              <ComposerTool icon={<ImageIcon className="h-4 w-4" />} label="Photo" onClick={() => pickFiles("image")} />
+              <ComposerTool icon={<Video className="h-4 w-4" />} label="Video" onClick={() => pickFiles("video")} />
+              <ComposerTool
+                icon={<List className="h-4 w-4" />}
+                label="Poll"
+                active={mode === "poll"}
+                onClick={() => setMode((m) => (m === "poll" ? "discussion" : "poll"))}
+              />
+              <ComposerTool
+                icon={<Sparkles className="h-4 w-4" />}
+                label="AI Assist"
+                accent
+                active={aiOpen}
                 onClick={() => setAiOpen((v) => !v)}
-                aria-expanded={aiOpen}
-                className={cn(
-                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors",
-                  aiOpen ? "bg-[#fd5000] text-white" : "bg-[#fd5000]/10 text-[#fd5000] hover:bg-[#fd5000]/15"
-                )}
-              >
-                <Sparkles className="h-3.5 w-3.5" /> AI Assist
-              </button>
+              />
+              <ComposerTool
+                icon={<Radio className="h-4 w-4" />}
+                label="Go Live"
+                accent
+                onClick={() => window.location.assign("/communities/live")}
+              />
+              <ComposerTool
+                icon={<SquareArrowUpRight className="h-4 w-4" />}
+                label="Mission"
+                onClick={() => router.push("/communities/missions")}
+              />
             </div>
-            <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
+          </div>
+
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3",
+              isPage &&
+                "sticky bottom-0 z-10 -mx-5 -mb-5 rounded-b-2xl bg-[var(--color-surface)]/95 px-5 pb-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6 sm:pb-5",
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-2" aria-live="polite">
               <span
                 className={cn(
-                  "text-[11px] tabular-nums",
-                  charsLeft < 100 ? "text-orange-600" : "text-gray-400"
+                  "text-[12px] tabular-nums",
+                  charsLeft < 0 ? "text-red-600" : charsLeft < 200 ? "text-orange-600" : "text-gray-400",
                 )}
               >
-                {charsLeft}
+                {body.length.toLocaleString()} / {COMPOSER_MAX_CHARS.toLocaleString()}
               </span>
+              {media.some((m) => m.status === "uploading") ? (
+                <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> Uploading…
+                </span>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => void submit(true)}
-                className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                className="min-h-10 rounded-full border border-[var(--color-border)] px-4 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                Draft
+                Save draft
               </button>
               <button
                 type="button"
-                disabled={saving || media.some((m) => m.status === "uploading")}
+                disabled={!canPublish}
+                aria-busy={saving || undefined}
                 onClick={() => void submit(false)}
-                className="inline-flex items-center gap-1 rounded-full bg-[#fd5000] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#e04800] disabled:opacity-40"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#fd5000] px-5 text-[13px] font-semibold text-white shadow-sm hover:bg-[#e04800] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                Post
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {saving ? "Publishing…" : "Publish"}
               </button>
             </div>
           </div>
@@ -980,5 +1065,48 @@ export function PostComposer({
         }}
       />
     </div>
+  );
+}
+
+function linkHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function ComposerTool({
+  icon,
+  label,
+  onClick,
+  active = false,
+  accent = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active || undefined}
+      className={cn(
+        "inline-flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+        active
+          ? "border-[#fd5000] bg-[#fd5000] text-white"
+          : accent
+            ? "border-[#fd5000]/20 bg-[#fd5000]/[0.07] text-[#fd5000] hover:bg-[#fd5000]/[0.12]"
+            : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[#fd5000]/30 hover:text-[#fd5000]",
+      )}
+    >
+      <span className="shrink-0" aria-hidden>
+        {icon}
+      </span>
+      <span className="truncate">{label}</span>
+    </button>
   );
 }
