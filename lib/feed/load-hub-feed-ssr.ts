@@ -19,7 +19,9 @@ export async function loadHubFeedSsr(opts?: {
   filter?: string;
   limit?: number;
   tag?: string | null;
-}): Promise<{ posts: ApiPost[]; next_cursor: string | null }> {
+  /** Previous session head ids (cookie) — kept out of the first slots. */
+  avoidIds?: string[];
+}): Promise<{ posts: ApiPost[]; next_cursor: string | null; session_cursor: string | null }> {
   const filter = opts?.filter ?? "for-you";
   const limit = opts?.limit ?? 20;
   const tag = normalizeHashtagQuery(opts?.tag);
@@ -29,11 +31,17 @@ export async function loadHubFeedSsr(opts?: {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const feed = await loadPublicDiscoveryFeed(supabase, { filter, limit, tag });
+    const feed = await loadPublicDiscoveryFeed(supabase, {
+      filter,
+      limit,
+      tag,
+      avoidIds: opts?.avoidIds,
+    });
     if (!feed.ok) throw new Error(feed.error);
     return {
       posts: feed.posts as ApiPost[],
       next_cursor: feed.next_cursor,
+      session_cursor: feed.session_cursor ?? null,
     };
   }
 
@@ -75,6 +83,7 @@ export async function loadHubFeedSsr(opts?: {
     followedAuthorIds,
     memberCommunityIds: membershipIds,
     useRanking: filter !== "newest",
+    avoidIds: opts?.avoidIds,
     signal: AbortSignal.timeout(8_000),
   });
 
@@ -116,5 +125,9 @@ export async function loadHubFeedSsr(opts?: {
     };
   }) as ApiPost[];
 
-  return { posts, next_cursor: global.next_cursor };
+  return {
+    posts,
+    next_cursor: global.next_cursor,
+    session_cursor: (global as { session_cursor?: string | null }).session_cursor ?? null,
+  };
 }

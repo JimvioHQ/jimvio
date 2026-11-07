@@ -98,12 +98,16 @@ export type PublicDiscoveryFeedParams = {
   communityId?: string | null;
   draftsOnly?: boolean;
   tag?: string | null;
+  /** Previous session head ids — see lib/feed/feed-session-head.ts. */
+  avoidIds?: string[];
 };
 
 export type PublicDiscoveryFeedOk = {
   ok: true;
   posts: Record<string, unknown>[];
   next_cursor: string | null;
+  /** Offset-0 cursor for the ranked global session (absent for keyset views). */
+  session_cursor?: string | null;
 };
 
 export type PublicDiscoveryFeedErr = {
@@ -198,6 +202,7 @@ export async function loadPublicDiscoveryFeed(
         useRanking,
         filter: publicFilter,
         verifiedCommunityIds,
+        avoidIds: params.avoidIds,
         signal: AbortSignal.timeout(12_000),
       });
 
@@ -221,6 +226,7 @@ export async function loadPublicDiscoveryFeed(
         ok: true,
         posts: enriched as Record<string, unknown>[],
         next_cursor: global.next_cursor,
+        session_cursor: global.session_cursor,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load global feed";

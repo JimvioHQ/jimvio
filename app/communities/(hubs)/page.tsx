@@ -9,6 +9,9 @@ import type { ApiPost } from "@/components/feed/FeedPostCard";
 import { isCommunityVerified } from "@/lib/community/trending-score";
 import { loadHubFeedSsr } from "@/lib/feed/load-hub-feed-ssr";
 import { getHomepageCommunities } from "@/services/platform";
+import { cookies } from "next/headers";
+import { FEED_HEAD_COOKIE, parseFeedAvoidIds } from "@/lib/feed/feed-session-head";
+import { getHubDiscoverPayloadForSsr } from "@/lib/feed/load-hub-discover";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +24,24 @@ export default async function FeedPage({
   let initialCommunities: TrendingCommunity[] = [];
   let initialPosts: ApiPost[] = [];
   let initialNextCursor: string | null = null;
-  const [communityRows, feedResult] = await Promise.all([
+  // Previous session head (cookie) → this session opens with different posts.
+  const avoidIds = tag ? [] : parseFeedAvoidIds((await cookies()).get(FEED_HEAD_COOKIE)?.value);
+  // Feed, catalog fallback and discover rails load in parallel; the discover
+  // rails are cached and bounded so they never hold the feed back.
+  const [communityRows, feedResult, discover] = await Promise.all([
     getHomepageCommunities(8).catch((err) => {
       console.error("[communities] public catalog preload failed:", err);
       return [] as Awaited<ReturnType<typeof getHomepageCommunities>>;
     }),
-    loadHubFeedSsr({ filter: "for-you", limit: 20, tag }).catch((err) => {
+    loadHubFeedSsr({ filter: "for-you", limit: 20, tag, avoidIds }).catch((err) => {
       console.error("[communities] hub feed preload failed:", err);
-      return { posts: [] as ApiPost[], next_cursor: null as string | null };
+      return {
+        posts: [] as ApiPost[],
+        next_cursor: null as string | null,
+        session_cursor: null as string | null,
+      };
     }),
+    getHubDiscoverPayloadForSsr(1_200),
   ]);
 
   try {
@@ -64,9 +76,12 @@ export default async function FeedPage({
 
   return (
     <FeedPageContent
-      initialCommunities={initialCommunities}
+      initialCommunities={discover?.communities?.length ? discover.communities : initialCommunities}
       initialPosts={initialPosts}
       initialNextCursor={initialNextCursor}
+      initialSessionCursor={feedResult.session_cursor ?? null}
+      initialAvoidIds={avoidIds}
+      initialDiscover={discover}
       tag={tag}
     />
   );

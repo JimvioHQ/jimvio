@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Pin,
+  RefreshCw,
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,7 +31,11 @@ import {
   consumeSessionBoostPost,
   prependUniqueById,
 } from "@/lib/feed/session-boost-post";
-import { sessionStartCursorFrom } from "@/lib/feed/global-feed-exclusions";
+import {
+  FEED_HEAD_SIZE,
+  rememberFeedHead,
+  wasFeedSessionShown,
+} from "@/lib/feed/feed-session-head";
 import { usePostViewTracker } from "@/lib/feed/use-post-view-tracker";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
 import { PostRichText } from "@/components/feed/PostRichText";
@@ -353,6 +358,7 @@ function HubFeedArticle({
         {post.body ? (
           <PostRichText
             text={post.body}
+            collapsible
             className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap"
           />
         ) : null}
@@ -444,16 +450,25 @@ export function FeedPostCard({
   tab = "For You",
   initialPosts = [],
   initialNextCursor = null,
+  initialSessionCursor = null,
+  initialAvoidIds = [],
   tag = null,
 }: {
   tab?: FeedTab;
   initialPosts?: ApiPost[];
   initialNextCursor?: string | null;
+  /** Offset-0 cursor of the SSR feed session (seed + asOf). */
+  initialSessionCursor?: string | null;
+  /** Previous-session head ids the SSR ranking kept out of the top slots. */
+  initialAvoidIds?: string[];
   tag?: string | null;
 }) {
   const router = useRouter();
   const { isAuthenticated } = useFeedUser();
   const [posts, setPosts] = useState<DisplayPost[]>(() => initialPosts.map(mapApiPost));
+  /** Avoid list for the current feed session — resent on every page of it. */
+  const avoidRef = useRef<string[]>(initialAvoidIds);
+  const [sessionKey, setSessionKey] = useState<string | null>(initialSessionCursor);
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -474,6 +489,8 @@ export function FeedPostCard({
   const pullStartY = useRef<number | null>(null);
   const pullDistanceRef = useRef(0);
   const likeInFlightRef = useRef<Set<string>>(new Set());
+  const postsRef = useRef<DisplayPost[]>(posts);
+  postsRef.current = posts;
   /** Re-render gate so Like stays disabled while a request is in flight. */
   const [likingPostIds, setLikingPostIds] = useState<ReadonlySet<string>>(
     () => new Set(),
@@ -501,9 +518,16 @@ export function FeedPostCard({
       abortRef.current = new AbortController();
     }
     try {
+      // A fresh (non-paginating) load starts a new feed session: keep what
+      // the viewer is looking at right now out of the new session's head.
+      if (!isMore && !opts?.soft) {
+        const head = postsRef.current.slice(0, FEED_HEAD_SIZE).map((p) => p.id);
+        if (head.length) avoidRef.current = head;
+      }
       const params = new URLSearchParams({ limit: "20", filter });
       if (tag) params.set("tag", tag);
       if (nextCursor) params.set("cursor", nextCursor);
+      if (!tag && avoidRef.current.length) params.set("avoid", avoidRef.current.join("."));
       let timer: number | undefined;
       const res = await new Promise<Response>((resolve, reject) => {
         timer = window.setTimeout(() => {
@@ -551,7 +575,12 @@ export function FeedPostCard({
         for (const p of appended) knownIdsRef.current.add(p.id);
         return [...prev, ...appended];
       });
-      if (!isMore) setPendingNewCount(0);
+      if (!isMore) {
+        setPendingNewCount(0);
+        const sessionCursor = (data.session_cursor as string | null | undefined) ?? null;
+        setSessionKey(sessionCursor ?? `client:${Date.now()}`);
+        if (sessionCursor) wasFeedSessionShown(sessionCursor);
+      }
       const next = (data.next_cursor as string | null | undefined) ?? null;
       cursorRef.current = next;
       setHasMore(Boolean(next));
@@ -577,21 +606,37 @@ export function FeedPostCard({
   }, [filter, tag]);
 
   useEffect(() => {
-    // Soft-refresh with the SSR session seed so the first page does not
-    // reshuffle (and hide) posts under a newly minted ranking bucket.
-    // If SSR exhausted the pool (no next_cursor), keep SSR posts — do not remint.
     // Hashtag views are a filtered keyset, not a ranked session.
     if (tag) {
       if (initialPosts.length === 0) void load();
       return;
     }
     if (initialPosts.length > 0 && filter === FEED_TAB_FILTERS["For You"]) {
-      const seed = sessionStartCursorFrom(initialNextCursor);
-      if (seed) void load(seed, { soft: true });
+      // SSR already rendered a complete, ranked first page with like state —
+      // no second fetch. Back/Forward can restore an already-seen session
+      // payload; then start a fresh session so the feed visibly rotates.
+      if (wasFeedSessionShown(initialSessionCursor)) {
+        void load(undefined, { refresh: true });
+        return;
+      }
+      const boostRaw = consumeSessionBoostPost<ApiPost>();
+      if (boostRaw) {
+        const boost = mapApiPost(boostRaw);
+        knownIdsRef.current.add(boost.id);
+        setPosts((prev) => prependUniqueById(prev, boost));
+      }
       return;
     }
     void load();
-  }, [load, initialPosts.length, filter, initialNextCursor]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load, initialPosts.length, filter, initialSessionCursor]);
+
+  // Remember the head of each displayed session so the next visit opens fresh.
+  useEffect(() => {
+    if (tag || !sessionKey) return;
+    const head = postsRef.current.slice(0, FEED_HEAD_SIZE).map((p) => p.id);
+    if (head.length) rememberFeedHead(head);
+  }, [sessionKey, tag]);
 
   // bfcache restore: explicit refresh mints a fresh session (new ranking seed).
   useEffect(() => {
@@ -949,7 +994,22 @@ export function FeedPostCard({
         </div>
       )}
       {!loading && !loadingMore && !refreshing && !hasMore && posts.length > 0 && (
-        <p className="py-6 text-center text-[12px] text-gray-400">You’re all caught up</p>
+        <div className="flex flex-col items-center gap-2 py-7 text-center">
+          <p className="text-[12px] text-gray-400">You’re all caught up</p>
+          {!tag ? (
+            <button
+              type="button"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                void load(undefined, { refresh: true });
+              }}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[#fd5000]/40 hover:text-[#fd5000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              Refresh feed
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
     {commentPostId ? (

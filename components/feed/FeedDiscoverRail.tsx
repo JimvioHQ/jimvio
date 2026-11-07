@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFeedHubDiscover } from "@/components/feed/use-feed-hub-discover";
+import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { fetchPinsShared } from "@/lib/community/pins-client";
 import Link from "next/link";
 import { BadgeCheck, Flame, Pin } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
@@ -39,10 +42,6 @@ type PinnedRow = {
     member_count?: number | null;
     category?: string | null;
   } | null;
-};
-
-type DiscoverPayload = {
-  communities?: TrendingCommunity[];
 };
 
 function communityTagline(input: {
@@ -177,40 +176,22 @@ export function FeedDiscoverRail({
 }: {
   initialCommunities?: TrendingCommunity[];
 }) {
-  const [data, setData] = useState<DiscoverPayload | null>(
-    initialCommunities.length ? { communities: initialCommunities } : null,
-  );
+  const { isAuthenticated } = useFeedUser();
+  const { communities: discovered } = useFeedHubDiscover();
   const [pins, setPins] = useState<PinnedRow[]>([]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     let cancelled = false;
-    void Promise.all([
-      fetch("/api/c/hub/discover", { cache: "no-store" }).then((r) =>
-        r.ok ? r.json() : null
-      ),
-      fetch("/api/c/pins", { cache: "no-store" }).then((r) =>
-        r.status === 401 ? null : r.ok ? r.json() : null
-      ),
-    ])
-      .then(([discover, pinPayload]) => {
-        if (cancelled) return;
-        if (discover) {
-          // Prefer discover payload even when empty — never fall back to
-          // SSR editorial seed cards after honesty filters clear the rail.
-          setData({
-            communities: Array.isArray(discover.communities)
-              ? discover.communities
-              : [],
-          });
-        }
-        setPins(pinPayload?.pins ?? []);
-      })
-      .catch(() => undefined);
+    void fetchPinsShared().then((payload) => {
+      if (!cancelled) setPins(((payload?.pins ?? []) as PinnedRow[]) ?? []);
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
+  const data = { communities: discovered.length ? discovered : initialCommunities };
   const communities = data?.communities ?? [];
   const hasAny = pins.length > 0 || communities.length > 0;
   if (!hasAny) return null;

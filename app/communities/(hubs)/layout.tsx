@@ -8,7 +8,7 @@ export default async function HubsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const initialAuth = await loadFeedAuthInitial();
+  const initialAuth = await loadFeedAuthInitial({ withHub: true });
   return (
     <FeedAuthProvider initial={initialAuth}>
       <PresenceProvider>

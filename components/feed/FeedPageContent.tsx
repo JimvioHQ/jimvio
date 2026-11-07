@@ -14,6 +14,10 @@ import { PostComposer } from "@/components/feed/PostComposer";
 import { StoriesRail } from "@/components/feed/StoriesRail";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
+import {
+  HubDiscoverProvider,
+  type HubDiscoverClientPayload,
+} from "@/components/feed/use-feed-hub-discover";
 
 /**
  * Desktop intelligence rail — AI Assistant, Live now, Popular Users, Live & Discover.
@@ -34,17 +38,23 @@ export function FeedPageContent({
   initialCommunities = [],
   initialPosts = [],
   initialNextCursor = null,
+  initialSessionCursor = null,
+  initialAvoidIds = [],
+  initialDiscover = null,
   tag = null,
 }: {
   initialCommunities?: TrendingCommunity[];
   initialPosts?: ApiPost[];
   initialNextCursor?: string | null;
+  initialSessionCursor?: string | null;
+  initialAvoidIds?: string[];
+  initialDiscover?: HubDiscoverClientPayload | null;
   tag?: string | null;
 }) {
   const [feedTab, setFeedTab] = useState<FeedTab>("For You");
 
   return (
-    <>
+    <HubDiscoverProvider initial={initialDiscover}>
       <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-hidden bg-[var(--color-bg)] p-3 sm:p-4 lg:p-5">
         <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start lg:gap-5">
           {/* Main feed — full-width continuous posts on mobile */}
@@ -70,6 +80,8 @@ export function FeedPageContent({
                 tag={tag}
                 initialPosts={feedTab === "For You" ? initialPosts : []}
                 initialNextCursor={feedTab === "For You" ? initialNextCursor : null}
+                initialSessionCursor={feedTab === "For You" ? initialSessionCursor : null}
+                initialAvoidIds={feedTab === "For You" ? initialAvoidIds : []}
               />
             </div>
           </div>
@@ -81,6 +93,6 @@ export function FeedPageContent({
         </div>
       </div>
       <MiniLivePlayerBar />
-    </>
+    </HubDiscoverProvider>
   );
 }

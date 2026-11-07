@@ -1498,6 +1498,7 @@ function PostCard({
                 )}
                 <PostRichText
                     text={post.body}
+                    collapsible
                     className="min-w-0 break-words text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap"
                 />
             </div>

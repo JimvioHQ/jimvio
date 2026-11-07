@@ -62,7 +62,8 @@ function displayName(
 
 /** Top community creators for the feed sidebar — exactly five when enough real profiles exist. */
 export async function loadFeedSidebarPopularUsers(
-  excludeUserId?: string | null
+  excludeUserId?: string | null,
+  limit: number = POPULAR_USER_COUNT,
 ): Promise<FeedSidebarPopularUser[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createServiceRoleClient() as any;
@@ -148,7 +149,7 @@ export async function loadFeedSidebarPopularUsers(
     allowDuplicateAvatar?: boolean;
   }) {
     if (seen.has(input.userId) || input.userId === excludeUserId) return;
-    if (candidates.length >= POPULAR_USER_COUNT) return;
+    if (candidates.length >= limit) return;
     const nameKey = normalizeDisplayName(input.name);
     const firstKey = firstNameKey(input.name);
     const prefixKey = firstNamePrefixKey(input.name);
@@ -287,7 +288,7 @@ export async function loadFeedSidebarPopularUsers(
   ].filter((id) => id !== excludeUserId);
 
   const profileById = new Map<string, ProfileRow>();
-  if (influencerIds.length && candidates.length < POPULAR_USER_COUNT) {
+  if (influencerIds.length && candidates.length < limit) {
     const { data: profiles } = (await admin
       .from("profiles")
       .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
@@ -298,7 +299,7 @@ export async function loadFeedSidebarPopularUsers(
   }
 
   for (const inf of influencers) {
-    if (candidates.length >= POPULAR_USER_COUNT) break;
+    if (candidates.length >= limit) break;
     if (!inf.user_id || seen.has(inf.user_id) || inf.user_id === excludeUserId) continue;
     const profile = profileById.get(inf.user_id);
     if (isEditorialPersona(profile)) continue;
@@ -333,7 +334,7 @@ export async function loadFeedSidebarPopularUsers(
     });
   }
 
-  if (candidates.length < POPULAR_USER_COUNT) {
+  if (candidates.length < limit) {
     // Prefer real non-editorial profiles with public handles + avatars.
     const { data: profileRows } = (await admin
       .from("profiles")
@@ -347,7 +348,7 @@ export async function loadFeedSidebarPopularUsers(
       .limit(40)) as { data: ProfileRow[] | null };
 
     for (const profile of profileRows ?? []) {
-      if (candidates.length >= POPULAR_USER_COUNT) break;
+      if (candidates.length >= limit) break;
       if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
       if (isEditorialPersona(profile)) continue;
       const name = displayName(profile.full_name, profile.username);
@@ -370,7 +371,7 @@ export async function loadFeedSidebarPopularUsers(
     }
   }
 
-  return candidates.slice(0, POPULAR_USER_COUNT);
+  return candidates.slice(0, limit);
 }
 
 /** Live creators for the feed sidebar — real live_sessions rows only. */

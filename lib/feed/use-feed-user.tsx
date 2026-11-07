@@ -114,3 +114,8 @@ export function useFeedUser() {
 
   return { user, isLoading, isAuthenticated };
 }
+
+/** Server-rendered Communities sidebar snapshot (null outside the hub layout). */
+export function useFeedHubSnapshot() {
+  return useContext(FeedAuthInitialContext)?.hub ?? null;
+}

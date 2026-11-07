@@ -10,11 +10,10 @@ import {
   isExcludedFromGlobalFeed,
   parseGlobalFeedCursor,
 } from "@/lib/feed/global-feed-exclusions";
-import { rankGlobalFeedItems } from "@/lib/feed/global-feed-ranking";
+import { diversifyFeed, rankGlobalFeedItems } from "@/lib/feed/global-feed-ranking";
 import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 import {
   applyFeedTabFilter,
-  diversifyAuthors,
   sortRisingByVelocity,
 } from "@/lib/feed/apply-feed-tab-filter";
 import {
@@ -400,12 +399,20 @@ export type LoadGlobalCommunityFeedParams = {
   signal?: AbortSignal;
   /** ISO country used only as a bounded public-content boost. */
   viewerCountry?: string | null;
+  /**
+   * Post ids the viewer saw at the top of their previous feed session. Kept
+   * out of the first slots of this session. Must be identical for every page
+   * of one session (the client resends the same list) so ordering is stable.
+   */
+  avoidIds?: string[];
 };
 
 export type LoadGlobalCommunityFeedResult = {
   posts: GlobalCommunityFeedPost[];
   next_cursor: string | null;
   rotation_bucket: number;
+  /** Offset-0 cursor for this session (same seed + asOf), even on a last page. */
+  session_cursor: string;
 };
 
 /**
@@ -500,11 +507,11 @@ export async function loadGlobalCommunityFeed(
       viewerCountry,
       now: asOf,
       bucket,
+      avoidIds: params.avoidIds?.length ? new Set(params.avoidIds) : undefined,
     });
     if (filter === "rising") {
-      ordered = sortRisingByVelocity(ordered, asOf);
+      ordered = diversifyFeed(sortRisingByVelocity(ordered, asOf));
     }
-    ordered = diversifyAuthors(ordered);
   } else {
     ordered = [...eligible].sort((a, b) => {
       const byCreated = b.created_at.localeCompare(a.created_at);
@@ -520,7 +527,12 @@ export async function loadGlobalCommunityFeed(
       ? encodeGlobalFeedCursor({ bucket, offset: nextOffset, asOf })
       : null;
 
-  return { posts: page, next_cursor, rotation_bucket: bucket };
+  return {
+    posts: page,
+    next_cursor,
+    rotation_bucket: bucket,
+    session_cursor: encodeGlobalFeedCursor({ bucket, offset: 0, asOf }),
+  };
 }
 
 /** Re-export for callers that need public community discovery checks. */

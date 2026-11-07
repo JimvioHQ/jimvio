@@ -13,17 +13,13 @@ function UploadPostPageInner() {
 
   const onPublished = useCallback(
     (result: PublishedPostResult) => {
-      const slug = result.communitySlug?.trim() || communitySlug;
-      if (slug) {
-        const qs = result.postId ? `?post=${encodeURIComponent(result.postId)}` : "";
-        router.push(`/communities/${encodeURIComponent(slug)}/feed${qs}`);
-        router.refresh();
-        return;
-      }
-      router.push(result.postId ? `/communities?post=${encodeURIComponent(result.postId)}` : "/communities");
-      router.refresh();
+      // Always land on the Communities Feed with the saved post on top
+      // (FeedPostCard consumes the session boost stashed by the composer).
+      router.push(
+        result.postId ? `/communities?post=${encodeURIComponent(result.postId)}` : "/communities",
+      );
     },
-    [communitySlug, router]
+    [router],
   );
 
   return (
