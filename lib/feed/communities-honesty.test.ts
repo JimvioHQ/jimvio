@@ -23,8 +23,19 @@ describe("Communities real-data honesty", () => {
   it("keeps showcase floors empty and pins only real priority handles", () => {
     assert.equal(Object.keys(SHOWCASE_PROFILE_FOLLOWER_COUNTS).length, 0);
     assert.equal(Object.keys(SHOWCASE_COMMUNITY_MEMBER_COUNTS).length, 0);
-    assert.deepEqual([...PRIORITY_POPULAR_USERNAMES], ["barick", "p7provider"]);
-    assert.deepEqual([...PRIORITY_TRENDING_COMMUNITY_SLUGS], ["p7provider"]);
+    // Real, active Jimvio profiles / public communities (verified in the DB
+    // before being added). Changing this list must be deliberate.
+    assert.deepEqual([...PRIORITY_POPULAR_USERNAMES], [
+      "barick",
+      "p7provider",
+      "primefxinvest",
+      "quantforg",
+    ]);
+    assert.deepEqual([...PRIORITY_TRENDING_COMMUNITY_SLUGS], [
+      "p7provider",
+      "primefx-invest",
+      "quantforg",
+    ]);
   });
 
   it("does not inflate follower or member counts", () => {
