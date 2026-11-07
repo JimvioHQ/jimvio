@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { toResumeEntry } from "@/lib/identity/resolve";
+import { ensureJipIdentity, toResumeEntry } from "@/lib/identity/resolve";
+import { privacyFieldVisible } from "@/lib/identity/privacy";
 import type { ResumeEntry } from "@/lib/identity/types";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +18,26 @@ const ENTRY_TYPES = new Set([
 
 /**
  * GET /api/identity/resume?userId=...
- * Resume entries are public by RLS design (used for creator CVs).
+ * Owners always see their own entries. Non-owners only receive entries when
+ * the profile owner has opted in via privacyCustom.showResume.
  */
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
   const { user: viewer } = await requireUser();
   const targetId = userId ?? viewer?.id;
   if (!targetId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+
+  const isSelf = Boolean(viewer?.id && viewer.id === targetId);
+  if (!isSelf) {
+    const identity = await ensureJipIdentity(targetId);
+    const custom =
+      identity.privacy_custom && typeof identity.privacy_custom === "object"
+        ? (identity.privacy_custom as Record<string, unknown>)
+        : {};
+    if (!privacyFieldVisible(custom, "showResume")) {
+      return NextResponse.json({ entries: [], restricted: true });
+    }
+  }
 
   const db = createServiceRoleClient();
   const { data, error } = await db

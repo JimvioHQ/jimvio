@@ -173,6 +173,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                   userId={profile.userId}
                   username={profile.username}
                   onShare={() => void shareProfile()}
+                  allowInAppContact={profile.contactPreferences.in_app !== false}
                 />
               ) : (
                 <>

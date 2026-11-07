@@ -29,7 +29,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       vars.ENABLE_PREVIEW_CI == 'true' ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'preview'))
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 45
     environment: preview
     steps:

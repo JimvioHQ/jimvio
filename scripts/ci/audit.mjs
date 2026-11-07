@@ -119,14 +119,15 @@ console.log("Jimvio CI infrastructure audit\n");
       continue;
     }
     const body = readFileSync(p, "utf8");
-    if (!body.includes("ubuntu-latest")) {
+    // Accept the existing Jimvio self-hosted runner or GitHub-hosted ubuntu-latest.
+    if (!/runs-on:\s*\[?\s*self-hosted/.test(body) && !body.includes("ubuntu-latest")) {
       selfHosted = false;
     }
   }
   check("workflows_present", all, all ? need.join(", ") : "missing workflow files", {
     fatal: true,
   });
-  check("workflows_self_hosted", selfHosted, "required workflows run on ubuntu-latest", {
+  check("workflows_self_hosted", selfHosted, "required workflows run on self-hosted or ubuntu-latest", {
     fatal: true,
   });
 }

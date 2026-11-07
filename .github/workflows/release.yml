@@ -37,7 +37,7 @@ permissions:
 jobs:
   gate:
     name: Release gates
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 45
     outputs:
       should_deploy: ${{ steps.decide.outputs.should_deploy }}
@@ -116,7 +116,7 @@ jobs:
     name: Confirm production
     needs: gate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.gate.result == 'success'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 40
     environment:
       name: production

@@ -26,6 +26,7 @@ export default async function SettingsPrivacyPage() {
       initialVisibility={payload.profile.privacyVisibility as IdentityPrivacyVisibility}
       initialCustom={payload.profile.privacyCustom ?? {}}
       preciseLocation={summarizePreciseLocation(precise)}
+      username={payload.profile.username}
     />
   );
 }

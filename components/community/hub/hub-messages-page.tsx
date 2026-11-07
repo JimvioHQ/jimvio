@@ -116,7 +116,44 @@ export function HubMessagesPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
   const vendorHandled = useRef(false);
+  const peerHandled = useRef(false);
   const loadThreadsRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
+
+  /** Profile Message/Contact links (?peer=): open or create a platform DM with that user. */
+  async function openPeerConversation(peerId: string, asContact = false) {
+    try {
+      const res = await fetch("/api/messages/direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ peerId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.conversationId !== "string") {
+        toast.error(
+          typeof data.error === "string"
+            ? data.error
+            : "Couldn't open a conversation with this person.",
+        );
+        return;
+      }
+      await loadThreadsRef.current({ silent: true });
+      setActiveThreadId(data.conversationId);
+      setMobileShowChat(true);
+      if (asContact) {
+        setDraft("Hi — I'd like to get in touch about a professional opportunity.");
+      }
+      // Clean deep-link params without losing the thread selection.
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("peer");
+        url.searchParams.delete("intent");
+        url.searchParams.set("thread", data.conversationId);
+        window.history.replaceState({}, "", `${url.pathname}?${url.searchParams.toString()}`);
+      }
+    } catch {
+      toast.error("Couldn't open a conversation with this person.");
+    }
+  }
 
   /** "Message store" links (?vendor=): open the buyer's chat with that store, creating it once. */
   async function openStoreConversation(vendorId: string) {
@@ -254,20 +291,29 @@ export function HubMessagesPage() {
       };
       setThreads(data.threads ?? []);
       setTabCounts(data.tabCounts ?? { all: 0, unread: 0, groups: 0, spaces: 0 });
-      // Opened from a notification: jump to that conversation once.
+      // Opened from a notification or profile deep-link: jump to that conversation once.
       if (!opts?.silent && typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
         const list = data.threads ?? [];
-        // ?thread=<dm id>, ?conversation=<marketplace id> (older links), ?vendor=<store id>.
+        // ?thread=<dm id>, ?conversation=<marketplace id>, ?vendor=<store id>, ?peer=<user id>.
         const conversation = params.get("conversation");
         const vendor = params.get("vendor");
+        const peer = params.get("peer");
+        const intent = params.get("intent");
         const wanted =
           params.get("thread") ??
           (conversation ? marketplaceThreadId(conversation) : null) ??
-          (vendor ? list.find((t) => t.market && !t.market.isVendorSide && t.market.vendorId === vendor)?.id ?? null : null);
+          (vendor ? list.find((t) => t.market && !t.market.isVendorSide && t.market.vendorId === vendor)?.id ?? null : null) ??
+          (peer ? list.find((t) => t.kind === "direct" && t.peerId === peer)?.id ?? null : null);
         if (wanted && list.some((t) => t.id === wanted)) {
           setActiveThreadId(wanted);
           setMobileShowChat(true);
+          if (intent === "contact" && !draft.trim()) {
+            setDraft("Hi — I'd like to get in touch about a professional opportunity.");
+          }
+        } else if (peer && !peerHandled.current) {
+          peerHandled.current = true;
+          void openPeerConversation(peer, intent === "contact");
         } else if (vendor && !vendorHandled.current) {
           vendorHandled.current = true;
           void openStoreConversation(vendor);
@@ -276,6 +322,7 @@ export function HubMessagesPage() {
     } finally {
       if (!opts?.silent) setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep-link handlers run once per page load
   }, []);
 
   useEffect(() => {
