@@ -69,7 +69,8 @@ function hasPublicContent(surface: IdentitySurface, data: unknown): boolean {
     return Boolean((data as MarketplaceModuleSnapshot).isVendor);
   }
   const d = data as CommunityModuleSnapshot;
-  return (d.communitiesManaged?.length ?? d.communitiesJoined?.length ?? 0) > 0;
+  if ((d.communitiesManaged?.length ?? 0) > 0) return true;
+  return (d.communitiesJoined ?? []).some((c) => c.role === "owner" || c.role === "admin");
 }
 
 export function IdentityModulePanel({
@@ -172,25 +173,38 @@ function UgcModuleView({ data, meta }: { data: UgcModuleSnapshot; meta: (typeof 
   return (
     <div>
       <ModuleHeader meta={meta} />
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {campaigns.map((c) => (
-          <Link key={c.campaignId} href={`/ugc/campaigns/${c.campaignId}`}>
-            <IdentityCard className="flex items-center gap-3 p-3.5 transition-colors hover:border-[#FF5A1F]/30">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FFF1EA] text-[#FF5A1F]">
+          <Link key={c.campaignId} href={`/ugc/campaigns/${c.campaignId}`} className="group block">
+            <IdentityCard className="overflow-hidden transition-colors hover:border-[#FF5A1F]/35">
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#FFF1EA]">
                 {c.coverImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.coverImage} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={c.coverImage}
+                    alt=""
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                  />
                 ) : (
-                  <Megaphone className="h-5 w-5" />
+                  <div className="grid h-full place-items-center text-[#FF5A1F]">
+                    <Megaphone className="h-7 w-7" />
+                  </div>
                 )}
+                <div className="absolute right-2 top-2">
+                  <StatusPill status={c.status} />
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-[#1C1B19]">{c.title}</p>
+              <div className="space-y-2 p-3.5">
+                <p className="line-clamp-2 text-[13.5px] font-semibold leading-snug text-[#1C1B19]">
+                  {c.title}
+                </p>
                 {c.description ? (
-                  <p className="mt-0.5 line-clamp-2 text-[11.5px] text-[#9A9388]">{c.description}</p>
+                  <p className="line-clamp-2 text-[12px] leading-relaxed text-[#8B8579]">{c.description}</p>
                 ) : null}
+                <span className="inline-flex text-[12px] font-semibold text-[#FF5A1F] group-hover:underline">
+                  View campaign
+                </span>
               </div>
-              <StatusPill status={c.status} />
             </IdentityCard>
           </Link>
         ))}
@@ -283,11 +297,15 @@ function CommunityModuleView({
   return (
     <div>
       <ModuleHeader meta={meta} />
-      <div className="grid gap-2.5 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {communities.map((c) => (
-          <Link key={c.communityId} href={c.slug ? `/communities/${c.slug}` : "/communities"}>
-            <IdentityCard className="flex items-center gap-3 p-3.5 transition-colors hover:border-[#FF5A1F]/30">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF5A1F] text-[13px] font-semibold text-white">
+          <Link
+            key={c.communityId}
+            href={c.slug ? `/communities/${c.slug}` : "/communities"}
+            className="group block"
+          >
+            <IdentityCard className="flex items-start gap-3 p-3.5 transition-colors hover:border-[#FF5A1F]/35">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#FF5A1F] text-[13px] font-semibold text-white ring-1 ring-black/5">
                 {c.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -296,19 +314,26 @@ function CommunityModuleView({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="truncate text-[13px] font-semibold text-[#1C1B19]">{c.name}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-[13.5px] font-semibold text-[#1C1B19] group-hover:text-[#FF5A1F]">
+                    {c.name}
+                  </p>
                   <span className="shrink-0 rounded-full bg-[#FFF1EA] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#D6480F]">
                     {c.role}
                   </span>
                 </div>
-                <p className="truncate text-[11.5px] text-[#9A9388]">
+                <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[#8B8579]">
                   {"description" in c && c.description
                     ? c.description
                     : typeof c.memberCount === "number" && c.memberCount > 0
                       ? `${formatNumber(c.memberCount)} ${c.memberCount === 1 ? "member" : "members"}`
                       : "Community"}
                 </p>
+                {typeof c.memberCount === "number" && c.memberCount > 0 && "description" in c && c.description ? (
+                  <p className="mt-1.5 text-[11.5px] text-[#9A9388]">
+                    {formatNumber(c.memberCount)} {c.memberCount === 1 ? "member" : "members"}
+                  </p>
+                ) : null}
               </div>
             </IdentityCard>
           </Link>

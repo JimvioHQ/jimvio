@@ -11,7 +11,8 @@ import {
   loadCreatorProfileCompletion,
   syncRoleMirrors,
 } from "@/lib/identity/sync";
-import { ensureJipIdentity, getIdentityByUserId } from "@/lib/identity/resolve";
+import { ensureJipIdentity } from "@/lib/identity/resolve";
+import { mergeShortBioIntoPrivacyCustom } from "@/lib/identity/short-bio";
 
 export const dynamic = "force-dynamic";
 
@@ -102,8 +103,23 @@ export async function PATCH(req: NextRequest) {
   if (body.privacyCustom && typeof body.privacyCustom === "object") {
     identityUpdates.privacy_custom = body.privacyCustom;
   }
+  const ensuredIdentity = await ensureJipIdentity(user.id);
 
-  await ensureJipIdentity(user.id);
+  // Merge short bio lines into privacy_custom without wiping other privacy flags.
+  if (Array.isArray(body.shortBioLines)) {
+    const currentCustom =
+      ensuredIdentity.privacy_custom && typeof ensuredIdentity.privacy_custom === "object"
+        ? (ensuredIdentity.privacy_custom as Record<string, unknown>)
+        : {};
+    const base =
+      identityUpdates.privacy_custom && typeof identityUpdates.privacy_custom === "object"
+        ? { ...currentCustom, ...(identityUpdates.privacy_custom as Record<string, unknown>) }
+        : currentCustom;
+    identityUpdates.privacy_custom = mergeShortBioIntoPrivacyCustom(
+      base,
+      body.shortBioLines as string[],
+    );
+  }
 
   if (Object.keys(profileUpdates).length > 0) {
     const { data: profileRow, error: profileErr } = await db

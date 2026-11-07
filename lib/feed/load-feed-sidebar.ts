@@ -330,7 +330,8 @@ export async function loadFeedSidebarPopularUsers(
       username,
       avatarUrl,
       followerCount,
-      verified: Boolean(profile?.is_verified || inf.is_verified),
+      // Jimvio blue tick uses platform identity verification only — not influencer flags alone.
+      verified: Boolean(profile?.is_verified),
     });
   }
 

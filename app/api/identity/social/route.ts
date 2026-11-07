@@ -70,11 +70,17 @@ export async function POST(req: NextRequest) {
 
   const { data: existing } = await db
     .from("jip_social_accounts")
-    .select("is_public")
+    .select("is_public, is_verified")
     .eq("user_id", user.id)
     .eq("platform", platform)
     .maybeSingle();
-  const isPublic = typeof body.isPublic === "boolean" ? body.isPublic : existing?.is_public === true;
+  // Identity 2.2: public visibility follows verification (websites stay owner-controlled).
+  const isPublic =
+    platform === "website"
+      ? typeof body.isPublic === "boolean"
+        ? body.isPublic
+        : existing?.is_public === true
+      : Boolean(existing?.is_verified);
 
   const payload = {
     user_id: user.id,
@@ -121,7 +127,17 @@ export async function PATCH(req: NextRequest) {
   if (body.engagementRate !== undefined) {
     updates.engagement_rate = Math.max(0, Number(body.engagementRate) || 0);
   }
-  if (typeof body.isPublic === "boolean") updates.is_public = body.isPublic;
+  // Identity 2.2: public visibility follows verification — no manual Public toggle.
+  // Verified accounts stay public; unverified/pending stay private.
+  if (typeof body.isPublic === "boolean") {
+    const { data: current } = await db
+      .from("jip_social_accounts")
+      .select("is_verified")
+      .eq("id", id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    updates.is_public = Boolean(current?.is_verified) ? true : false;
+  }
   if (typeof body.metadata === "object" && body.metadata !== null) updates.metadata = body.metadata;
 
   const { data, error: updateErr } = await db

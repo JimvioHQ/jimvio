@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
 import Link from "next/link";
 import { BadgeCheck, ChevronRight, Clock, Plus, Trash2 } from "lucide-react";
 import type { IdentitySocialAccount, IdentitySocialPlatform } from "@/lib/identity/types";
@@ -24,8 +22,8 @@ function formatCount(n: number) {
 }
 
 /**
- * Your social accounts. Adding or verifying one opens a guided page:
- * official login for YouTube/TikTok, a bio code for the rest.
+ * Social accounts manager. Verified accounts are published to the public profile
+ * automatically — there is no manual Public toggle.
  */
 export function SocialAccountsManager({
   accounts,
@@ -36,30 +34,6 @@ export function SocialAccountsManager({
 }) {
   const social = accounts.filter((a) => a.platform !== "website");
   const used = new Set(social.map((a) => a.platform));
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  async function togglePublic(account: IdentitySocialAccount, isPublic: boolean) {
-    const previous = account.isPublic === true;
-    onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic } : item));
-    setUpdatingId(account.id);
-    try {
-      const response = await fetch("/api/identity/social", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: account.id, isPublic }),
-      });
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(json.error || "Could not update account visibility.");
-      const savedVisibility = typeof json.account?.isPublic === "boolean" ? json.account.isPublic : isPublic;
-      onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic: savedVisibility } : item));
-      toast.success(savedVisibility ? "Account will appear on your public profile." : "Account hidden from your public profile.");
-    } catch (err) {
-      onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic: previous } : item));
-      toast.error(err instanceof Error ? err.message : "Could not update account visibility.");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
 
   async function remove(id: string) {
     if (!window.confirm("Remove this account from your profile?")) return;
@@ -69,6 +43,9 @@ export function SocialAccountsManager({
 
   return (
     <div className="space-y-4">
+      <p className="text-[12.5px] text-[#6B7280]">
+        Verified accounts appear on your public profile automatically. Pending or failed accounts stay private.
+      </p>
       {social.length > 0 ? (
         <ul className="divide-y divide-[#F3F4F6] overflow-hidden rounded-2xl border border-[#E8E8E8]">
           {social.map((a) => {
@@ -83,6 +60,7 @@ export function SocialAccountsManager({
                   <p className="text-[12px] text-[#6B7280]">
                     {SOCIAL_PLATFORM_LABEL[a.platform]}
                     {a.isVerified && a.followers > 0 ? ` · ${formatCount(a.followers)} followers` : ""}
+                    {a.isVerified ? " · Shown on profile" : " · Private until verified"}
                   </p>
                 </div>
                 {status === "verified" ? (
@@ -101,22 +79,11 @@ export function SocialAccountsManager({
                     {status === "failed" ? "Try again" : "Verify"} <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 )}
-                <label className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-[#6B7280]">
-                  <input
-                    type="checkbox"
-                    checked={a.isPublic === true}
-                    disabled={updatingId === a.id}
-                    onChange={(event) => void togglePublic(a, event.target.checked)}
-                    aria-label={"Show " + SOCIAL_PLATFORM_LABEL[a.platform] + " on public profile"}
-                    className="h-3.5 w-3.5 rounded border-[#D1D5DB] text-[#FF5A1F] focus:ring-[#FF5A1F]/30"
-                  />
-                  Public
-                </label>
                 <button
                   type="button"
                   aria-label={`Remove ${SOCIAL_PLATFORM_LABEL[a.platform]}`}
                   onClick={() => void remove(a.id)}
-                  className="rounded-lg p-2 text-[#9CA3AF] hover:bg-black/5 hover:text-rose-600"
+                  className="ml-auto rounded-lg p-2 text-[#9CA3AF] hover:bg-black/5 hover:text-rose-600"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

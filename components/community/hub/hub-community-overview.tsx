@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  BadgeCheck,
   Bell,
   BellOff,
   Check,
@@ -23,6 +22,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import { isMembershipActive } from "@/lib/community-workspace-access";
@@ -286,14 +286,11 @@ export function HubCommunityOverview() {
                     <h1 className="min-w-0 break-words text-[1.25rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
                       {communityName}
                     </h1>
-                    {verified ? (
-                      <BadgeCheck
-                        className="h-5 w-5 shrink-0 text-[#3b82f6]"
-                        fill="currentColor"
-                        strokeWidth={0}
-                        aria-label="Verified community"
-                      />
-                    ) : null}
+                    <BlueVerifiedBadge
+                      verified={verified}
+                      size="lg"
+                      label="Verified community"
+                    />
                   </div>
                   {communityTagline ? (
                     <p className="mt-1.5 min-w-0 max-w-xl break-words text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-[14px]">

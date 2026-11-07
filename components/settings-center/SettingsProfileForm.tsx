@@ -34,6 +34,7 @@ import {
   validateUsername,
 } from "@/lib/settings/profile";
 import { evaluateCreatorProfileCompletion } from "@/lib/identity/creator-profile-completion";
+import { SHORT_BIO_LINE_MAX, SHORT_BIO_LINES } from "@/lib/identity/short-bio";
 import { useSettingsCenter } from "./settings-center-context";
 import {
   SettingsButton,
@@ -49,6 +50,7 @@ import { IdentityTypePicker } from "@/components/identity/IdentityTypePicker";
 import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
 import { SocialAccountsManager } from "@/components/identity/SocialAccountsManager";
 import { IdentityPortfolioManager } from "@/components/identity/IdentityPortfolioManager";
+import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 import { SettingsResumeManagers } from "./SettingsResumeManagers";
 import { SettingsAiBioAssist } from "./SettingsAiBioAssist";
 import { SettingsAiProfileBuilder } from "./SettingsAiProfileBuilder";
@@ -82,6 +84,10 @@ export function SettingsProfileForm({
   const [username, setUsername] = useState(profile.username ?? "");
   const [headline, setHeadline] = useState(profile.headline ?? "");
   const [categories, setCategories] = useState<string[]>((profile.industries ?? []).slice(0, 1));
+  const [shortBioLines, setShortBioLines] = useState<string[]>(() => {
+    const existing = (profile.shortBioLines ?? []).slice(0, SHORT_BIO_LINES);
+    return Array.from({ length: SHORT_BIO_LINES }, (_, i) => existing[i] ?? "");
+  });
   const [bio, setBio] = useState(profile.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
   const [coverImage, setCoverImage] = useState(profile.coverImage ?? "");
@@ -175,6 +181,7 @@ export function SettingsProfileForm({
         fullName: nextDisplay,
         headline: headline.trim(),
         bio: bio.trim(),
+        shortBioLines: shortBioLines.map((line) => line.trim()).filter(Boolean),
         industries: categories,
         city: city.trim(),
         languages,
@@ -264,7 +271,7 @@ export function SettingsProfileForm({
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-1.5">
                 <p className="truncate text-[18px] font-semibold text-[#111827]">{visibleName}</p>
-                {profile.identityVerified ? <BadgeCheck className="h-4 w-4 text-[#FF5A1F]" aria-label="Verified" /> : null}
+                <VerifiedBadge verified={Boolean(profile.identityVerified)} size="md" />
               </div>
               <p className="truncate text-[13px] text-[#6B7280]">
                 {handle ? `@${handle}` : "Add a username"} · {email || "—"}
@@ -371,7 +378,7 @@ export function SettingsProfileForm({
 
           <SettingsCard
             title="Professional headline & bio"
-            description="Your headline appears in the profile header. The full biography stays in Overview."
+            description="Headline and three-line short bio appear in the header. Full biography stays in Overview."
             icon={<Briefcase className="h-4 w-4" />}
           >
             <div className="space-y-4">
@@ -388,6 +395,37 @@ export function SettingsProfileForm({
                     maxLength={160}
                     onChange={(e) => setHeadline(e.target.value)}
                   />
+                </SettingsField>
+              </div>
+              <div id="field-short-bio" className="scroll-mt-24">
+                <SettingsField
+                  label="Short professional bio"
+                  hint="Exactly three concise sentences for the public profile header. Leave blank to fall back to your headline."
+                >
+                  <div className="space-y-2">
+                    {shortBioLines.map((line, index) => (
+                      <input
+                        key={`short-bio-${index}`}
+                        id={`settings-short-bio-${index + 1}`}
+                        className={settingsInputClass}
+                        value={line}
+                        maxLength={SHORT_BIO_LINE_MAX}
+                        placeholder={
+                          index === 0
+                            ? "Sentence 1 — who you are and your core focus"
+                            : index === 1
+                              ? "Sentence 2 — how you help or what you deliver"
+                              : "Sentence 3 — the experience or value you offer"
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setShortBioLines((current) =>
+                            current.map((existing, i) => (i === index ? value : existing)),
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
                 </SettingsField>
               </div>
               <div id="field-bio" className="scroll-mt-24">

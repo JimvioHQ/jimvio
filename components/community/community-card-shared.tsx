@@ -5,7 +5,6 @@ import { accessPlans, type AccessPlanKey } from "@/lib/community/access-pricing"
 const PLAN_SUFFIX: Record<AccessPlanKey, string> = { weekly: "/wk", monthly: "/mo", quarterly: "/3 mo", yearly: "/yr", lifetime: "once" };
 import React, { useState } from "react";
 import Link from "next/link";
-import { BadgeCheck } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar, communityInitial } from "@/components/community/community-letter-avatar";
@@ -16,6 +15,7 @@ import {
   resolveCommunityMemberCount,
 } from "@/lib/community/member-count";
 import { isCommunityVerified } from "@/lib/community/trending-score";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 
 export type CommunityRow = {
   id: string;
@@ -177,12 +177,11 @@ export function SharedCommunityCard({
               >
                 <span className="inline-flex min-w-0 items-center gap-1">
                   <span className="min-w-0 break-words">{c.name}</span>
-                  {verified ? (
-                    <BadgeCheck
-                      className="h-3.5 w-3.5 shrink-0 text-[#3b82f6]"
-                      aria-label="Verified community"
-                    />
-                  ) : null}
+                  <BlueVerifiedBadge
+                    verified={verified}
+                    size="sm"
+                    label="Verified community"
+                  />
                 </span>
               </h2>
               {c.category && (
