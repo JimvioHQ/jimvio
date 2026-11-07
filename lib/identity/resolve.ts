@@ -536,7 +536,10 @@ async function buildProfilePayload(
   return {
     profile: publicProfile,
     social: publicSocial,
-    portfolio: ((portfolio ?? []) as PortfolioItem[]).map(toPortfolioItem),
+    portfolio:
+      isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showPortfolio")
+        ? ((portfolio ?? []) as PortfolioItem[]).map(toPortfolioItem)
+        : [],
     testimonials: ((testimonials ?? []) as Testimonial[]).map(toTestimonial),
     resume: isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showResume") ? ((resume ?? []) as ResumeEntry[]).map(toResumeEntry) : [],
     badges: badges.map(toBadge),

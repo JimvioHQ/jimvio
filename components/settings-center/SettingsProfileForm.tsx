@@ -49,6 +49,7 @@ import { CategoryPicker } from "@/components/identity/CategoryPicker";
 import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
 import { SocialAccountsManager } from "@/components/identity/SocialAccountsManager";
 import { IdentityPortfolioManager } from "@/components/identity/IdentityPortfolioManager";
+import { SettingsResumeManagers } from "./SettingsResumeManagers";
 
 const AVAILABILITY: { value: IdentityAvailability; label: string }[] = [
   { value: "open", label: "Open to work" },
@@ -195,6 +196,7 @@ export function SettingsProfileForm({
   }
 
   return (
+    <div>
     <form onSubmit={save}>
       <SettingsPageHeader
         title="Profile"
@@ -478,6 +480,9 @@ export function SettingsProfileForm({
 
       </div>
     </form>
+
+      <SettingsResumeManagers initialPayload={initialPayload} />
+    </div>
   );
 }
 

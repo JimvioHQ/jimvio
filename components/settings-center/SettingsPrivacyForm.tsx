@@ -46,6 +46,10 @@ type FieldFlags = {
   showResume: boolean;
   showMediaKit: boolean;
   showAnalytics: boolean;
+  showPortfolio: boolean;
+  showBusiness: boolean;
+  showServices: boolean;
+  showContact: boolean;
 };
 
 export function SettingsPrivacyForm({
@@ -69,6 +73,10 @@ export function SettingsPrivacyForm({
     showResume: initialCustom.showResume === true,
     showMediaKit: initialCustom.showMediaKit === true,
     showAnalytics: initialCustom.showAnalytics === true,
+    showPortfolio: initialCustom.showPortfolio !== false,
+    showBusiness: initialCustom.showBusiness !== false,
+    showServices: initialCustom.showServices !== false,
+    showContact: initialCustom.showContact !== false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -158,6 +166,10 @@ export function SettingsPrivacyForm({
                 ["showResume", "Resume and work history"],
                 ["showMediaKit", "Media kit"],
                 ["showAnalytics", "Analytics"],
+                ["showPortfolio", "Portfolio & Work"],
+                ["showBusiness", "Business & Creator presence"],
+                ["showServices", "Services & bookings"],
+                ["showContact", "Contact preferences"],
               ] as const
             ).map(([key, label]) => (
               <label

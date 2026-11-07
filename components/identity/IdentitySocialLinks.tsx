@@ -1,78 +1,74 @@
-import { BadgeCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  Facebook,
+  Globe,
+  Instagram,
+  Linkedin,
+  Music2,
+  Twitter,
+  Youtube,
+  MessageCircle,
+  Link as LinkIcon,
+} from "lucide-react";
 import type { IdentitySocialAccount, IdentitySocialPlatform } from "@/lib/identity/types";
 import { IdentityCard, cn } from "@/components/identity/identity-ui";
-import { SocialPlatformIcon } from "@/components/identity/SocialPlatformIcon";
 import { formatNumber } from "@/lib/utils";
 
-const SOCIAL_HOSTS: Partial<Record<IdentitySocialPlatform, string[]>> = {
-  tiktok: ["tiktok.com"],
-  instagram: ["instagram.com"],
-  youtube: ["youtube.com", "youtu.be"],
-  facebook: ["facebook.com", "fb.com"],
-  x: ["x.com", "twitter.com"],
-  threads: ["threads.net"],
-  linkedin: ["linkedin.com"],
-  pinterest: ["pinterest.com"],
-  snapchat: ["snapchat.com"],
-};
-
-function publicSocialHref(account: IdentitySocialAccount): string | null {
-  if (!account.url?.trim()) return null;
-  try {
-    const url = new URL(account.url.trim());
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    if (account.platform === "website") return url.toString();
-    const hosts = SOCIAL_HOSTS[account.platform] ?? [];
-    const host = url.hostname.toLowerCase().replace(/\.$/, "");
-    return hosts.some((domain) => host === domain || host.endsWith("." + domain)) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-const PLATFORM_META: Record<IdentitySocialPlatform, { label: string; color: string }> = {
-  tiktok: { label: "TikTok", color: "#161512" },
-  instagram: { label: "Instagram", color: "#D6295C" },
-  youtube: { label: "YouTube", color: "#E1352B" },
-  facebook: { label: "Facebook", color: "#1866D6" },
-  x: { label: "X", color: "#161512" },
-  threads: { label: "Threads", color: "#161512" },
-  linkedin: { label: "LinkedIn", color: "#0A66C2" },
-  pinterest: { label: "Pinterest", color: "#C8232C" },
-  snapchat: { label: "Snapchat", color: "#C7A200" },
-  website: { label: "Website", color: "#59544B" },
+const PLATFORM_META: Record<
+  IdentitySocialPlatform,
+  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
+> = {
+  tiktok: { label: "TikTok", icon: Music2, color: "#161512" },
+  instagram: { label: "Instagram", icon: Instagram, color: "#E4405F" },
+  youtube: { label: "YouTube", icon: Youtube, color: "#FF0000" },
+  facebook: { label: "Facebook", icon: Facebook, color: "#1877F2" },
+  x: { label: "X", icon: Twitter, color: "#111827" },
+  threads: { label: "Threads", icon: MessageCircle, color: "#161512" },
+  linkedin: { label: "LinkedIn", icon: Linkedin, color: "#0A66C2" },
+  pinterest: { label: "Pinterest", icon: LinkIcon, color: "#C8232C" },
+  snapchat: { label: "Snapchat", icon: LinkIcon, color: "#C7A200" },
+  website: { label: "Website", icon: Globe, color: "#2563EB" },
 };
 
 export function IdentitySocialLinks({
   accounts,
   className,
   compact = false,
+  branded = false,
 }: {
   accounts: IdentitySocialAccount[];
   className?: string;
   compact?: boolean;
+  /** Colorize icons with platform brand colors (stats row). */
+  branded?: boolean;
 }) {
-  const visibleAccounts = accounts
-    .map((account) => ({ account, href: publicSocialHref(account) }))
-    .filter((entry): entry is { account: IdentitySocialAccount; href: string } => Boolean(entry.href));
-  if (visibleAccounts.length === 0) return null;
+  const visible = accounts.filter((account) => Boolean(account.url?.trim()));
+  if (visible.length === 0) return null;
 
   if (compact) {
     return (
-      <div className={cn("flex flex-wrap items-center gap-2", className)}>
-        {visibleAccounts.map(({ account, href }) => {
-          const meta = PLATFORM_META[account.platform];
+      <div className={cn("flex flex-wrap items-center gap-2.5", className)}>
+        {visible.map((a) => {
+          const meta = PLATFORM_META[a.platform];
+          const Icon = meta.icon;
+          const label = `${meta.label}${a.handle ? ` · @${a.handle}` : ""}`;
           return (
             <a
-              key={account.id}
-              href={href}
+              key={a.id}
+              href={a.url!}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.06] bg-white transition-colors hover:border-black/15"
-              title={meta.label + (account.handle ? " · @" + account.handle : "")}
-              aria-label={"Open " + meta.label + (account.handle ? " account @" + account.handle : "")}
+              aria-label={label}
+              title={label}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-80",
+                branded
+                  ? "bg-transparent"
+                  : "border border-black/[0.06] bg-white text-[#59544B] hover:border-black/15 hover:text-[#1C1B19]",
+              )}
+              style={branded ? { color: meta.color } : undefined}
             >
-              <SocialPlatformIcon platform={account.platform} bare className="h-4 w-4" />
+              <Icon className="h-[18px] w-[18px]" />
             </a>
           );
         })}
@@ -82,33 +78,33 @@ export function IdentitySocialLinks({
 
   return (
     <div className={cn("grid grid-cols-1 gap-2.5 sm:grid-cols-2", className)}>
-      {visibleAccounts.map(({ account, href }) => {
-        const meta = PLATFORM_META[account.platform];
+      {visible.map((a) => {
+        const meta = PLATFORM_META[a.platform];
+        const Icon = meta.icon;
         return (
           <a
-            key={account.id}
-            href={href}
+            key={a.id}
+            href={a.url!}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={"Open " + meta.label + (account.handle ? " account @" + account.handle : "")}
             className="group flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-white px-3.5 py-3 transition-colors hover:border-black/15"
           >
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: meta.color + "14" }}
+              style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
             >
-              <SocialPlatformIcon platform={account.platform} bare className="h-4 w-4" />
+              <Icon className="h-4.5 w-4.5" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
                 <p className="truncate text-[13px] font-semibold text-[#1C1B19]">
-                  {account.handle ? "@" + account.handle : meta.label}
+                  {a.handle ? `@${a.handle}` : meta.label}
                 </p>
-                {account.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />}
+                {a.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />}
               </div>
               <p className="text-[11.5px] text-[#9A9388]">
                 {meta.label}
-                {account.followers > 0 && " · " + formatNumber(account.followers) + " followers"}
+                {a.followers > 0 && ` · ${formatNumber(a.followers)} followers`}
               </p>
             </div>
           </a>

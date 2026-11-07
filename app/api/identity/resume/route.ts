@@ -74,6 +74,63 @@ export async function POST(req: NextRequest) {
 }
 
 /**
+ * PATCH /api/identity/resume
+ * Body: { id, entryType?, title?, organization?, description?, startedOn?, endedOn?, isCurrent?, sortOrder? }
+ */
+export async function PATCH(req: NextRequest) {
+  const { user, db: rawDb, error } = await requireUser();
+  if (!user) return NextResponse.json({ error }, { status: 401 });
+  const db = rawDb as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  const body = await req.json().catch(() => ({}));
+  const id = typeof body.id === "string" ? body.id : "";
+  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
+  const updates: Record<string, unknown> = {};
+  if (body.entryType !== undefined) {
+    const entryType = String(body.entryType).toLowerCase();
+    if (!ENTRY_TYPES.has(entryType)) {
+      return NextResponse.json({ error: "Invalid entryType" }, { status: 400 });
+    }
+    updates.entry_type = entryType;
+  }
+  if (typeof body.title === "string") {
+    const title = body.title.trim();
+    if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
+    updates.title = title;
+  }
+  if (typeof body.organization === "string") updates.organization = body.organization || null;
+  if (typeof body.description === "string") updates.description = body.description || null;
+  if (body.startedOn !== undefined) {
+    updates.started_on =
+      typeof body.startedOn === "string" && body.startedOn ? body.startedOn : null;
+  }
+  if (body.endedOn !== undefined) {
+    updates.ended_on = typeof body.endedOn === "string" && body.endedOn ? body.endedOn : null;
+  }
+  if (body.isCurrent !== undefined) updates.is_current = Boolean(body.isCurrent);
+  if (body.sortOrder !== undefined) {
+    updates.sort_order = Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const { data, error: updateErr } = await db
+    .from("jip_resume_entries")
+    .update(updates)
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*")
+    .maybeSingle();
+
+  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 400 });
+  if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ entry: toResumeEntry(data as ResumeEntry) });
+}
+
+/**
  * DELETE /api/identity/resume?id=...
  */
 export async function DELETE(req: NextRequest) {
