@@ -15,11 +15,11 @@
     },
     {
       "path": "/api/cron/cj-enrichment",
-      "schedule": "0 1 * * *"
+      "schedule": "5 1 * * *"
     },
     {
       "path": "/api/cron/cj-marketplace-maintenance",
-      "schedule": "0 2 * * *"
+      "schedule": "5 2 * * *"
     },
     {
       "path": "/api/cron/cj-stock-health",
@@ -27,19 +27,19 @@
     },
     {
       "path": "/api/cron/order-tracking-sync",
-      "schedule": "0 3 * * *"
+      "schedule": "5 3 * * *"
     },
     {
       "path": "/api/cron/digital-license-expiry",
-      "schedule": "15 4 * * *"
+      "schedule": "50 4 * * *"
     },
     {
       "path": "/api/cron/cj-supplier-health",
-      "schedule": "0 6 * * *"
+      "schedule": "20 6 * * *"
     },
     {
       "path": "/api/cron/cj-catalog-cleanup",
-      "schedule": "0 5 * * *"
+      "schedule": "25 5 * * *"
     },
     {
       "path": "/api/cron/reconcile-payments",
@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/ugc/views/sync",
-      "schedule": "41 7 * * *"
+      "schedule": "50 7 * * *"
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
@@ -59,19 +59,19 @@
     },
     {
       "path": "/api/cron/community-stories-refresh",
-      "schedule": "0 8 * * *"
+      "schedule": "50 8 * * *"
     },
     {
       "path": "/api/cron/growth-engine",
-      "schedule": "30 5 * * *"
+      "schedule": "52 5 * * *"
     },
     {
       "path": "/api/cron/media-ingest",
-      "schedule": "30 9 * * *"
+      "schedule": "50 9 * * *"
     },
     {
       "path": "/api/cron/cj-strategy-import",
-      "schedule": "10 10 * * *"
+      "schedule": "50 10 * * *"
     }
   ]
 }
