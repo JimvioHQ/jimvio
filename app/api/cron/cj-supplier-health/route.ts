@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 
-/** Every 30min — recalculate supplier reputation, re-evaluate auto publish */
+/** Daily at 07:00 UTC — recalculate supplier reputation, re-evaluate auto publish */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;

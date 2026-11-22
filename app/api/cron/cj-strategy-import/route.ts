@@ -10,7 +10,7 @@ import { runStrategyImport } from "@/lib/cj/premium-intelligence/strategy-import
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Hourly — 2 strategy keywords, at most 6 new products, only trending + verified + video + in stock. */
+/** Daily at 11:00 UTC — 2 strategy keywords, at most 6 new products, only trending + verified + video + in stock. */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;

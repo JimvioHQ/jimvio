@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 
-/** Every 5 minutes — self-healing marketplace maintenance (skips when enrichment/sync is running). */
+/** Daily at 02:00 UTC — self-healing marketplace maintenance (skips when enrichment/sync is running). */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;

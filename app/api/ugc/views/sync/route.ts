@@ -7,7 +7,7 @@ import { verifyDueSubmissions } from "@/lib/ugc/verification/verify-submission";
 export const maxDuration = 300;
 
 // POST /api/ugc/views/sync
-// Called by Vercel Cron every 6 hours: real view checks, then payout release.
+// Called by Vercel Cron daily at 08:00 UTC: real view checks, then payout release.
 export async function GET(req: NextRequest) {
   return POST(req);
 }

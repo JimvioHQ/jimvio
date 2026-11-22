@@ -4,7 +4,7 @@ import { refreshCommunityStories } from "@/lib/community/stories/refresh-communi
 
 export const dynamic = "force-dynamic";
 
-/** Every 6h — idempotent; skips communities that already have active stories. */
+/** Daily at 09:00 UTC — idempotent; skips communities that already have active stories. */
 export async function GET(req: NextRequest) {
   const authError = assertCronAuthorized(req);
   if (authError) return authError;
