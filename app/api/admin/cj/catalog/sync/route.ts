@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth/api-helpers";
+import { isCjProductIntelligenceProcessingEnabled } from "@/lib/cj/intelligence-kill-switch";
 import { bootstrapCatalog } from "@/lib/cj/premium-intelligence/bootstrap";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import {
@@ -13,6 +14,18 @@ export const maxDuration = 300;
 export async function POST(): Promise<Response> {
   const auth = await requireAdmin();
   if ("error" in auth && auth.error) return auth.error;
+
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return Response.json(
+      {
+        success: false,
+        disabled: true,
+        reason: "cj_product_intelligence_kill_switch",
+        message: "Bulk catalog intelligence is disabled. Use Import from CJ with a selected product PID.",
+      },
+      { status: 409 },
+    );
+  }
 
   try {
     const health = await getSchemaHealth();
