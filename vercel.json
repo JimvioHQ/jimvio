@@ -23,7 +23,7 @@
     },
     {
       "path": "/api/cron/cj-stock-health",
-      "schedule": "7 11 * * *"
+      "schedule": "7,37 * * * *"
     },
     {
       "path": "/api/cron/order-tracking-sync",
@@ -39,15 +39,15 @@
     },
     {
       "path": "/api/cron/cj-catalog-cleanup",
-      "schedule": "25 5 * * *"
+      "schedule": "20 5 * * *"
     },
     {
       "path": "/api/cron/reconcile-payments",
-      "schedule": "15 12 * * *"
+      "schedule": "12,27,42,57 * * * *"
     },
     {
       "path": "/api/cron/ugc-release-payouts",
-      "schedule": "17 13 * * *"
+      "schedule": "17 * * * *"
     },
     {
       "path": "/api/ugc/views/sync",
@@ -55,7 +55,7 @@
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
-      "schedule": "23 14 * * *"
+      "schedule": "21 * * * *"
     },
     {
       "path": "/api/cron/community-stories-refresh",
@@ -63,7 +63,7 @@
     },
     {
       "path": "/api/cron/growth-engine",
-      "schedule": "52 5 * * *"
+      "schedule": "50 5 * * *"
     },
     {
       "path": "/api/cron/media-ingest",
