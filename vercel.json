@@ -23,7 +23,7 @@
     },
     {
       "path": "/api/cron/cj-stock-health",
-      "schedule": "10,40 * * * *"
+      "schedule": "10 11 * * *"
     },
     {
       "path": "/api/cron/order-tracking-sync",
@@ -43,7 +43,7 @@
     },
     {
       "path": "/api/cron/reconcile-payments",
-      "schedule": "5,15,25,35,45,55 * * * *"
+      "schedule": "15 12 * * *"
     },
     {
       "path": "/api/cron/ugc-release-payouts",
@@ -55,7 +55,7 @@
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
-      "schedule": "21 * * * *"
+      "schedule": "23 14 * * *"
     },
     {
       "path": "/api/cron/community-stories-refresh",
