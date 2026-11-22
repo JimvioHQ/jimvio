@@ -1,34 +1,12 @@
-import CJImportBrowser from "@/components/admin/cj/cj-import-browser";
-import { getAdminDB } from "@/services/db";
+import CjPidImport from "@/components/admin/cj/cj-pid-import";
 
 export const metadata = {
-  title: "Import Intelligence · CJ · Admin",
-  description: "World-class product sourcing dashboard with profit intelligence, health scores, and smart filters.",
+  title: "Import from CJ · Admin",
+  description: "Import a selected CJ supplier product into Jimvio by its product ID.",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function ImportCJProductPage() {
-  const admin = getAdminDB();
-
-  const [{ count: cjDraftCount }, { count: cjTotalCount }] = await Promise.all([
-    admin
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("source", "cj")
-      .eq("status", "draft")
-      .is("deleted_at", null),
-    admin
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("source", "cj")
-      .is("deleted_at", null),
-  ]);
-
-  return (
-    <CJImportBrowser
-      cjDraftCount={cjDraftCount ?? 0}
-      cjTotalCount={cjTotalCount ?? 0}
-    />
-  );
+export default function ImportCJProductPage() {
+  return <CjPidImport />;
 }
