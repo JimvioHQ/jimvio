@@ -171,9 +171,101 @@ export function rawRowToCJProduct(
               Number(p.verifiedWarehouse ?? 0) === 1
           ),
     intelligenceEnriched: intel?.enrichment_status === "complete",
-    imageCount: intel?.image_count,
+    imageCount: intel?.image_count ?? Number(p.imageCount ?? 0),
     descriptionLength: intel?.description_length,
   };
+}
+
+/**
+ * Persist only the compact fields needed to browse and filter a supplier catalog.
+ * Full descriptions, image galleries and variant records are fetched from CJ on
+ * demand when an admin explicitly imports a product. This keeps an unimported
+ * catalog row small without sacrificing the ability to import it later.
+ */
+export function compactCjListPayload(row: Record<string, unknown>): Record<string, unknown> {
+  const keys = [
+    "productName",
+    "productNameEn",
+    "productSku",
+    "sellPrice",
+    "nowPrice",
+    "discountPrice",
+    "productType",
+    "productWeight",
+    "categoryId",
+    "categoryName",
+    "threeCategoryName",
+    "oneCategoryName",
+    "twoCategoryName",
+    "createAt",
+    "status",
+    "listedNum",
+    "addMarkStatus",
+    "isFreeShipping",
+    "shippingCountryCodes",
+    "verifiedWarehouse",
+    "deliveryCycle",
+    "countryCode",
+    "warehouseCountryCode",
+    "supplierId",
+    "supplierName",
+    "supplierVerified",
+    "verifiedSupplier",
+    "warehouseName",
+    "warehouse",
+    "rating",
+    "reviewCount",
+    "commentNum",
+    "reviewNum",
+    "favoriteNum",
+    "favoriteCount",
+    "isVideo",
+    "is_video",
+    "videoUrl",
+    "tags",
+    "productTags",
+    "productKeyEnSet",
+    "productKeySet",
+  ] as const;
+
+  const compact: Record<string, unknown> = {};
+  for (const key of keys) {
+    const value = row[key];
+    if (value === undefined || value === null) continue;
+    if (key === "tags" || key === "productTags") {
+      compact[key] = Array.isArray(value) ? value.slice(0, 20) : value;
+      continue;
+    }
+    if (key === "shippingCountryCodes" || key === "productKeyEnSet" || key === "productKeySet") {
+      compact[key] = Array.isArray(value) ? value.slice(0, 20) : value;
+      continue;
+    }
+    compact[key] = value;
+  }
+
+  const description = asString(row.description);
+  if (description) {
+    compact.description = description.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 500);
+  }
+
+  const variants = Array.isArray(row.variants) ? row.variants.length : Number(row.variantCount ?? 0);
+  if (Number.isFinite(variants) && variants > 0) compact.variantCount = variants;
+
+  const images = Array.isArray(row.productImageSet) ? row.productImageSet.length : Number(row.imageCount ?? 0);
+  if (Number.isFinite(images) && images > 0) compact.imageCount = images;
+
+  const videos = [
+    ...(Array.isArray(row.productVideo) ? row.productVideo : []),
+    ...(Array.isArray(row.videoList) ? row.videoList : []),
+  ].filter((url) => typeof url === "string" && url.startsWith("http"));
+  if (videos.length > 0) {
+    compact.isVideo = 1;
+    compact.videoCount = videos.length;
+  }
+
+  // Deliberately exclude variants, productImageSet, productImage, productNameSet
+  // and productProEnSet. Their full payload is fetched when a product is imported.
+  return compact;
 }
 
 export function listV2RowToRaw(row: Record<string, unknown>) {
@@ -194,6 +286,6 @@ export function listV2RowToRaw(row: Record<string, unknown>) {
     warehouse: (row.warehouseName as string) ?? (row.countryCode as string) ?? null,
     country_code: (row.countryCode as string) ?? null,
     sku: (row.sku as string) ?? null,
-    raw_payload: row,
+    raw_payload: compactCjListPayload(row),
   };
 }
