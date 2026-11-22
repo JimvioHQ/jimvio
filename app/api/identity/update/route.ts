@@ -11,7 +11,7 @@ import {
   loadCreatorProfileCompletion,
   syncRoleMirrors,
 } from "@/lib/identity/sync";
-import { ensureJipIdentity } from "@/lib/identity/resolve";
+import { ensureJipIdentity, getIdentityByUserId } from "@/lib/identity/resolve";
 import { mergeShortBioIntoPrivacyCustom } from "@/lib/identity/short-bio";
 
 export const dynamic = "force-dynamic";
