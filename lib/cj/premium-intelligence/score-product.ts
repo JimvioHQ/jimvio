@@ -19,6 +19,7 @@ import {
 } from "./catalog-repository";
 import { listV2RowToRaw, rawRowToCJProduct } from "./map-to-cj-product";
 import { getListSyncPage, saveListSyncPage } from "./worker-coordinator";
+import { filterLiveMappedCjRows } from "./catalog-retention";
 import type { SyncListResult } from "./types";
 
 const PAGE_SIZE = 100;
@@ -44,6 +45,7 @@ export async function syncCjListCatalog(options?: {
   let fetched = 0;
   let saved = 0;
   let enqueued = 0;
+  let marketplaceEligible = 0;
   let errors = 0;
   const maxPages = options?.maxPages ?? MAX_PAGES;
   const budgetMs = options?.maxDurationMs ?? MAX_DURATION_MS;
@@ -78,11 +80,44 @@ export async function syncCjListCatalog(options?: {
       const rawRows = records.map(listV2RowToRaw).filter((r) => r.pid);
 
       try {
-        const n = await upsertRawProducts(rawRows);
-        saved += n;
-        const pids = rawRows.map((r) => r.pid);
-        await ensureIntelligenceRows(pids);
-        enqueued += await enqueueEnrichment(pids, 0);
+        const pids = rawRows.map((row) => row.pid);
+        const { data: mappings, error: mappingError } = await supabase
+          .from("cj_product_map")
+          .select("cj_pid, product_id")
+          .in("cj_pid", pids);
+        if (mappingError) throw new Error(mappingError.message);
+
+        const productIds = [...new Set((mappings ?? []).map((row) => String(row.product_id)).filter(Boolean))];
+        const { data: linkedProducts, error: productsError } = productIds.length
+          ? await supabase
+              .from("products")
+              .select("id, status, is_active, deleted_at")
+              .in("id", productIds)
+          : { data: [], error: null };
+        if (productsError) throw new Error(productsError.message);
+
+        const marketplaceRows = filterLiveMappedCjRows(
+          rawRows,
+          (mappings ?? []).map((row) => ({
+            cj_pid: String(row.cj_pid),
+            product_id: String(row.product_id),
+          })),
+          (linkedProducts ?? []).map((product) => ({
+            id: String(product.id),
+            status: product.status == null ? null : String(product.status),
+            is_active: typeof product.is_active === "boolean" ? product.is_active : null,
+            deleted_at: product.deleted_at == null ? null : String(product.deleted_at),
+          })),
+        );
+
+        marketplaceEligible += marketplaceRows.length;
+        if (marketplaceRows.length > 0) {
+          const n = await upsertRawProducts(marketplaceRows);
+          saved += n;
+          const marketplacePids = marketplaceRows.map((row) => row.pid);
+          await ensureIntelligenceRows(marketplacePids);
+          enqueued += await enqueueEnrichment(marketplacePids, 0);
+        }
       } catch {
         errors += records.length;
       }
@@ -102,7 +137,7 @@ export async function syncCjListCatalog(options?: {
     const nextPage = catalogComplete ? 1 : page;
     await saveListSyncPage(nextPage);
 
-    if (fetched > 0 && saved === 0) {
+    if (marketplaceEligible > 0 && saved === 0) {
       throw new Error(
         "Could not save catalog rows. Apply database/migrations/065_cj_premium_intelligence.sql and reload Supabase schema cache (Settings → API)."
       );
@@ -113,7 +148,7 @@ export async function syncCjListCatalog(options?: {
       total_fetched: fetched,
       total_saved: saved,
       total_errors: errors,
-      metadata: { enqueued, pagesThisRun, nextPage, catalogComplete },
+      metadata: { enqueued, pagesThisRun, nextPage, catalogComplete, marketplaceEligible },
     });
   } catch (err) {
     await finishSyncRun(runId, {
