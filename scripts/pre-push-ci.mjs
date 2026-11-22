@@ -243,6 +243,10 @@ function runVerifies() {
       stdio: "inherit",
       env: process.env,
       shell: false,
+      // Advisory checks must never stall the required release gate indefinitely.
+      // They remain non-blocking and are reported as warnings if they time out.
+      timeout: 60_000,
+      killSignal: "SIGTERM",
     });
     if (result.status !== 0) {
       console.warn(`⚠ Advisory verify failed (non-blocking): ${f}`);
