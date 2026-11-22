@@ -22,10 +22,11 @@ Vercel's current Hobby Cron documentation specifies a minimum interval of 15 min
 
 ## Time-sensitive exceptions retained
 
-These jobs were not reduced to once daily because doing so would create avoidable risks to money movement or marketplace inventory accuracy.
+These jobs were not reduced to once daily because doing so would create avoidable risks to money movement, marketplace inventory accuracy, or recovery of failed payment/webhook work.
 
 | Endpoint | Previous schedule | Current schedule | Why it remains more frequent |
 | --- | --- | --- | --- |
+| `/api/cron/retry-failed-webhooks` | `0 2 * * *` | `23 * * * *` | Recovers missing vendor credits for failed webhook events; the route only scans events from the previous 24 hours and processes at most 20 per invocation. Hourly runs reduce the risk of a daily run missing events after the 24-hour lookback and let recovery happen promptly. |
 | `/api/cron/reconcile-payments` | `*/10 * * * *` | `*/15 * * * *` | Checks provider status when payment webhooks are missing, finalizes confirmed orders/deposits, and expires stale attempts. Daily reconciliation could leave paid orders and wallet deposits pending for nearly 24 hours. The 15-minute interval is the Hobby-compatible minimum. |
 | `/api/cron/cj-stock-health` | `*/30 * * * *` | `7,37 * * * *` | Checks stock and can unpublish unavailable products/requeue ready products. Daily checks increase the period in which stale inventory could remain purchasable. It remains every 30 minutes, offset from quarter-hour payment reconciliation ticks. |
 | `/api/cron/ugc-release-payouts` | `17 * * * *` | `17 * * * *` | Releases eligible UGC earnings from pending to available wallet balance after the 24-hour hold. Daily processing could add up to another 24 hours of unnecessary delay to creator wallet availability. Hourly cadence is Hobby-compatible. |
@@ -41,7 +42,7 @@ These jobs were not reduced to once daily because doing so would create avoidabl
 
 ## Staggering and duplicate-work review
 
-Daily jobs have distinct UTC start times. The failed-webhook retry is offset from the 02:00 marketplace maintenance run; growth is offset from the 05:00 catalog cleanup; media ingestion is offset from the hourly UGC wallet payout release. The stock-health job runs at minutes 7 and 37, away from payment reconciliation's quarter-hour ticks.
+Daily jobs have distinct UTC start times. The hourly failed-webhook retry runs at minute 23, six minutes after the hourly UGC payout release at minute 17; it is also outside payment reconciliation's quarter-hour ticks. Growth is offset from the 05:00 catalog cleanup; media ingestion is offset from the hourly UGC wallet payout release. The stock-health job runs at minutes 7 and 37, away from payment reconciliation's quarter-hour ticks.
 
 The UGC view-sync route also calls the idempotent pending-payout release helper; the independent hourly payout job remains in place for timely creator balance releases. Both paths use a compare-and-swap status claim before releasing a payout, preventing the same payout from being released twice.
 
