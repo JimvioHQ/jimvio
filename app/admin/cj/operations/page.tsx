@@ -47,7 +47,7 @@ export default async function CjCatalogOperationsPage() {
         </p>
         <p className="mt-2 text-sm">
           <Link href="/admin/products/import/cj" className="text-[#FF5A1F] underline">
-            Open import intelligence
+            Import a CJ product by PID
           </Link>
         </p>
       </div>
