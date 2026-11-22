@@ -19,6 +19,7 @@ Vercel's current Hobby Cron documentation specifies a minimum interval of 15 min
 | `/api/cron/community-stories-refresh` | `0 */6 * * *` | `0 8 * * *` | Community story refresh now runs daily at 08:00 UTC rather than every six hours. |
 | `/api/cron/media-ingest` | `17 * * * *` | `30 9 * * *` | Media ingestion now runs daily at 09:30 UTC rather than hourly; new stories may appear later. |
 | `/api/cron/cj-strategy-import` | `10 * * * *` | `10 10 * * *` | CJ strategy product discovery/import now runs daily at 10:10 UTC rather than hourly. |
+| `/api/cron/growth-engine` | `20 5 * * *` | `30 5 * * *` | Remains daily; moved 10 minutes later to stagger it after catalog cleanup. |
 
 ## Time-sensitive exceptions retained
 
@@ -38,7 +39,6 @@ These jobs were not reduced to once daily because doing so would create avoidabl
 | `/api/cron/digital-license-expiry` | `15 4 * * *` |
 | `/api/cron/cj-catalog-cleanup` | `0 5 * * *` |
 | `/api/cron/retry-failed-webhooks` | `30 2 * * *` |
-| `/api/cron/growth-engine` | `30 5 * * *` |
 
 ## Staggering and duplicate-work review
 
