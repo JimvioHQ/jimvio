@@ -117,7 +117,7 @@ jobs:
     name: Confirm production
     needs: gate
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.gate.result == 'success'
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
       name: production
