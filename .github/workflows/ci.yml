@@ -1,6 +1,5 @@
-# Required checks run on the existing Jimvio self-hosted runner
-# (Jimvio-CI-Runner: self-hosted, Linux, X64). GitHub-hosted ubuntu-latest
-# is blocked when Actions spending limits prevent job start.
+# Jimvio is a public repository: standard GitHub-hosted ubuntu-latest runners are free and unlimited.
+# Use the hosted runner by default so checks never wait for an unregistered self-hosted machine.
 
 name: CI
 
@@ -22,8 +21,8 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: [self-hosted, Linux, X64]
-    # Self-hosted cold npm ci can take ~20m; typecheck/build needs headroom beyond that.
+    runs-on: ubuntu-latest
+    # Full build, lint, typecheck and tests run on the standard 4-core public-repo runner.
     timeout-minutes: 150
     steps:
       - name: Checkout
@@ -122,7 +121,7 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- runner: self-hosted (Jimvio-CI-Runner)"
+            echo "- runner: ubuntu-latest (public repository; no hosted-runner charge)"
             echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"
