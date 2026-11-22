@@ -141,6 +141,11 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
 export async function triggerAutoPublishFromWorker(options?: {
   processQueueOnly?: boolean;
 }): Promise<{ published: number; verified: number }> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return { published: 0, verified: 0 };
+  }
+
   if (!options?.processQueueOnly) {
     await scanAndQueueReadyProducts(50);
   }
