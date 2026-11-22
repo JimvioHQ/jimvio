@@ -4,7 +4,7 @@ import { reconcilePayments } from "@/lib/payments/reconcile-payments";
 
 export const maxDuration = 120;
 
-// Every 10 minutes: confirm payments whose webhook never arrived, expire week-old unpaid attempts.
+// Daily on Vercel Hobby: confirm payments whose webhook never arrived, expire week-old unpaid attempts.
 export async function GET(req: NextRequest) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
