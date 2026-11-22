@@ -1,13 +1,13 @@
 {
-  "regions": ["dub1"],
+  "regions": [
+    "dub1"
+  ],
   "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
-
   "build": {
     "env": {
       "NODE_OPTIONS": "--max-old-space-size=4096"
     }
   },
-
   "crons": [
     {
       "path": "/api/cron/cj-catalog-sync",
@@ -15,11 +15,11 @@
     },
     {
       "path": "/api/cron/cj-enrichment",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/cj-marketplace-maintenance",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/cj-stock-health",
@@ -27,7 +27,7 @@
     },
     {
       "path": "/api/cron/order-tracking-sync",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 3 * * *"
     },
     {
       "path": "/api/cron/digital-license-expiry",
@@ -35,7 +35,7 @@
     },
     {
       "path": "/api/cron/cj-supplier-health",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/cj-catalog-cleanup",
@@ -43,7 +43,7 @@
     },
     {
       "path": "/api/cron/reconcile-payments",
-      "schedule": "*/10 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/ugc-release-payouts",
@@ -51,7 +51,7 @@
     },
     {
       "path": "/api/ugc/views/sync",
-      "schedule": "41 */6 * * *"
+      "schedule": "41 7 * * *"
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
@@ -59,7 +59,7 @@
     },
     {
       "path": "/api/cron/community-stories-refresh",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/growth-engine",
@@ -67,11 +67,11 @@
     },
     {
       "path": "/api/cron/media-ingest",
-      "schedule": "17 * * * *"
+      "schedule": "17 9 * * *"
     },
     {
       "path": "/api/cron/cj-strategy-import",
-      "schedule": "10 * * * *"
+      "schedule": "10 10 * * *"
     }
   ]
 }
