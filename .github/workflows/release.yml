@@ -37,8 +37,8 @@ permissions:
 jobs:
   gate:
     name: Release gates
-    runs-on: [self-hosted, Linux, X64]
-    # Cold npm ci (~20m) + ci:prepush on the self-hosted runner.
+    runs-on: ubuntu-latest
+    # Public repository standard hosted runners have free, unlimited usage.
     timeout-minutes: 150
     outputs:
       should_deploy: ${{ steps.decide.outputs.should_deploy }}
