@@ -13,7 +13,7 @@ permissions:
 jobs:
   migrations:
     name: Verify migration history
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       # Canonical project secret: SUPABASE_PROJECT_REF.
@@ -70,7 +70,7 @@ jobs:
     name: Apply eligible production migrations
     needs: migrations
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:
       group: supabase-production-migrate
