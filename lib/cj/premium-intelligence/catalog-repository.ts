@@ -78,11 +78,60 @@ export async function upsertRawProducts(
   if (rows.length === 0) return 0;
   const db = getCatalogDB();
   const now = new Date().toISOString();
-  const payload = rows.map((r) => ({
-    ...r,
-    list_synced_at: now,
-    updated_at: now,
-  }));
+  const pids = rows.map((row) => row.pid);
+  const preservePids = new Set<string>();
+  const BATCH = 500;
+
+  // Products already mapped into Jimvio may still rely on their full CJ detail
+  // payload for variants and historical product operations. Keep that detail.
+  // Unmapped supplier catalog rows stay compact and are hydrated from CJ only
+  // when an admin explicitly imports a selected PID.
+  for (let i = 0; i < pids.length; i += BATCH) {
+    const { data: mappings, error: mapError } = await db
+      .from("cj_product_map")
+      .select("cj_pid")
+      .in("cj_pid", pids.slice(i, i + BATCH));
+    if (mapError) throw new Error(mapError.message);
+    for (const mapping of mappings ?? []) preservePids.add(String(mapping.cj_pid));
+  }
+
+  const previousPayloads = new Map<string, Record<string, unknown>>();
+  const preserved = [...preservePids];
+  for (let i = 0; i < preserved.length; i += BATCH) {
+    const { data: previousRows, error: previousError } = await db
+      .from("cj_raw_products")
+      .select("pid, raw_payload")
+      .in("pid", preserved.slice(i, i + BATCH));
+    if (previousError) throw new Error(previousError.message);
+    for (const previous of previousRows ?? []) {
+      if (previous.raw_payload && typeof previous.raw_payload === "object" && !Array.isArray(previous.raw_payload)) {
+        previousPayloads.set(String(previous.pid), previous.raw_payload as Record<string, unknown>);
+      }
+    }
+  }
+
+  const payload = rows.map((row) => {
+    const previous = preservePids.has(row.pid) ? previousPayloads.get(row.pid) : undefined;
+    if (!previous) {
+      return { ...row, list_synced_at: now, updated_at: now };
+    }
+
+    const merged: Record<string, unknown> = {
+      ...previous,
+      ...(row.raw_payload ?? {}),
+    };
+    const previousDescription = typeof previous.description === "string" ? previous.description : "";
+    const nextDescription = typeof row.raw_payload?.description === "string" ? row.raw_payload.description : "";
+    if (previousDescription.length > nextDescription.length) {
+      merged.description = previousDescription;
+    }
+    return {
+      ...row,
+      raw_payload: merged,
+      list_synced_at: now,
+      updated_at: now,
+    };
+  });
 
   const { error } = await db.from("cj_raw_products").upsert(payload, { onConflict: "pid" });
   if (error) throw new Error(error.message);
