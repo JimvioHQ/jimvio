@@ -172,7 +172,7 @@ export function rawRowToCJProduct(
           ),
     intelligenceEnriched: intel?.enrichment_status === "complete",
     imageCount: intel?.image_count ?? Number(p.imageCount ?? 0),
-    descriptionLength: intel?.description_length,
+    descriptionLength: intel?.description_length ?? (typeof p.description === "string" ? p.description.length : undefined),
   };
 }
 
