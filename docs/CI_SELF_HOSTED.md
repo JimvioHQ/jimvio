@@ -1,9 +1,10 @@
-# Jimvio CI — Production Self-Hosted Runner Infrastructure
+# Jimvio CI — GitHub-Hosted Default, Self-Hosted Optional
 
-JimvioHQ Free-plan **GitHub-hosted Actions minutes are exhausted / billing-blocked**.
-All workflows default to a **self-hosted** runner (`self-hosted`, `linux`, `x64`) so quality gates do **not** consume hosted minutes.
+Jimvio's repository is public. Standard GitHub-hosted `ubuntu-latest` runners are free and unlimited for public repositories, so the required CI, release, Supabase migration, CodeQL, and preview workflows use `ubuntu-latest` by default. This avoids indefinite queues when an optional self-hosted machine is offline.
 
-Vercel, Supabase, LiveKit, Resend, Cloudinary, Stripe, and Flutterwave deployments are **unchanged**.
+The self-hosted runner scripts below remain available as an optional fallback for future private workloads or controlled infrastructure needs. They are not required for current production CI.
+
+Vercel, Supabase, LiveKit, Resend, Cloudinary, Stripe, and Flutterwave deployment targets are unchanged.
 
 ---
 
@@ -26,13 +27,9 @@ Vercel, Supabase, LiveKit, Resend, Cloudinary, Stripe, and Flutterwave deploymen
 
 ---
 
-## Manual blockers (cannot be done from the repo / Cursor alone)
+## Optional self-hosted fallback
 
-1. **Provision a Linux server** (Ubuntu 22.04+/24.04+ or Debian 12+ VPS/bare metal)  
-2. **Create a GitHub Runner Registration Token**:  
-   **Repository → Settings → Actions → Runners → New self-hosted runner**
-
-Until both exist, deployment is **blocked**. Jobs queue on self-hosted labels and do **not** use hosted minutes.
+No self-hosted runner is required for the current public-repository workflows. Only provision one when a future job genuinely needs a persistent or private network environment. In that case, use a dedicated Linux server and a short-lived GitHub runner registration token from **Repository → Settings → Actions → Runners**.
 
 ---
 
@@ -175,10 +172,10 @@ The canonical Supabase project secret is `SUPABASE_PROJECT_REF`. Workflows do no
 ## Workflow runner selection
 
 ```yaml
-runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
+runs-on: ubuntu-latest
 ```
 
-Default = self-hosted. Hosted minutes only if `USE_GITHUB_HOSTED_RUNNERS=true`.
+This is the default for all required public-repository workflows. Standard GitHub-hosted runners on public repositories are free and unlimited. Keep self-hosted runners only for jobs that explicitly need private network access or a persistent host.
 
 ---
 
@@ -188,7 +185,7 @@ Default = self-hosted. Hosted minutes only if `USE_GITHUB_HOSTED_RUNNERS=true`.
 - Never commit tokens, `.credentials*`, or `.runner`  
 - Prefer GitHub/Vercel secrets over shell profiles  
 - Keep OS/Node patched via periodic bootstrap  
-- Leave hosted-runner variable unset unless billing allows it  
+- Prefer GitHub-hosted `ubuntu-latest` for public workflows; use self-hosted only when technically required  
 - Restrict SSH to the runner host; least-privilege firewall  
 
 ---
@@ -201,8 +198,8 @@ A: **No.** You still need a Linux host and a GitHub registration token.
 **Q: When is deployment “complete”?**  
 A: Only when GitHub shows the runner **Online/Idle** (or `ci-deploy-health-report.json` has `status: "online_idle"`).
 
-**Q: Will queued jobs burn hosted minutes?**  
-A: No — they wait for `self-hosted` / `linux` / `x64`.
+**Q: Do required checks need a self-hosted server?**  
+A: No. The required public-repository workflows use `ubuntu-latest`, which GitHub currently provides free and unlimited for public repositories.
 
 ---
 
