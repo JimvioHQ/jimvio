@@ -28,12 +28,11 @@ for (const name of required) {
   if (!/^name:\s+/m.test(body)) fail(`${name}: missing top-level name`);
   if (!/^on:/m.test(body)) fail(`${name}: missing on:`);
   if (!/^jobs:/m.test(body)) fail(`${name}: missing jobs:`);
-  // Prefer the existing Jimvio self-hosted runner. GitHub-hosted ubuntu-latest
-  // is only acceptable when Actions billing allows jobs to start.
-  const usesSelfHosted = /runs-on:\s*\[?\s*self-hosted/.test(body);
-  const usesUbuntuLatest = /ubuntu-latest/.test(body);
-  if (!usesSelfHosted && !usesUbuntuLatest) {
-    fail(`${name}: required checks must run on self-hosted (Jimvio-CI-Runner) or ubuntu-latest`);
+  // Jimvio is public: standard GitHub-hosted ubuntu-latest runners are free
+  // and unlimited. Keep required workflows off an optional/unregistered runner.
+  const usesUbuntuLatest = /runs-on:\s*ubuntu-latest/.test(body);
+  if (!usesUbuntuLatest) {
+    fail(`${name}: required public-repository workflows must use ubuntu-latest`);
   }
   // Unbalanced quotes heuristic
   const doubles = (body.match(/"/g) || []).length;
