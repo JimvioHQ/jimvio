@@ -245,7 +245,7 @@ export function compactCjListPayload(row: Record<string, unknown>): Record<strin
 
   const description = asString(row.description);
   if (description) {
-    compact.description = description.replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim().slice(0, 500);
+    compact.description = description.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 500);
   }
 
   const variants = Array.isArray(row.variants) ? row.variants.length : Number(row.variantCount ?? 0);
