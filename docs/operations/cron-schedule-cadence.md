@@ -32,12 +32,6 @@ Vercel's current Hobby Cron documentation requires at least 15 minutes between i
 | --- | --- | --- |
 | `/api/cron/ugc-release-payouts` | `17 * * * *` | Releases eligible UGC earnings to the creator's available wallet balance after the 24-hour hold. Daily execution could add up to another 24 hours of avoidable delay. Hourly remains Hobby-compatible. |
 
-## Daily jobs not otherwise changed
-
-All remain once daily:
-- `/api/cron/digital-license-expiry`: `50 4 * * *`
-- `/api/cron/cj-catalog-cleanup`: `25 5 * * *`
-
 ## Staggering and duplicate-work review
 
 Daily jobs now have distinct UTC start times. Except for the specifically requested CJ catalog sync at 00:00 UTC, daily work is offset from quarter-hour payment reconciliation and the stock-health minute-7/minute-37 checks. Hourly UGC payouts run at minute 17 and failed-webhook recovery runs at minute 23, so those hourly handlers do not start together.
