@@ -559,9 +559,21 @@ describe("external ingestion", () => {
     const allowlist = read("scripts/release/eligible-migrations.json");
     assert.equal(allowlist.includes("20261027200000"), true);
     assert.equal(allowlist.includes("20261027180000"), true);
-    const vercel = read("vercel.json");
-    assert.match(vercel, /\/api\/cron\/media-ingest/);
-    assert.match(vercel, /17 \* \* \* \*/);
+    const vercel = JSON.parse(read("vercel.json")) as {
+      crons?: Array<{ path: string; schedule: string }>;
+    };
+    const mediaIngestCron = vercel.crons?.find(
+      (entry) => entry.path === "/api/cron/media-ingest",
+    );
+    assert.equal(mediaIngestCron?.schedule, "0 10 * * *");
+
+    // This repository is on Vercel Hobby cadence for this job; keep the
+    // schedule assertion aligned with the operational cadence document.
+    const cadence = read("docs/operations/cron-schedule-cadence.md");
+    assert.match(
+      cadence,
+      /\| `\/api\/cron\/media-ingest` \| `17 \* \* \* \*` \| `0 10 \* \* \*` \|/,
+    );
     const cron = read("app/api/cron/media-ingest/route.ts");
     assert.ok(cron.indexOf("assertCronAuthorized") < cron.indexOf("runIngestCycle"));
     assert.equal(cron.includes("CRON_SECRET"), false);
