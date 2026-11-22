@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 
-/** Every 6 hours — list sync + small enrichment batch (skips if another heavy worker is active). */
+/** Daily on Vercel Hobby — list sync + small enrichment batch (skips if another heavy worker is active). */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;

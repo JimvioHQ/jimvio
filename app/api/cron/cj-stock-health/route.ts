@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 
-/** Every 30min — monitor stock, unpublish failing products, re-queue ready ones */
+/** Daily on Vercel Hobby — monitor stock, unpublish failing products, re-queue ready ones */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;

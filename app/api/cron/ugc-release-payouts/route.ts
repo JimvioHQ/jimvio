@@ -4,7 +4,7 @@ import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 
 export const maxDuration = 120;
 
-// Hourly: moves UGC earnings whose 24-hour hold has ended into the wallet.
+// Daily on Vercel Hobby: moves UGC earnings whose 24-hour hold has ended into the wallet.
 export async function GET(req: NextRequest) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
