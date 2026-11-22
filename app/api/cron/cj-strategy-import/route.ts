@@ -6,6 +6,7 @@ import {
   tryAcquireHeavyWorkerLock,
 } from "@/lib/cj/premium-intelligence/worker-coordinator";
 import { runStrategyImport } from "@/lib/cj/premium-intelligence/strategy-import";
+import { cjIntelligenceDisabledPayload, isCjProductIntelligenceProcessingEnabled } from "@/lib/cj/intelligence-kill-switch";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -14,6 +15,10 @@ export const maxDuration = 300;
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return NextResponse.json(cjIntelligenceDisabledPayload({ published: 0, skipped: true }));
+  }
 
   if (!(await assertCjQuotaAvailableForBackground())) {
     return NextResponse.json({ ok: true, skipped: true, reason: "cj_api_quota_circuit_open" });
