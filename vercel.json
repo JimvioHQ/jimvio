@@ -55,7 +55,7 @@
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
-      "schedule": "30 2 * * *"
+      "schedule": "23 * * * *"
     },
     {
       "path": "/api/cron/community-stories-refresh",
