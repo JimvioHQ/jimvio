@@ -3,11 +3,20 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type TenorMediaFormat = { url?: string; dims?: number[]; size?: number };
-type TenorResult = {
+type GiphyImage = {
+  url?: string;
+  width?: string;
+  height?: string;
+};
+
+type GiphyResult = {
   id: string;
-  content_description?: string;
-  media_formats?: Record<string, TenorMediaFormat>;
+  title?: string;
+  images?: {
+    original?: GiphyImage;
+    fixed_width_small?: GiphyImage;
+    downsized_medium?: GiphyImage;
+  };
 };
 
 export type GifResult = {
@@ -19,22 +28,28 @@ export type GifResult = {
   height: number;
 };
 
-function mapTenorResult(r: TenorResult): GifResult | null {
-  const formats = r.media_formats ?? {};
-  const full = formats.gif ?? formats.mediumgif ?? formats.tinygif;
-  const preview = formats.tinygif ?? formats.nanogif ?? full;
+function positiveDimension(value?: string): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 220;
+}
+
+function mapGiphyResult(gif: GiphyResult): GifResult | null {
+  const images = gif.images ?? {};
+  const full = images.original ?? images.downsized_medium;
+  const preview = images.fixed_width_small ?? images.downsized_medium ?? full;
   if (!full?.url || !preview?.url) return null;
+
   return {
-    id: r.id,
-    title: r.content_description || "GIF",
+    id: gif.id,
+    title: gif.title?.trim() || "GIF",
     url: full.url,
     previewUrl: preview.url,
-    width: full.dims?.[0] ?? 220,
-    height: full.dims?.[1] ?? 220,
+    width: positiveDimension(full.width),
+    height: positiveDimension(full.height),
   };
 }
 
-/** GET — Tenor GIF search proxy. Query: ?q=&limit= (falls back to empty results if TENOR_API_KEY is unset). */
+/** Authenticated GIPHY search/trending proxy. Query: ?q=&limit=. */
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -44,39 +59,54 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() ?? "";
-  const limit = Math.min(30, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+  const requestedLimit = Number.parseInt(searchParams.get("limit") || "20", 10);
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(30, Math.max(1, requestedLimit))
+    : 20;
 
-  const apiKey = process.env.TENOR_API_KEY?.trim();
-  if (!apiKey) {
-    return NextResponse.json({ results: [], enabled: false });
-  }
+  const apiKey = process.env.GIPHY_API_KEY?.trim();
+  if (!apiKey) return NextResponse.json({ results: [], enabled: false });
 
-  const endpoint = new URL(q ? "https://tenor.googleapis.com/v2/search" : "https://tenor.googleapis.com/v2/featured");
-  endpoint.searchParams.set("key", apiKey);
-  endpoint.searchParams.set("client_key", "jimvio_community");
+  const endpoint = new URL(
+    q ? "https://api.giphy.com/v1/gifs/search" : "https://api.giphy.com/v1/gifs/trending"
+  );
+  endpoint.searchParams.set("api_key", apiKey);
   endpoint.searchParams.set("limit", String(limit));
-  endpoint.searchParams.set("media_filter", "gif,tinygif,mediumgif");
-  endpoint.searchParams.set("contentfilter", "medium");
+  endpoint.searchParams.set("rating", "pg-13");
+  endpoint.searchParams.set("lang", "en");
   if (q) endpoint.searchParams.set("q", q);
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(endpoint.toString(), { signal: controller.signal });
-    clearTimeout(timeout);
+    const res = await fetch(endpoint.toString(), {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
 
     if (!res.ok) {
-      return NextResponse.json({ results: [], enabled: true, warning: `Tenor error ${res.status}` });
+      return NextResponse.json({
+        results: [],
+        enabled: true,
+        warning: `GIPHY error ${res.status}`,
+      });
     }
 
-    const data = (await res.json()) as { results?: TenorResult[] };
-    const results = (data.results ?? [])
-      .map(mapTenorResult)
-      .filter((r): r is GifResult => r !== null);
+    const data = (await res.json()) as { data?: GiphyResult[] };
+    const results = (data.data ?? [])
+      .map(mapGiphyResult)
+      .filter((gif): gif is GifResult => gif !== null);
 
     return NextResponse.json({ results, enabled: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Tenor request failed";
+  } catch (error) {
+    const message =
+      error instanceof Error && error.name === "AbortError"
+        ? "GIPHY request timed out"
+        : error instanceof Error
+          ? error.message
+          : "GIPHY request failed";
     return NextResponse.json({ results: [], enabled: true, warning: message });
+  } finally {
+    clearTimeout(timeout);
   }
 }
