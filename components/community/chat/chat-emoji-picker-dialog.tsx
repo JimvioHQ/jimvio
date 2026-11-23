@@ -30,7 +30,7 @@ export function ChatEmojiPickerDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSelect: (native: string) => void;
-  /** Optional — when provided, the "GIFs" tab lets users search and send a Tenor GIF. */
+  /** Optional — when provided, the "GIFs" tab lets users search and send a GIPHY GIF. */
   onSelectGif?: (gif: GifResult) => void;
   sendingGif?: boolean;
 }) {
