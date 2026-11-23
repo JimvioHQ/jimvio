@@ -723,7 +723,7 @@ export function useChatRoom({
         ]
     );
 
-    // ── GIFs (Tenor) ──────────────────────────────────────────────────────────────
+    // ── GIFs (GIPHY) ──────────────────────────────────────────────────────────────
     const [sendingGif, setSendingGif] = useState(false);
 
     const sendGif = useCallback(
