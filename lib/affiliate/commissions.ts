@@ -33,109 +33,51 @@ export async function createPendingCommission(input: {
   attributedAt?: string | null;
 }): Promise<{ created: boolean; commissionId?: string }> {
   const client = db();
-
-  const { data: existing } = await client
-    .from("affiliate_commissions")
-    .select("id")
-    .eq("order_item_id", input.orderItemId)
-    .maybeSingle();
-  if (existing) return { created: false, commissionId: existing.id };
-
-  const { data, error } = await client
-    .from("affiliate_commissions")
-    .insert({
-      affiliate_id: input.affiliateId,
-      link_id: input.linkId ?? null,
-      order_id: input.orderId,
-      order_item_id: input.orderItemId,
-      product_id: input.productId,
-      vendor_id: input.vendorId,
-      campaign_id: input.campaignId ?? null,
-      commission_rate: input.commissionRate,
-      order_amount: input.orderAmount,
-      commission_amount: input.commissionAmount,
-      original_commission_amount: input.commissionAmount,
-      status: "pending",
-      lifecycle_status: "pending",
-      attribution_model: input.attributionModel ?? "last_touch",
-      attributed_at: input.attributedAt ?? new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    // Unique race
-    if (String(error.code) === "23505") return { created: false };
-    throw error;
-  }
-
-  await client.rpc("increment_affiliate_earnings", {
+  const { data, error } = await client.rpc("create_pending_affiliate_commission_atomic", {
     p_affiliate_id: input.affiliateId,
-    p_amount: input.commissionAmount,
+    p_order_id: input.orderId,
+    p_order_item_id: input.orderItemId,
+    p_product_id: input.productId,
+    p_vendor_id: input.vendorId,
+    p_link_id: input.linkId ?? null,
+    p_campaign_id: input.campaignId ?? null,
+    p_commission_rate: input.commissionRate,
+    p_order_amount: input.orderAmount,
+    p_commission_amount: input.commissionAmount,
+    p_attribution_model: input.attributionModel ?? "last_touch",
+    p_attributed_at: input.attributedAt ?? null,
   });
+  if (error) throw error;
 
-  await client.from("affiliate_ledger").insert({
-    affiliate_id: input.affiliateId,
-    commission_id: data.id,
-    entry_type: "commission_pending",
-    amount: input.commissionAmount,
-    note: "Commission pending approval",
-  });
+  const result = data as {
+    created?: boolean;
+    commission_id?: string;
+    user_id?: string;
+    reason?: string;
+  } | null;
 
-  if (input.campaignId) {
-    const { data: camp } = await client
-      .from("affiliate_campaigns")
-      .select("budget_spent")
-      .eq("id", input.campaignId)
-      .maybeSingle();
-    if (camp) {
-      await client
-        .from("affiliate_campaigns")
-        .update({
-          budget_spent: Number(camp.budget_spent ?? 0) + input.commissionAmount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", input.campaignId);
+  if (!result?.created) {
+    if (result?.reason && result.reason !== "already_exists") {
+      throw new Error(`Unable to create affiliate commission: ${result.reason}`);
     }
+    return { created: false, commissionId: result?.commission_id };
   }
 
-  if (input.linkId) {
-    const { data: link } = await client
-      .from("affiliate_links")
-      .select("total_conversions, total_earnings")
-      .eq("id", input.linkId)
-      .maybeSingle();
-    if (link) {
-      await client
-        .from("affiliate_links")
-        .update({
-          total_conversions: Number(link.total_conversions ?? 0) + 1,
-          total_earnings: Number(link.total_earnings ?? 0) + input.commissionAmount,
-        })
-        .eq("id", input.linkId);
-    }
-  }
-
-  try {
-    const { data: affiliate } = await client
-      .from("affiliates")
-      .select("user_id")
-      .eq("id", input.affiliateId)
-      .maybeSingle();
-    if (affiliate?.user_id) {
+  if (result.commission_id && result.user_id) {
+    try {
       const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
       await notifyAffiliateCommission({
-        affiliateUserId: affiliate.user_id,
+        affiliateUserId: result.user_id,
         amount: input.commissionAmount,
-        commissionId: data.id,
+        commissionId: result.commission_id,
         status: "pending",
       });
+    } catch (err) {
+      console.warn("[createPendingCommission] notification skipped:", err);
     }
-  } catch (err) {
-    console.warn("[createPendingCommission] notification skipped:", err);
   }
 
-  return { created: true, commissionId: data.id };
+  return { created: true, commissionId: result.commission_id };
 }
 
 export async function approveCommission(commissionId: string) {
