@@ -9,15 +9,9 @@ import type {
 } from "./types";
 
 export function normalizeShopifyFinancialStatus(
-  financialStatus: unknown,
-  cancelledAt?: unknown
+  financialStatus: unknown
 ): "paid" | "pending" | "failed" | "refunded" | "cancelled" {
   const status = String(financialStatus ?? "").trim().toLowerCase();
-  if (cancelledAt) {
-    return status === "refunded" || status === "partially_refunded"
-      ? "refunded"
-      : "cancelled";
-  }
   if (status === "paid") return "paid";
   if (status === "refunded" || status === "partially_refunded") return "refunded";
   if (status === "voided") return "cancelled";
@@ -457,10 +451,8 @@ export class ShopifyStoreConnector implements StoreConnector {
           0
         );
       })(),
-      paymentStatus: normalizeShopifyFinancialStatus(
-        payload.financial_status,
-        payload.cancelled_at
-      ),
+      paymentStatus: normalizeShopifyFinancialStatus(payload.financial_status),
+      isCancelled: Boolean(payload.cancelled_at),
       taxAmount: Number(payload.total_tax ?? 0),
       discountAmount: Number(payload.total_discounts ?? 0),
       total: Number(payload.total_price ?? 0),
