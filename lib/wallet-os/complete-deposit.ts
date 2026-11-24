@@ -15,7 +15,7 @@ export async function completeWalletDeposit(
     verifiedAmount?: number | null;
     verifiedCurrency?: string | null;
   },
-): Promise<{ credited: boolean; amount: number }> {
+): Promise<{ credited: boolean; amount: number; reason?: string }> {
   const { data, error } = await db.rpc("complete_wallet_deposit_atomic", {
     p_deposit_id: opts.depositId,
     p_provider_reference: opts.providerReference ?? null,
@@ -30,10 +30,10 @@ export async function completeWalletDeposit(
       code: error.code,
       message: error.message,
     });
-    return { credited: false, amount: 0 };
+    return { credited: false, amount: 0, reason: "rpc_error" };
   }
 
-  const result = data as { credited?: boolean; amount?: number | string; user_id?: string } | null;
+  const result = data as { credited?: boolean; amount?: number | string; user_id?: string; reason?: string } | null;
   const credited = result?.credited === true;
   const amount = Number(result?.amount ?? 0);
   const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
@@ -57,7 +57,7 @@ export async function completeWalletDeposit(
     }
   }
 
-  return { credited, amount: safeAmount };
+  return { credited, amount: safeAmount, reason: result?.reason };
 }
 
 export async function completeWalletDepositByReference(
