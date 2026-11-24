@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createHash, timingSafeEqual } from "crypto";
 import { hashApiKey, generateApiKey } from "../api/idempotency";
-import { normalizeTrackingStatus } from "../fulfillment/router";
+import { isOrderPaymentEligibleForFulfillment, normalizeTrackingStatus } from "../fulfillment/router";
 import { ShopifyStoreConnector, normalizeShopifyFinancialStatus } from "../stores/shopify-connector";
 
 describe("api key hashing", () => {
@@ -21,6 +21,19 @@ describe("normalizeTrackingStatus", () => {
     assert.equal(normalizeTrackingStatus("in_transit"), "in_transit");
     assert.equal(normalizeTrackingStatus("delivered"), "delivered");
     assert.equal(normalizeTrackingStatus("cancelled"), "cancelled");
+  });
+});
+
+describe("order fulfillment payment gate", () => {
+  it("allows only confirmed payments on non-cancelled orders", () => {
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "confirmed"), true);
+    assert.equal(isOrderPaymentEligibleForFulfillment("completed", "processing"), true);
+    assert.equal(isOrderPaymentEligibleForFulfillment("pending", "confirmed"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("processing", "confirmed"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("failed", "confirmed"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("refunded", "confirmed"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "cancelled"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "refunded"), false);
   });
 });
 
