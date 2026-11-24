@@ -621,7 +621,7 @@ export async function POST(req: Request): Promise<Response> {
                 );
 
                 try {
- ───────────────────────────────────────────────────────
+                    // ── PRODUCT ───────────────────────────────────────────────────────
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;
 
