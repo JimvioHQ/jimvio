@@ -59,6 +59,21 @@ const VALID_ORDER_STATUSES = new Set<OrderStatusValue>([
     "checkout_direct",
 ]);
 
+function resolveAffiliateRefundKey(orderId: string, options: BaseOptions): string {
+    const metadata = options.metadata ?? {};
+    const candidate =
+        options.providerTransactionId ??
+        metadata.refund_id ??
+        metadata.refundId ??
+        metadata.event_id ??
+        metadata.webhook_id ??
+        metadata.webhookId ??
+        metadata.idempotency_key;
+    const stable = candidate == null ? "" : String(candidate).trim();
+    return stable
+        ? `order:${orderId}:refund:${stable}`
+        : `order:${orderId}:refund:${options.notes ?? "status-change"}`;
+}
 const VALID_PAYMENT_STATUSES = new Set<PaymentStatusValue>([
     "pending",
     "processing",
@@ -143,6 +158,7 @@ export async function recordOrderStatusChange(
             );
             await handleOrderRefundForAffiliates(orderId, {
                 note: options.notes ?? `Order ${newStatus}`,
+                refundKey: resolveAffiliateRefundKey(orderId, options),
             });
         } catch (err) {
             console.warn(
@@ -226,6 +242,7 @@ export async function recordPaymentStatusChange(
             );
             await handleOrderRefundForAffiliates(orderId, {
                 note: options.notes ?? "Order payment refunded",
+                refundKey: resolveAffiliateRefundKey(orderId, options),
             });
         } catch (err) {
             console.warn(
