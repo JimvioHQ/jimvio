@@ -40,6 +40,7 @@ export async function ingestStoreOrder(
   }
 
   const incomingPaymentStatus = params.normalized.paymentStatus ?? "pending";
+  const isCancelled = Boolean(params.normalized.isCancelled);
   const { data: existing, error: existingError } = await db
     .from("orders")
     .select("id, payment_status, status, fulfillment_status_normalized, cj_order_id")
@@ -66,11 +67,12 @@ export async function ingestStoreOrder(
     ) {
       patch.payment_status = "paid";
       patch.paid_at = now;
-      if (currentStatus === "pending") patch.status = "confirmed";
+      if (isCancelled && !alreadyFulfilled) patch.status = "cancelled";
+      else if (currentStatus === "pending") patch.status = "confirmed";
     } else if (incomingPaymentStatus === "refunded") {
       patch.payment_status = "refunded";
       if (!alreadyFulfilled) patch.status = "refunded";
-    } else if (incomingPaymentStatus === "cancelled") {
+    } else if (incomingPaymentStatus === "cancelled" || isCancelled) {
       if (!["refunded", "cancelled"].includes(currentPayment)) {
         if (!["paid", "completed"].includes(currentPayment)) {
           patch.payment_status = "cancelled";
@@ -157,8 +159,9 @@ export async function ingestStoreOrder(
   }
 
   const orderPaymentStatus = incomingPaymentStatus;
-  const orderStatus =
-    orderPaymentStatus === "paid"
+  const orderStatus = isCancelled
+    ? orderPaymentStatus === "refunded" ? "refunded" : "cancelled"
+    : orderPaymentStatus === "paid"
       ? "confirmed"
       : orderPaymentStatus === "refunded"
         ? "refunded"
