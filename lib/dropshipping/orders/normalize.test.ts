@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { createHash, timingSafeEqual } from "crypto";
 import { hashApiKey, generateApiKey } from "../api/idempotency";
 import { normalizeTrackingStatus } from "../fulfillment/router";
-import { ShopifyStoreConnector } from "../stores/shopify-connector";
+import { ShopifyStoreConnector, normalizeShopifyFinancialStatus } from "../stores/shopify-connector";
 
 describe("api key hashing", () => {
   it("hashes consistently and generates jmv_ prefix", () => {
@@ -56,6 +56,42 @@ describe("shopify order normalization", () => {
     assert.equal(normalized.lineItems.length, 1);
     assert.equal(normalized.lineItems[0]?.storeVariantId, "2");
     assert.equal(normalized.total, 25);
+    assert.equal(normalized.shippingAmount, 5);
+    assert.equal(normalized.paymentStatus, "pending");
+  });
+});
+
+describe("Shopify financial status normalization", () => {
+  it("only marks captured payments as paid", () => {
+    assert.equal(normalizeShopifyFinancialStatus("paid"), "paid");
+    assert.equal(normalizeShopifyFinancialStatus("authorized"), "pending");
+    assert.equal(normalizeShopifyFinancialStatus("partially_paid"), "pending");
+    assert.equal(normalizeShopifyFinancialStatus("pending"), "pending");
+    assert.equal(normalizeShopifyFinancialStatus("unpaid"), "pending");
+    assert.equal(normalizeShopifyFinancialStatus("failed"), "failed");
+    assert.equal(normalizeShopifyFinancialStatus("voided"), "cancelled");
+    assert.equal(normalizeShopifyFinancialStatus("refunded"), "refunded");
+    assert.equal(normalizeShopifyFinancialStatus("partially_refunded"), "refunded");
+  });
+
+  it("does not treat a cancelled order as payable", () => {
+    assert.equal(normalizeShopifyFinancialStatus("paid", "2026-11-24T10:00:00Z"), "cancelled");
+    assert.equal(normalizeShopifyFinancialStatus("refunded", "2026-11-24T10:00:00Z"), "refunded");
+  });
+
+  it("prefers Shopify's authoritative total shipping amount when present", () => {
+    const connector = new ShopifyStoreConnector({
+      shopDomain: "example.myshopify.com",
+      accessToken: "test",
+      apiVersion: "2024-10",
+    });
+    const normalized = connector.normalizeOrder({
+      id: 1002,
+      total_shipping_price_set: { shop_money: { amount: "6.25" } },
+      shipping_lines: [{ price: "5.00" }],
+      line_items: [],
+    });
+    assert.equal(normalized.shippingAmount, 6.25);
   });
 });
 
