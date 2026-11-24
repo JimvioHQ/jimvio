@@ -124,7 +124,7 @@ export async function routeOrderFulfillment(
       error: "Shipping destination country is missing or invalid.",
       code: "INVALID_ADDRESS",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -149,7 +149,7 @@ export async function routeOrderFulfillment(
       error: "Product variant mapping is missing for supplier fulfillment.",
       code: "MISSING_VARIANT_MAPPING",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
