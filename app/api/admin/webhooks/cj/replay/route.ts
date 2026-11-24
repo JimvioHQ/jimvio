@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
   if (event.status === "processed") {
     return NextResponse.json({ ok: true, status: "processed", alreadyProcessed: true });
   }
+  if (event.status !== "failed" && event.status !== "error") {
+    return NextResponse.json({ error: "Only failed CJ webhook events can be replayed" }, { status: 409 });
+  }
   if (event.dead_letter || Number(event.attempt_count ?? 0) >= 5) {
     return NextResponse.json({ error: "Webhook event reached its retry limit" }, { status: 409 });
   }
