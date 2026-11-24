@@ -28,7 +28,7 @@ import {
   scheduleFromWebhookFields,
   scheduleProductRemoval,
 } from "@/lib/cj/premium-intelligence/cj-watcher";
-import { timingSafeEqual } from "node:crypto";
+import { verifyCjWebhookSignature } from "@/lib/cj/webhook-signature";
 import { previewPrivilegedForbidden } from "@/lib/ops/preview-guard";
 
 function createClient() {
@@ -121,47 +121,35 @@ function isTestPing(params: CJProductParams): boolean {
     return params.pid === "test" && params.productName === "test";
 }
 
-function secretsEqual(presented: string, expected: string): boolean {
-    const a = Buffer.from(presented);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-}
-
 async function assertCjWebhookAuthorized(
     req: Request,
-    payload: CJWebhookPayload,
+    rawBody: string,
     supabase: SupabaseClient,
 ): Promise<Response | null> {
-    const envWebhookSecret = process.env.CJ_WEBHOOK_SECRET?.trim();
-    if (envWebhookSecret) {
-        const presented =
-            req.headers.get("x-cj-webhook-secret") ||
-            req.headers.get("x-webhook-secret") ||
-            "";
-        if (!secretsEqual(presented, envWebhookSecret)) {
-            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-        }
-        return null;
-    }
-
-    const { data: credRow } = await supabase
+    const { data: credRow, error } = await supabase
         .from("platform_settings")
         .select("value")
         .eq("key", "cj_credentials")
         .maybeSingle();
-    const stored = (credRow?.value ?? {}) as { open_id?: unknown; openId?: unknown };
-    const storedOpenId = stored.open_id ?? stored.openId;
-    const hasStoredOpenId = storedOpenId != null && String(storedOpenId).length > 0;
 
-    if (hasStoredOpenId) {
-        if (payload.openId == null || String(payload.openId) !== String(storedOpenId)) {
-            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-        }
-        return null;
+    if (error) {
+        console.error("[CJ webhook] Could not load stored openId for signature verification");
+        return Response.json({ ok: false, error: "Webhook authentication unavailable" }, { status: 503 });
     }
 
-    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    const stored = (credRow?.value ?? {}) as { open_id?: unknown; openId?: unknown };
+    const storedOpenId = stored.open_id ?? stored.openId;
+    if (storedOpenId == null || String(storedOpenId).trim() === "") {
+        console.error("[CJ webhook] Stored openId is missing");
+        return Response.json({ ok: false, error: "Webhook authentication is not configured" }, { status: 503 });
+    }
+
+    const signature = req.headers.get("sign");
+    if (!verifyCjWebhookSignature(rawBody, signature, String(storedOpenId))) {
+        return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    return null;
 }
 
 async function syncOrderFromWebhook(
@@ -588,7 +576,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const supabase = createClient();
-    const unauthorized = await assertCjWebhookAuthorized(req, payload, supabase);
+    const unauthorized = await assertCjWebhookAuthorized(req, rawBody, supabase);
     if (unauthorized) return unauthorized;
 
     if (!payload.type || !payload.messageType) {
