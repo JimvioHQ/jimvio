@@ -34,6 +34,9 @@ describe("order fulfillment payment gate", () => {
     assert.equal(isOrderPaymentEligibleForFulfillment("refunded", "confirmed"), false);
     assert.equal(isOrderPaymentEligibleForFulfillment("paid", "cancelled"), false);
     assert.equal(isOrderPaymentEligibleForFulfillment("paid", "refunded"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "shipped"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "delivered"), false);
+    assert.equal(isOrderPaymentEligibleForFulfillment("paid", "completed"), false);
   });
 });
 
