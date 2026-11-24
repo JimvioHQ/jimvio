@@ -2,6 +2,27 @@
 -- Non-destructive: no application rows are deleted or rewritten.
 SET lock_timeout = '5s';
 
+-- Membership lookups use private SECURITY DEFINER helpers to avoid RLS recursion.
+CREATE OR REPLACE FUNCTION private.is_community_admin(p_community_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.community_memberships m
+    WHERE m.community_id = p_community_id
+      AND m.user_id = auth.uid()
+      AND m.status = 'active'
+      AND m.role IN ('owner', 'admin')
+  );
+$function$;
+REVOKE ALL ON FUNCTION private.is_community_admin(uuid) FROM PUBLIC, anon;
+GRANT USAGE ON SCHEMA private TO authenticated;
+GRANT EXECUTE ON FUNCTION private.is_community_admin(uuid) TO authenticated, service_role;
+
 -- Private communities remain discoverable only when explicitly public and active.
 DROP POLICY IF EXISTS communities_select ON public.communities;
 DROP POLICY IF EXISTS communities_select_members ON public.communities;
@@ -18,87 +39,74 @@ CREATE POLICY communities_select_members
   ON public.communities FOR SELECT TO authenticated
   USING (
     owner_id = (SELECT auth.uid())
-    OR EXISTS (
-      SELECT 1 FROM public.community_memberships cm
-      WHERE cm.community_id = communities.id
-        AND cm.user_id = (SELECT auth.uid())
-        AND cm.status = 'active'
-    )
+    OR private.is_active_community_member(communities.id, (SELECT auth.uid()))
   );
 
--- Hidden, locked, inactive and archived spaces/rooms are not exposed by a broad
--- permissive SELECT policy. Owners/admins and active members retain appropriate access.
+-- Hidden, locked, inactive and archived spaces/rooms are not exposed by broad
+-- permissive policies. Owners/admins and active members retain appropriate access.
 DROP POLICY IF EXISTS spaces_select ON public.spaces;
 DROP POLICY IF EXISTS spaces_visible_to_members ON public.spaces;
-CREATE POLICY spaces_visible_to_members
+DROP POLICY IF EXISTS spaces_select_public ON public.spaces;
+DROP POLICY IF EXISTS spaces_select_members ON public.spaces;
+CREATE POLICY spaces_select_public
   ON public.spaces FOR SELECT TO anon, authenticated
   USING (
     coalesce(spaces.is_active, false) = true
     AND spaces.archived_at IS NULL
+    AND coalesce(spaces.is_hidden, false) = false
+    AND coalesce(spaces.is_locked, false) = false
+    AND coalesce(spaces.privacy, 'public') = 'public'
+    AND spaces.community_id IN (
+      SELECT c.id FROM public.communities c
+      WHERE coalesce(c.is_private, false) = false
+        AND coalesce(c.is_active, false) = true
+        AND coalesce(c.visibility_mode, 'public') = 'public'
+        AND coalesce(c.visibility, 'public') = 'public'
+        AND c.archived_at IS NULL
+    )
+  );
+CREATE POLICY spaces_select_members
+  ON public.spaces FOR SELECT TO authenticated
+  USING (
+    coalesce(spaces.is_active, false) = true
+    AND spaces.archived_at IS NULL
+    AND private.is_active_community_member(spaces.community_id, (SELECT auth.uid()))
     AND (
-      (
-        coalesce(spaces.is_hidden, false) = false
-        AND coalesce(spaces.is_locked, false) = false
-        AND coalesce(spaces.privacy, 'public') = 'public'
-        AND spaces.community_id IN (
-          SELECT c.id FROM public.communities c
-          WHERE coalesce(c.is_private, false) = false
-            AND coalesce(c.is_active, false) = true
-            AND coalesce(c.visibility_mode, 'public') = 'public'
-            AND coalesce(c.visibility, 'public') = 'public'
-            AND c.archived_at IS NULL
-        )
-      )
-      OR spaces.community_id IN (
-        SELECT c.id FROM public.communities c
-        WHERE c.owner_id = (SELECT auth.uid())
-      )
-      OR spaces.community_id IN (
-        SELECT cm.community_id FROM public.community_memberships cm
-        WHERE cm.user_id = (SELECT auth.uid())
-          AND cm.status = 'active'
-          AND (
-            coalesce(spaces.is_hidden, false) = false
-            OR cm.role IN ('owner', 'admin')
-          )
-      )
+      coalesce(spaces.is_hidden, false) = false
+      OR private.is_community_admin(spaces.community_id)
     )
   );
 
 DROP POLICY IF EXISTS rooms_select ON public.rooms;
 DROP POLICY IF EXISTS rooms_visible_to_members ON public.rooms;
-CREATE POLICY rooms_visible_to_members
+DROP POLICY IF EXISTS rooms_select_public ON public.rooms;
+DROP POLICY IF EXISTS rooms_select_members ON public.rooms;
+CREATE POLICY rooms_select_public
   ON public.rooms FOR SELECT TO anon, authenticated
   USING (
     coalesce(rooms.is_active, false) = true
     AND rooms.archived_at IS NULL
+    AND coalesce(rooms.is_hidden, false) = false
+    AND coalesce(rooms.is_locked, false) = false
+    AND coalesce(rooms.visibility, 'public') = 'public'
+    AND rooms.community_id IN (
+      SELECT c.id FROM public.communities c
+      WHERE coalesce(c.is_private, false) = false
+        AND coalesce(c.is_active, false) = true
+        AND coalesce(c.visibility_mode, 'public') = 'public'
+        AND coalesce(c.visibility, 'public') = 'public'
+        AND c.archived_at IS NULL
+    )
+  );
+CREATE POLICY rooms_select_members
+  ON public.rooms FOR SELECT TO authenticated
+  USING (
+    coalesce(rooms.is_active, false) = true
+    AND rooms.archived_at IS NULL
+    AND private.is_active_community_member(rooms.community_id, (SELECT auth.uid()))
     AND (
-      (
-        coalesce(rooms.is_hidden, false) = false
-        AND coalesce(rooms.is_locked, false) = false
-        AND coalesce(rooms.visibility, 'public') = 'public'
-        AND rooms.community_id IN (
-          SELECT c.id FROM public.communities c
-          WHERE coalesce(c.is_private, false) = false
-            AND coalesce(c.is_active, false) = true
-            AND coalesce(c.visibility_mode, 'public') = 'public'
-            AND coalesce(c.visibility, 'public') = 'public'
-            AND c.archived_at IS NULL
-        )
-      )
-      OR rooms.community_id IN (
-        SELECT c.id FROM public.communities c
-        WHERE c.owner_id = (SELECT auth.uid())
-      )
-      OR rooms.community_id IN (
-        SELECT cm.community_id FROM public.community_memberships cm
-        WHERE cm.user_id = (SELECT auth.uid())
-          AND cm.status = 'active'
-          AND (
-            coalesce(rooms.is_hidden, false) = false
-            OR cm.role IN ('owner', 'admin')
-          )
-      )
+      coalesce(rooms.is_hidden, false) = false
+      OR private.is_community_admin(rooms.community_id)
     )
   );
 
