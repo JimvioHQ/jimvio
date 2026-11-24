@@ -1,4 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
+import { after } from "next/server";
 import {
     type CJProduct,
     type SyncResult,
@@ -553,6 +555,8 @@ function mapParamsToCJProduct(params: CJProductParams): CJProduct {
 }
 
 // ─── Route handler ────────────────────────────────────────────────────────────
+
+export const maxDuration = 60;
 
 export async function POST(req: Request): Promise<Response> {
     const previewBlocked = previewPrivilegedForbidden();
