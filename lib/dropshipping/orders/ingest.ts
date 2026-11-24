@@ -232,7 +232,7 @@ export async function ingestStoreOrder(
       error: "Failed to create order items.",
       code: "ORDER_ITEMS_FAILED",
     };
-    await completeIdempotency(db, scope, idemKey, 500, result);
+    await releaseClaim();
     return result;
   }
 
