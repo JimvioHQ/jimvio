@@ -143,8 +143,8 @@ export async function GET(req: NextRequest) {
       });
 
       return NextResponse.json({
-        status: result.credited || deposit.status === "completed" ? "successful" : "pending",
-        paymentStatus: result.credited ? "completed" : deposit.status,
+        status: result.credited || result.amount > 0 || deposit.status === "completed" ? "successful" : "pending",
+        paymentStatus: result.credited || result.amount > 0 ? "completed" : deposit.status,
         depositId,
         txRef,
         amount: usdAmount,
