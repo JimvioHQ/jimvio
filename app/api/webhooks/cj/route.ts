@@ -591,24 +591,37 @@ export async function POST(req: Request): Promise<Response> {
         );
     }
 
-    let vendorId: string;
-    try {
-        vendorId = await getCJVendorId(supabase);
-    } catch (err) {
-        const message = err instanceof Error ? err.message : "CJ vendor id not configured";
-        console.error("[CJ webhook] CJ vendor mapping failed:", message);
-        return Response.json(
-            { ok: false, error: "Server misconfiguration" },
-            { status: 503 }
-        );
+    if (payload.type === "PRODUCT" && isTestPing(payload.params as CJProductParams)) {
+        console.log("[CJ webhook] Test ping acknowledged");
+        return Response.json({ ok: true, event: "TEST_PING" });
     }
 
-    console.log(
-        `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
-    );
+    const idempotencyKey = payload.messageId
+        ? `cj:${payload.messageId}`
+        : `cj:sha256:${createHash("sha256").update(rawBody).digest("hex")}`;
+    const logged = await logWebhookEvent(supabase, {
+        provider: "cj",
+        idempotencyKey,
+        payload,
+    });
 
-    try {
-        // ── PRODUCT ───────────────────────────────────────────────────────
+    if (logged.isDuplicate) {
+        return Response.json({ ok: true, duplicate: true });
+    }
+    if (!logged.eventId) {
+        return Response.json({ ok: false, error: "Webhook event could not be persisted" }, { status: 503 });
+    }
+
+    after(async () => {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                const vendorId = await getCJVendorId(supabase);
+                console.log(
+                    `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
+                );
+
+                try {
+ ───────────────────────────────────────────────────────
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;
 
@@ -786,11 +799,29 @@ export async function POST(req: Request): Promise<Response> {
         );
         return Response.json({ ok: true, event: "IGNORED" });
 
-    } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        console.error("[CJ webhook] Unhandled error:", message);
-        return Response.json({ ok: false, error: message }, { status: 200 });
-    }
+                } catch (err) {
+                    throw err;
+                }
+
+                await markWebhookProcessed(supabase, logged.eventId);
+                return;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Unknown error";
+                console.error(`[CJ webhook] Processing attempt ${attempt + 1} failed:`, message);
+                if (attempt < 2) {
+                    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+                    continue;
+                }
+                await markWebhookFailed(supabase, logged.eventId!, message);
+            }
+        }
+    });
+
+    return Response.json({
+        ok: true,
+        accepted: true,
+        messageId: payload.messageId ?? null,
+    });
 }
 
 // ─── Health check ─────────────────────────────────────────────────────────────
