@@ -39,15 +39,22 @@ export async function completeWalletDeposit(
   const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
 
   if (credited && result?.user_id) {
-    await logWalletActivity({
-      userId: result.user_id,
-      action: "deposit_completed",
-      surface: "deposits",
-      amount: safeAmount,
-      currency: PLATFORM_CURRENCY,
-      metadata: { depositId: opts.depositId, provider: opts.provider },
-      db,
-    });
+    try {
+      await logWalletActivity({
+        userId: result.user_id,
+        action: "deposit_completed",
+        surface: "deposits",
+        amount: safeAmount,
+        currency: PLATFORM_CURRENCY,
+        metadata: { depositId: opts.depositId, provider: opts.provider },
+        db,
+      });
+    } catch (activityError) {
+      console.error("[completeWalletDeposit] activity log failed after committed credit", {
+        depositId: opts.depositId,
+        error: activityError instanceof Error ? activityError.message : "unknown",
+      });
+    }
   }
 
   return { credited, amount: safeAmount };
