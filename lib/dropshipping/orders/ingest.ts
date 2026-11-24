@@ -39,14 +39,62 @@ export async function ingestStoreOrder(
     return claim.responseBody as IngestOrderResult;
   }
 
-  const { data: existing } = await db
+  const incomingPaymentStatus = params.normalized.paymentStatus ?? "pending";
+  const { data: existing, error: existingError } = await db
     .from("orders")
-    .select("id")
+    .select("id, payment_status, status, fulfillment_status_normalized, cj_order_id")
     .eq("merchant_store_id", params.storeId)
     .eq("external_order_id", externalId)
     .maybeSingle();
 
+  if (existingError) {
+    return { ok: false, error: "Could not check the existing external order.", code: "ORDER_LOOKUP_FAILED" };
+  }
+
   if (existing?.id) {
+    const currentPayment = String(existing.payment_status ?? "pending");
+    const currentStatus = String(existing.status ?? "pending");
+    const patch: Record<string, unknown> = {};
+    const now = new Date().toISOString();
+    const alreadyFulfilled = Boolean(existing.cj_order_id) ||
+      ["processing", "shipped", "delivered", "completed"].includes(currentStatus);
+
+    if (
+      incomingPaymentStatus === "paid" &&
+      !["paid", "completed", "refunded"].includes(currentPayment) &&
+      !["cancelled", "refunded"].includes(currentStatus)
+    ) {
+      patch.payment_status = "paid";
+      patch.paid_at = now;
+      if (currentStatus === "pending") patch.status = "confirmed";
+    } else if (incomingPaymentStatus === "refunded") {
+      patch.payment_status = "refunded";
+      if (!alreadyFulfilled) patch.status = "refunded";
+    } else if (incomingPaymentStatus === "cancelled") {
+      if (!["refunded", "cancelled"].includes(currentPayment)) {
+        if (!["paid", "completed"].includes(currentPayment)) {
+          patch.payment_status = "cancelled";
+        }
+        if (!alreadyFulfilled) patch.status = "cancelled";
+      }
+    } else if (incomingPaymentStatus === "failed") {
+      if (!["paid", "completed", "refunded"].includes(currentPayment)) {
+        patch.payment_status = "failed";
+        if (!alreadyFulfilled) patch.status = "cancelled";
+      }
+    }
+
+    if (Object.keys(patch).length) {
+      patch.updated_at = now;
+      const { error: updateError } = await db
+        .from("orders")
+        .update(patch)
+        .eq("id", existing.id);
+      if (updateError) {
+        return { ok: false, error: "Could not update external order payment state.", code: "ORDER_PAYMENT_UPDATE_FAILED" };
+      }
+    }
+
     const result: IngestOrderResult = {
       ok: true,
       orderId: existing.id,
@@ -108,13 +156,23 @@ export async function ingestStoreOrder(
     return { ok: false, error: "Merchant vendor account not found.", code: "VENDOR_NOT_FOUND" };
   }
 
+  const orderPaymentStatus = incomingPaymentStatus;
+  const orderStatus =
+    orderPaymentStatus === "paid"
+      ? "confirmed"
+      : orderPaymentStatus === "refunded"
+        ? "refunded"
+        : orderPaymentStatus === "failed" || orderPaymentStatus === "cancelled"
+          ? "cancelled"
+          : "pending";
+
   const { data: order, error: orderErr } = await db
     .from("orders")
     .insert({
       buyer_id: vendor.user_id,
       vendor_id: params.vendorId,
-      status: "confirmed",
-      payment_status: "paid",
+      status: orderStatus,
+      payment_status: orderPaymentStatus,
       subtotal: params.normalized.subtotal,
       shipping_amount: params.normalized.shippingAmount,
       tax_amount: params.normalized.taxAmount,
@@ -133,7 +191,7 @@ export async function ingestStoreOrder(
         : null,
       source_payload: params.normalized.rawPayload,
       fulfillment_status_normalized: "pending",
-      paid_at: new Date().toISOString(),
+      paid_at: orderPaymentStatus === "paid" ? new Date().toISOString() : null,
       metadata: {
         dropshipping_os: true,
         customer_email: params.normalized.email,
