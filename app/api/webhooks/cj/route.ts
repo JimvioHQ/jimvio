@@ -160,42 +160,44 @@ async function syncOrderFromWebhook(
 ): Promise<void> {
     const cjOrderId = params.cjOrderId?.trim();
     const orderRef = (params.orderNumber ?? params.orderNum ?? "").trim();
-    if (!cjOrderId && !orderRef) return;
+    if (!cjOrderId && !orderRef) throw new Error("CJ order webhook is missing its order reference");
 
     let orderId: string | null = null;
 
     if (cjOrderId) {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from("orders")
             .select("id")
             .eq("cj_order_id", cjOrderId)
             .maybeSingle();
+        if (error) throw new Error("CJ order lookup failed: " + error.message);
         orderId = data?.id ?? null;
     }
 
     if (!orderId && orderRef) {
-        const { data: byId } = await supabase
-            .from("orders")
-            .select("id")
-            .eq("id", orderRef)
-            .maybeSingle();
-        if (byId?.id) {
-            orderId = byId.id;
-        } else {
-            const { data: byNumber } = await supabase
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderRef);
+        if (isUuid) {
+            const { data: byId, error: byIdError } = await supabase
+                .from("orders")
+                .select("id")
+                .eq("id", orderRef)
+                .maybeSingle();
+            if (byIdError) throw new Error("CJ order ID lookup failed: " + byIdError.message);
+            if (byId?.id) orderId = byId.id;
+        }
+        if (!orderId) {
+            const { data: byNumber, error: byNumberError } = await supabase
                 .from("orders")
                 .select("id")
                 .eq("order_number", orderRef)
                 .maybeSingle();
+            if (byNumberError) throw new Error("CJ order number lookup failed: " + byNumberError.message);
             orderId = byNumber?.id ?? null;
         }
     }
 
     if (!orderId) {
-        console.warn(
-            `[CJ webhook] ORDER: no local order for cjOrderId=${cjOrderId} ref=${orderRef}`
-        );
-        return;
+        throw new Error("CJ order not found locally for cjOrderId=" + cjOrderId + " ref=" + orderRef);
     }
 
     const trackingNumber = params.trackNumber?.trim() || null;
@@ -218,7 +220,7 @@ async function syncOrderFromWebhook(
     });
 
     if (trackingNumber && cjOrderId) {
-        await supabase.from("cj_tracking").upsert(
+        const { error: trackingError } = await supabase.from("cj_tracking").upsert(
             {
                 order_id: orderId,
                 cj_order_id: cjOrderId,
@@ -229,6 +231,7 @@ async function syncOrderFromWebhook(
             },
             { onConflict: "order_id" }
         );
+        if (trackingError) throw new Error("CJ tracking upsert failed: " + trackingError.message);
 
         // Push tracking to connected sales channels (Shopify) via Sync Center.
         const { data: orderRow } = await supabase
