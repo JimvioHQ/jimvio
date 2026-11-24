@@ -424,9 +424,14 @@ CREATE TRIGGER trg_protect_live_ugc_campaign_terms
   BEFORE INSERT OR UPDATE ON public.ugc_campaigns
   FOR EACH ROW EXECUTE FUNCTION public.protect_live_ugc_campaign_terms();
 
--- Trigger functions are callable only through their triggers, not as public RPCs.
+-- Browser roles cannot invoke these trigger guards directly; trusted DB workflows retain execution.
 REVOKE ALL ON FUNCTION public.protect_affiliate_financial_fields() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_affiliate_financial_fields() TO postgres, service_role;
 REVOKE ALL ON FUNCTION public.protect_influencer_financial_fields() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_influencer_financial_fields() TO postgres, service_role;
 REVOKE ALL ON FUNCTION public.protect_vendor_financial_metrics() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_vendor_financial_metrics() TO postgres, service_role;
 REVOKE ALL ON FUNCTION public.protect_profile_social_metrics() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_profile_social_metrics() TO postgres, service_role;
 REVOKE ALL ON FUNCTION public.protect_live_ugc_campaign_terms() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_live_ugc_campaign_terms() TO postgres, service_role;
