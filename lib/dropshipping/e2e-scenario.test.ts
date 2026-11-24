@@ -83,6 +83,7 @@ describe("Dropshipping OS E2E scenario (fixtures)", () => {
       ],
     });
     assert.equal(a.externalOrderId, b.externalOrderId);
+  assert.equal(a.paymentStatus, "paid");
     const idemA = `shopify:${a.externalOrderId}`;
     const idemB = `shopify:${b.externalOrderId}`;
     assert.equal(idemA, idemB);
