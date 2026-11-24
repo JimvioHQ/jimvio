@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, compliance: result });
     }
 
-    if (topic === "orders/create" || topic === "orders/updated") {
+    if (["orders/create", "orders/updated", "orders/paid", "orders/cancelled"].includes(topic)) {
       if (!store?.id || !store.vendor_id) {
         await markWebhookProcessed(db, persisted.eventId, {
           error: "No connected merchant store for this shop domain.",
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         storeId: store.id,
         orderChannel: "shopify",
         normalized,
-        idempotencyKey: `shopify:${normalized.externalOrderId}`,
+        idempotencyKey: `shopify:${idempotencyKey}`,
       });
 
       if (ingest.ok) {
@@ -121,22 +121,23 @@ export async function POST(req: NextRequest) {
           orderId: ingest.orderId,
           status: "processed",
         });
-        // Route to supplier asynchronously after ack — enqueue fulfillment sync
-        if (ingest.created) {
+        // Only a verified captured payment may trigger CJ supplier fulfillment.
+        // orders/paid and orders/updated can arrive after the initial orders/create event.
+        if (normalized.paymentStatus === "paid") {
           await enqueueSyncJob(db, {
             vendorId: store.vendor_id,
             storeId: store.id,
             jobType: "FULFILLMENT_SYNC",
-            metadata: { orderId: ingest.orderId, reason: "orders_create" },
+            metadata: { orderId: ingest.orderId, reason: topic },
           });
-          // Best-effort immediate route (idempotent); failures retry via sync
+          // Best-effort immediate route (idempotent); failures retry via sync.
           try {
             const { routeOrderFulfillment } = await import(
               "@/lib/dropshipping/fulfillment/router"
             );
             await routeOrderFulfillment(db, ingest.orderId);
           } catch {
-            // Retry via cron dropshipping-sync / FULFILLMENT_SYNC
+            // Retry via cron dropshipping-sync / FULFILLMENT_SYNC.
           }
         }
       } else {
