@@ -67,6 +67,14 @@ export async function routeOrderFulfillment(
     return claim.responseBody as RouteFulfillmentResult;
   }
 
+  const releaseClaim = async () => {
+    await db
+      .from("ds_idempotency_keys")
+      .delete()
+      .eq("scope", scope)
+      .eq("idempotency_key", idemKey);
+  };
+
   if (order.cj_order_id) {
     const result: RouteFulfillmentResult = {
       ok: true,
@@ -84,6 +92,7 @@ export async function routeOrderFulfillment(
     .eq("order_id", orderId);
 
   if (!items?.length) {
+    await releaseClaim();
     return { ok: false, error: "Order has no line items.", code: "NO_ITEMS" };
   }
 
@@ -100,7 +109,7 @@ export async function routeOrderFulfillment(
       error: "No supplier-routable lines found for this order.",
       code: "NO_SUPPLIER_LINES",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -157,7 +166,7 @@ export async function routeOrderFulfillment(
           error: `Supplier inventory insufficient for variant ${line.supplierVariantId}.`,
           code: "INSUFFICIENT_INVENTORY",
         };
-        await completeIdempotency(db, scope, idemKey, 409, result);
+        await releaseClaim();
         return result;
       }
     }
