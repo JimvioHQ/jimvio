@@ -142,7 +142,7 @@ BEGIN
          currency = 'USD'
    WHERE id = v_deposit.id;
 
-  RETURN pg_catalog.jsonb_build_object('credited', true, 'amount', v_amount, 'reason', 'credited');
+  RETURN pg_catalog.jsonb_build_object('credited', true, 'amount', v_amount, 'reason', 'credited', 'user_id', v_deposit.user_id);
 END;
 $function$;
 
