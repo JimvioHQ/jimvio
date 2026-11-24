@@ -14,8 +14,8 @@ const ROOT = join(__dirname, "..");
 const SOURCE_DIR = join(ROOT, "public", "icons", "source");
 const OUT_DIR = join(ROOT, "public", "icons");
 const OFFICIAL_PNG = join(SOURCE_DIR, "official-logo.png");
-const BRAND_ORANGE = { r: 251, g: 76, b: 7, alpha: 1 };
-const BRAND_ORANGE_HEX = "#FB4C07";
+const BRAND_ORANGE = { r: 249, g: 84, b: 5, alpha: 1 };
+const BRAND_ORANGE_HEX = "#F95405";
 
 /** Crop ~13.5% per edge — zooms artwork to ~80% optical fill */
 const OPTICAL_CROP_RATIO = 0.135;
