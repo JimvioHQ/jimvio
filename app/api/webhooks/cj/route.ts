@@ -583,7 +583,7 @@ export async function POST(req: Request): Promise<Response> {
     const logged = await logWebhookEvent(supabase, {
         provider: "cj",
         idempotencyKey,
-        payload,
+        payload: { rawBody, event: payload },
     });
 
     if (logged.isDuplicate) {
