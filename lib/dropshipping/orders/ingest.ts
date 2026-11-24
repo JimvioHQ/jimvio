@@ -40,6 +40,14 @@ export async function ingestStoreOrder(
     return claim.responseBody as IngestOrderResult;
   }
 
+  const releaseClaim = async () => {
+    await db
+      .from("ds_idempotency_keys")
+      .delete()
+      .eq("scope", scope)
+      .eq("idempotency_key", idemKey);
+  };
+
   const incomingPaymentStatus = params.normalized.paymentStatus ?? "pending";
   const isCancelled = Boolean(params.normalized.isCancelled);
   const { data: existing, error: existingError } = await db
@@ -50,6 +58,7 @@ export async function ingestStoreOrder(
     .maybeSingle();
 
   if (existingError) {
+    await releaseClaim();
     return { ok: false, error: "Could not check the existing external order.", code: "ORDER_LOOKUP_FAILED" };
   }
 
@@ -62,12 +71,12 @@ export async function ingestStoreOrder(
     );
 
     if (Object.keys(patch).length) {
-      patch.updated_at = now;
       const { error: updateError } = await db
         .from("orders")
         .update(patch)
         .eq("id", existing.id);
       if (updateError) {
+        await releaseClaim();
         return { ok: false, error: "Could not update external order payment state.", code: "ORDER_PAYMENT_UPDATE_FAILED" };
       }
     }
@@ -118,7 +127,7 @@ export async function ingestStoreOrder(
       durationMs: Date.now() - started,
       externalId,
     });
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -130,6 +139,7 @@ export async function ingestStoreOrder(
     .maybeSingle();
 
   if (!vendor?.user_id) {
+    await releaseClaim();
     return { ok: false, error: "Merchant vendor account not found.", code: "VENDOR_NOT_FOUND" };
   }
 
@@ -185,7 +195,7 @@ export async function ingestStoreOrder(
       error: orderErr?.message || "Failed to create Jimvio order.",
       code: "ORDER_CREATE_FAILED",
     };
-    await completeIdempotency(db, scope, idemKey, 500, result);
+    await releaseClaim();
     return result;
   }
 
