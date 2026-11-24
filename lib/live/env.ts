@@ -79,6 +79,8 @@ export function getLiveStudioEnvReport(): LiveStudioEnvReport {
 /** Non-secret recording storage readiness (lengths only — never values). */
 export function getEgressStorageReport(): {
   configured: boolean;
+  endpointValid: boolean;
+  storageMode: "ready" | "missing_credentials" | "invalid_endpoint";
   bucketPresent: boolean;
   bucketName: string | null;
   accessKeyPresent: boolean;
@@ -97,15 +99,31 @@ export function getEgressStorageReport(): {
   const region = trim(process.env.LIVEKIT_EGRESS_S3_REGION);
   const endpoint = trim(process.env.LIVEKIT_EGRESS_S3_ENDPOINT);
   let endpointHost: string | null = null;
+  let endpointValid = !endpoint;
   if (endpoint) {
     try {
-      endpointHost = new URL(endpoint).host;
+      const parsed = new URL(endpoint);
+      endpointHost = parsed.host || null;
+      endpointValid =
+        parsed.protocol === "https:" &&
+        Boolean(parsed.hostname) &&
+        !parsed.username &&
+        !parsed.password;
     } catch {
       endpointHost = "invalid_url";
+      endpointValid = false;
     }
   }
+  const credentialsPresent = Boolean(bucket && accessKey && secret);
+  const configured = credentialsPresent && endpointValid;
   return {
-    configured: Boolean(bucket && accessKey && secret),
+    configured,
+    endpointValid,
+    storageMode: !credentialsPresent
+      ? "missing_credentials"
+      : endpointValid
+        ? "ready"
+        : "invalid_endpoint",
     bucketPresent: Boolean(bucket),
     bucketName: bucket || null,
     accessKeyPresent: Boolean(accessKey),

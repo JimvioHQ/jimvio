@@ -287,6 +287,32 @@ describe("Jimvio Live completion — recording egress output", () => {
     else process.env.LIVEKIT_EGRESS_S3_SECRET = prev.secret;
   });
 
+  it("rejects malformed configured S3 endpoints before Egress is started", () => {
+    const previous = {
+      bucket: process.env.LIVEKIT_EGRESS_S3_BUCKET,
+      accessKey: process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY,
+      secret: process.env.LIVEKIT_EGRESS_S3_SECRET,
+      endpoint: process.env.LIVEKIT_EGRESS_S3_ENDPOINT,
+    };
+    process.env.LIVEKIT_EGRESS_S3_BUCKET = "test-bucket";
+    process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY = "ak";
+    process.env.LIVEKIT_EGRESS_S3_SECRET = "sk";
+    process.env.LIVEKIT_EGRESS_S3_ENDPOINT = "not a url";
+    const result = buildEgressFileOutput("sess-1");
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.error, /endpoint is invalid/i);
+
+    for (const [key, value] of Object.entries({
+      LIVEKIT_EGRESS_S3_BUCKET: previous.bucket,
+      LIVEKIT_EGRESS_S3_ACCESS_KEY: previous.accessKey,
+      LIVEKIT_EGRESS_S3_SECRET: previous.secret,
+      LIVEKIT_EGRESS_S3_ENDPOINT: previous.endpoint,
+    })) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
   it("recording route uses room-composite egress with permission enforcement", () => {
     const route = read("app/api/live/sessions/[id]/recording/route.ts");
     const egress = read("lib/live/egress.ts");

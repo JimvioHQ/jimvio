@@ -13,7 +13,7 @@ import {
   canShareScreen,
   canEndLive,
 } from "../lib/live/roles.ts";
-import { getLiveStudioEnvReport } from "../lib/live/env.ts";
+import { getEgressStorageReport, getLiveStudioEnvReport } from "../lib/live/env.ts";
 import {
   getLiveKitApiKey,
   getLiveKitApiSecret,
@@ -152,13 +152,15 @@ async function main() {
     }
   }
 
-  const hasS3 = Boolean(process.env.LIVEKIT_EGRESS_S3_BUCKET?.trim());
+  const storage = getEgressStorageReport();
   gates.push({
     id: "recording.egress_storage",
-    status: hasS3 ? "PASS" : "BLOCKED",
-    detail: hasS3
-      ? "S3 egress configured"
-      : "No LIVEKIT_EGRESS_S3_* — requires LiveKit Cloud dashboard storage for durable egress",
+    status: storage.configured ? "PASS" : "BLOCKED",
+    detail: storage.configured
+      ? "S3 egress credentials + endpoint format present"
+      : storage.storageMode === "invalid_endpoint"
+        ? "Invalid LIVEKIT_EGRESS_S3_ENDPOINT — use a valid HTTPS S3-compatible endpoint"
+        : "Missing LIVEKIT_EGRESS_S3_BUCKET / ACCESS_KEY / SECRET",
   });
 
   // Webhook route exists + rejects bad auth
