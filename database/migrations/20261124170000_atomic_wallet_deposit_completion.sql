@@ -36,7 +36,7 @@ BEGIN
   IF v_deposit.status = 'completed' THEN
     RETURN pg_catalog.jsonb_build_object(
       'credited', false,
-      'amount', pg_catalog.round(pg_catalog.coalesce(v_deposit.amount, 0), 2),
+      'amount', pg_catalog.round(COALESCE(v_deposit.amount, 0), 2),
       'reason', 'already_completed'
     );
   END IF;
@@ -45,7 +45,7 @@ BEGIN
     RETURN pg_catalog.jsonb_build_object('credited', false, 'amount', 0, 'reason', 'deposit_not_payable');
   END IF;
 
-  v_amount := pg_catalog.round(pg_catalog.coalesce(v_deposit.amount, 0), 2);
+  v_amount := pg_catalog.round(COALESCE(v_deposit.amount, 0), 2);
   IF v_amount <= 0 THEN
     RETURN pg_catalog.jsonb_build_object('credited', false, 'amount', 0, 'reason', 'invalid_amount');
   END IF;
@@ -55,8 +55,8 @@ BEGIN
       RETURN pg_catalog.jsonb_build_object('credited', false, 'amount', 0, 'reason', 'invalid_verified_amount');
     END IF;
 
-    v_expected_currency := pg_catalog.upper(pg_catalog.coalesce(v_deposit.currency, 'USD'));
-    v_received_currency := pg_catalog.upper(pg_catalog.coalesce(p_verified_currency, 'USD'));
+    v_expected_currency := pg_catalog.upper(COALESCE(v_deposit.currency, 'USD'));
+    v_received_currency := pg_catalog.upper(COALESCE(p_verified_currency, 'USD'));
     IF v_received_currency <> v_expected_currency
        OR pg_catalog.abs(pg_catalog.round(p_verified_amount, 2) - v_amount) > 0.05 THEN
       RETURN pg_catalog.jsonb_build_object('credited', false, 'amount', 0, 'reason', 'amount_currency_mismatch');
@@ -64,8 +64,8 @@ BEGIN
   END IF;
 
   v_reference := 'WDEP-' || v_deposit.id::text;
-  v_provider_reference := pg_catalog.nullif(pg_catalog.btrim(p_provider_reference), '');
-  v_provider := pg_catalog.nullif(pg_catalog.btrim(p_provider), '');
+  v_provider_reference := NULLIF(pg_catalog.btrim(p_provider_reference), '');
+  v_provider := NULLIF(pg_catalog.btrim(p_provider), '');
 
   -- Repair a deposit whose idempotency transaction already exists without
   -- applying a second balance credit.
@@ -78,7 +78,7 @@ BEGIN
     UPDATE public.wallet_deposits
        SET status = 'completed',
            completed_at = v_now,
-           reference = pg_catalog.coalesce(v_provider_reference, reference),
+           reference = COALESCE(v_provider_reference, reference),
            currency = 'USD'
      WHERE id = v_deposit.id;
 
@@ -99,8 +99,8 @@ BEGIN
    FOR UPDATE;
 
   UPDATE public.wallets
-     SET available_balance = pg_catalog.coalesce(available_balance, 0) + v_amount,
-         total_earned = pg_catalog.coalesce(total_earned, 0) + v_amount,
+     SET available_balance = COALESCE(available_balance, 0) + v_amount,
+         total_earned = COALESCE(total_earned, 0) + v_amount,
          currency = 'USD',
          updated_at = v_now
    WHERE user_id = v_deposit.user_id;
@@ -138,7 +138,7 @@ BEGIN
   UPDATE public.wallet_deposits
      SET status = 'completed',
          completed_at = v_now,
-         reference = pg_catalog.coalesce(v_provider_reference, reference),
+         reference = COALESCE(v_provider_reference, reference),
          currency = 'USD'
    WHERE id = v_deposit.id;
 
