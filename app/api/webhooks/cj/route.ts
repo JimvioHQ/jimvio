@@ -632,7 +632,8 @@ export async function POST(req: Request): Promise<Response> {
                 await markCjCatalogUnavailable(supabase, params.pid);
                 await scheduleProductRemoval(params.pid).catch(() => {});
                 console.log(`[CJ webhook] PRODUCT archived pid=${params.pid}`);
-                return Response.json({ ok: true, event: "PRODUCT_DELETE" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             // Empty fields = heartbeat / no-op
@@ -644,7 +645,8 @@ export async function POST(req: Request): Promise<Response> {
                 console.log(
                     `[CJ webhook] PRODUCT empty-fields update, skipping pid=${params.pid}`
                 );
-                return Response.json({ ok: true, event: "PRODUCT_NOOP" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             const exchangeRate = await getUSDToRWFRate();
@@ -661,7 +663,7 @@ export async function POST(req: Request): Promise<Response> {
                     `[CJ webhook] PRODUCT upsert failed pid=${params.pid}:`,
                     error
                 );
-                return Response.json({ ok: false, error }, { status: 200 });
+                throw new Error(error ?? "CJ product upsert failed");
             }
 
             // Self-heal: keep cj_product_map current
@@ -680,11 +682,8 @@ export async function POST(req: Request): Promise<Response> {
 
             await scheduleFromWebhookFields(params.pid, params.fields).catch(() => {});
 
-            return Response.json({
-                ok: true,
-                event: `PRODUCT_${payload.messageType}`,
-                changedFields: params.fields,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── VARIANT ───────────────────────────────────────────────────────
@@ -721,7 +720,8 @@ export async function POST(req: Request): Promise<Response> {
                     );
                 }
 
-                return Response.json({ ok: true, event: "VARIANT_DELETE" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             // Empty fields = no-op
@@ -733,17 +733,15 @@ export async function POST(req: Request): Promise<Response> {
                 console.log(
                     `[CJ webhook] VARIANT empty-fields update, skipping vid=${params.vid}`
                 );
-                return Response.json({ ok: true, event: "VARIANT_NOOP" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             const exchangeRate = await getUSDToRWFRate();
             await syncVariantByVid(supabase, params, exchangeRate);
             console.log(`[CJ webhook] VARIANT sync ok vid=${params.vid}`);
-            return Response.json({
-                ok: true,
-                event: `VARIANT_${payload.messageType}`,
-                changedFields: params.fields,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── ORDER / LOGISTIC ──────────────────────────────────────────────
@@ -753,11 +751,8 @@ export async function POST(req: Request): Promise<Response> {
             console.log(
                 `[CJ webhook] ORDER sync ok cjOrderId=${params.cjOrderId} status=${params.orderStatus}`
             );
-            return Response.json({
-                ok: true,
-                event: `ORDER_${payload.messageType}`,
-                cjOrderId: params.cjOrderId,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── STOCK ─────────────────────────────────────────────────────────
@@ -767,17 +762,15 @@ export async function POST(req: Request): Promise<Response> {
             console.log(
                 `[CJ webhook] STOCK sync ok vids=${Object.keys(params).join(",")}`
             );
-            return Response.json({
-                ok: true,
-                event: "STOCK_UPDATE",
-                vids: Object.keys(params),
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         console.log(
             `[CJ webhook] Acknowledged unhandled type=${payload.type}`
         );
-        return Response.json({ ok: true, event: "IGNORED" });
+        await markWebhookProcessed(supabase, eventId);
+        return;
 
                 } catch (err) {
                     throw err;
