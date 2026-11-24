@@ -81,6 +81,23 @@ export function buildEgressFileOutput(sessionId: string): EgressFileOutputResult
     };
   }
 
+  // A malformed endpoint makes the SDK emit an Egress output rejected by LiveKit.
+  // Fail before creating a recording row so the UI gets an actionable 503.
+  if (endpoint) {
+    try {
+      const parsed = new URL(endpoint);
+      if (parsed.protocol !== "https:" || !parsed.hostname || parsed.username || parsed.password) {
+        throw new Error("invalid endpoint");
+      }
+    } catch {
+      return {
+        ok: false,
+        error:
+          "Recording storage endpoint is invalid. Set LIVEKIT_EGRESS_S3_ENDPOINT to the provider's HTTPS S3-compatible endpoint.",
+      };
+    }
+  }
+
   const file = new EncodedFileOutput({
     fileType: EncodedFileType.MP4,
     filepath,
