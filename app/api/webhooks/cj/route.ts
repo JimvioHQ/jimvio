@@ -749,11 +749,7 @@ export async function POST(req: Request): Promise<Response> {
         // ── ORDER / LOGISTIC ──────────────────────────────────────────────
         if (payload.type === "ORDER" || payload.type === "LOGISTIC") {
             const params = payload.params as unknown as CJOrderParams;
-            await syncOrderFromWebhook(supabase, params); catch (err) {
-                const message = err instanceof Error ? err.message : "Order sync failed";
-                if (logged.eventId) await markWebhookFailed(supabase, logged.eventId, message);
-                throw err;
-            }
+            await syncOrderFromWebhook(supabase, params);
             console.log(
                 `[CJ webhook] ORDER sync ok cjOrderId=${params.cjOrderId} status=${params.orderStatus}`
             );
