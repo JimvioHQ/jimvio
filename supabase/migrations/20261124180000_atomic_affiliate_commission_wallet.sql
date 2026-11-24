@@ -285,6 +285,15 @@ BEGIN
     RAISE EXCEPTION 'Commission not found';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+      FROM public.affiliate_commission_refund_events
+     WHERE commission_id = p_commission_id
+       AND refund_key = p_refund_key
+  ) THEN
+    RETURN pg_catalog.jsonb_build_object('processed', false, 'already_processed', true, 'amount', 0);
+  END IF;
+
   IF v_commission.lifecycle_status IN ('refunded', 'cancelled', 'rejected') THEN
     RETURN pg_catalog.jsonb_build_object('processed', false, 'reason', 'commission_terminal');
   END IF;
