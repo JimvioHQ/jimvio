@@ -108,5 +108,5 @@ export async function completeWalletDepositByReference(
     verifiedAmount: opts.verifiedAmount,
     verifiedCurrency: opts.verifiedCurrency,
   });
-  return { handled: true, ...result };
+  return { handled: result.credited || result.amount > 0, ...result };
 }
