@@ -648,12 +648,13 @@ export async function POST(req: Request): Promise<Response> {
 
             // Self-heal: keep cj_product_map current
             if (productId) {
-                await supabase
+                const { error: mapError } = await supabase
                     .from("cj_product_map")
                     .upsert(
                         { cj_pid: params.pid, product_id: productId },
                         { onConflict: "cj_pid" }
                     );
+                if (mapError) throw new Error("CJ product map upsert failed: " + mapError.message);
             }
 
             console.log(
@@ -684,16 +685,7 @@ export async function POST(req: Request): Promise<Response> {
                         .update({ is_active: false })
                         .eq("id", row.id);
 
-                    if (error) {
-                        console.error(
-                            `[CJ webhook] VARIANT delete failed vid=${params.vid}:`,
-                            error.message
-                        );
-                    } else {
-                        console.log(
-                            `[CJ webhook] VARIANT deactivated vid=${params.vid}`
-                        );
-                    }
+                    if (error) throw new Error("CJ variant delete failed: " + error.message);
                 } else {
                     console.warn(
                         `[CJ webhook] VARIANT DELETE: not found vid=${params.vid}`
