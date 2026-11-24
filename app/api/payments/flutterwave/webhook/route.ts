@@ -469,6 +469,10 @@ export async function POST(req: NextRequest) {
       if (eventId) await markWebhookFailed(supabase, eventId, "Wallet deposit atomic credit failed");
       return NextResponse.json({ error: "Wallet deposit credit failed; retry required." }, { status: 500 });
     }
+    if (deposit.reason) {
+      if (eventId) await markWebhookFailed(supabase, eventId, `Wallet deposit requires review: ${deposit.reason}`);
+      return NextResponse.json({ error: "Wallet deposit requires review before credit." }, { status: 400 });
+    }
 
     // UGC MoMo: confirm using USD amount_usd when local currency was charged.
     let ugcAmount = amount;
