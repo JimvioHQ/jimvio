@@ -124,20 +124,27 @@ export async function POST(req: NextRequest) {
         // Only a verified captured payment may trigger CJ supplier fulfillment.
         // orders/paid and orders/updated can arrive after the initial orders/create event.
         if (normalized.paymentStatus === "paid") {
-          await enqueueSyncJob(db, {
-            vendorId: store.vendor_id,
-            storeId: store.id,
-            jobType: "FULFILLMENT_SYNC",
-            metadata: { orderId: ingest.orderId, reason: topic },
-          });
-          // Best-effort immediate route (idempotent); failures retry via sync.
+          let routeResult:
+            | { ok: true }
+            | { ok: false; code?: string }
+            | null = null;
           try {
             const { routeOrderFulfillment } = await import(
               "@/lib/dropshipping/fulfillment/router"
             );
-            await routeOrderFulfillment(db, ingest.orderId);
+            routeResult = await routeOrderFulfillment(db, ingest.orderId);
           } catch {
-            // Retry via cron dropshipping-sync / FULFILLMENT_SYNC.
+            // A transient route failure is retried by the sync queue below.
+          }
+
+          // Do not enqueue cancelled/refunded or otherwise payment-blocked orders.
+          if (!routeResult?.ok && routeResult?.code !== "PAYMENT_NOT_CONFIRMED") {
+            await enqueueSyncJob(db, {
+              vendorId: store.vendor_id,
+              storeId: store.id,
+              jobType: "FULFILLMENT_SYNC",
+              metadata: { orderId: ingest.orderId, reason: topic },
+            });
           }
         }
       } else {
