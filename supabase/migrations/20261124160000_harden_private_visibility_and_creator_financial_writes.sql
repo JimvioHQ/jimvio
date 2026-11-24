@@ -352,7 +352,7 @@ CREATE TRIGGER trg_protect_profile_social_metrics
 REVOKE SELECT ON TABLE public.shopify_credentials FROM PUBLIC, anon, authenticated;
 GRANT SELECT (
   id, vendor_id, shop_domain, api_version, platform_commission_rate,
-  connected_at, last_synced_at, is_active, merchant_store_id, created_at, updated_at
+  connected_at, last_synced_at, is_active, merchant_store_id
 ) ON TABLE public.shopify_credentials TO authenticated;
 
 -- Keep public profiles/storefronts readable, but remove private fields from
