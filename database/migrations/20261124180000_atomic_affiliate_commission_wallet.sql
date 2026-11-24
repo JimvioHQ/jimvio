@@ -105,8 +105,7 @@ BEGIN
   IF p_link_id IS NOT NULL THEN
     UPDATE public.affiliate_links
        SET total_conversions = COALESCE(total_conversions, 0) + 1,
-           total_earnings = COALESCE(total_earnings, 0) + p_commission_amount,
-           updated_at = v_now
+           total_earnings = COALESCE(total_earnings, 0) + p_commission_amount
      WHERE id = p_link_id
        AND affiliate_id = p_affiliate_id;
     IF NOT FOUND THEN
