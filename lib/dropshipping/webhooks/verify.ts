@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { logWebhookEvent } from "@/lib/payments/webhook-logger";
 
 /**
  * Shopify webhook HMAC verification.
@@ -45,69 +46,53 @@ export async function persistWebhookEvent(
     provider: string;
     idempotencyKey: string;
     payload: unknown;
+    rawBody?: string;
     merchantStoreId?: string | null;
     topic?: string | null;
   }
 ): Promise<PersistWebhookResult> {
-  const { data: existing } = await db
+  const claimed = await logWebhookEvent(db, {
+    provider: params.provider,
+    idempotencyKey: `${params.provider}:${params.idempotencyKey}`,
+    payload: {
+      topic: params.topic ?? null,
+      body: params.payload,
+      rawBody: params.rawBody ?? null,
+    },
+  });
+
+  if (!claimed.eventId) {
+    return { ok: false, error: "Failed to persist webhook event." };
+  }
+
+  if (params.merchantStoreId && !claimed.isDuplicate) {
+    const { error } = await db
+      .from("webhook_events")
+      .update({ merchant_store_id: params.merchantStoreId })
+      .eq("id", claimed.eventId);
+    if (error) {
+      return { ok: false, error: error.message || "Failed to link webhook to store." };
+    }
+  }
+
+  const { data: state, error: stateError } = await db
     .from("webhook_events")
-    .select("id, status, processing_status")
-    .eq("idempotency_key", params.idempotencyKey)
+    .select("status, processing_status")
+    .eq("id", claimed.eventId)
     .maybeSingle();
 
-  if (existing?.id) {
-    const processed =
-      existing.status === "processed" ||
-      existing.processing_status === "processed";
-    return {
-      ok: true,
-      eventId: existing.id,
-      duplicate: true,
-      alreadyProcessed: processed,
-    };
+  if (stateError) {
+    return { ok: false, error: stateError.message || "Failed to read webhook state." };
   }
 
-  const { data: inserted, error } = await db
-    .from("webhook_events")
-    .insert({
-      provider: params.provider,
-      idempotency_key: params.idempotencyKey,
-      payload: {
-        topic: params.topic ?? null,
-        body: params.payload,
-      },
-      status: "received",
-      processing_status: "received",
-      merchant_store_id: params.merchantStoreId ?? null,
-      attempt_count: 0,
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    // Unique race — treat as duplicate
-    const { data: raced } = await db
-      .from("webhook_events")
-      .select("id, status, processing_status")
-      .eq("idempotency_key", params.idempotencyKey)
-      .maybeSingle();
-    if (raced?.id) {
-      return {
-        ok: true,
-        eventId: raced.id,
-        duplicate: true,
-        alreadyProcessed:
-          raced.status === "processed" || raced.processing_status === "processed",
-      };
-    }
-    return { ok: false, error: error.message || "Failed to persist webhook event." };
-  }
+  const alreadyProcessed =
+    state?.status === "processed" || state?.processing_status === "processed";
 
   return {
     ok: true,
-    eventId: inserted.id,
-    duplicate: false,
-    alreadyProcessed: false,
+    eventId: claimed.eventId,
+    duplicate: claimed.isDuplicate,
+    alreadyProcessed,
   };
 }
 
@@ -117,15 +102,17 @@ export async function markWebhookProcessed(
   patch?: { orderId?: string | null; error?: string | null; status?: string }
 ): Promise<void> {
   const status = patch?.status ?? (patch?.error ? "failed" : "processed");
-  await db
+  const now = new Date().toISOString();
+  const { error } = await db
     .from("webhook_events")
     .update({
       status,
       processing_status: status,
-      processed_at: new Date().toISOString(),
+      processed_at: now,
       order_id: patch?.orderId ?? null,
       error: patch?.error ?? null,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq("id", eventId);
+  if (error) throw new Error("Unable to update Shopify webhook state: " + error.message);
 }
