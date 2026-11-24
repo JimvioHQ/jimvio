@@ -39,7 +39,7 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
   const db = await getDB();
   const { data: vendor } = await db
     .from("vendors")
-    .select("*")
+    .select("id, user_id, business_name, business_slug, business_description, business_logo, business_banner, business_country, follower_count, rating, response_time, total_sales, verification_status, created_at")
     .eq("business_slug", slug)
     .eq("is_active", true)
     .single();
