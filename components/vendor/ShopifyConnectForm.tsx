@@ -37,7 +37,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
     const supabase = createClient();
     const { data: creds } = await supabase
       .from("shopify_credentials")
-      .select("shop_domain, updated_at")
+      .select("shop_domain, last_synced_at, connected_at")
       .eq("vendor_id", vendorId)
       .maybeSingle();
 
@@ -60,7 +60,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
     if (creds?.shop_domain) {
       setConnected({
         shopDomain: creds.shop_domain,
-        updatedAt: creds.updated_at ?? new Date().toISOString(),
+        updatedAt: creds.last_synced_at ?? creds.connected_at ?? new Date().toISOString(),
         productCount: count ?? 0,
       });
     } else {

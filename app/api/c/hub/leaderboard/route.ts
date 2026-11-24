@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
-import { createClient } from "@/lib/supabase/server";
+import { getAdminDB } from "@/services/base";
 
 function leaderboardFailure(error: { message?: string } | null) {
   if (!error) return null;
@@ -14,7 +14,7 @@ function leaderboardFailure(error: { message?: string } | null) {
 export const dynamic = "force-dynamic";
 
 async function profileMap(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof getAdminDB>,
   userIds: string[]
 ) {
   if (!userIds.length) return new Map<string, { full_name: string | null; username: string | null }>();
@@ -27,7 +27,7 @@ async function profileMap(
 
 export async function GET(req: NextRequest) {
   const tab = req.nextUrl.searchParams.get("tab") ?? "creators";
-  const supabase = await createClient();
+  const supabase = getAdminDB();
 
   if (tab === "affiliates") {
     const { data, error } = await supabase

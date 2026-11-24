@@ -3,8 +3,33 @@ import crypto from "crypto";
 
 /* ── Config ─────────────────────────────────────────────────────── */
 
-function getBaseUrl(): string {
-  return (process.env.FLW_BASE_URL || "https://api.flutterwave.com/v3").trim();
+export function getFlutterwaveApiBaseUrl(): string {
+  const fallback = "https://api.flutterwave.com/v3";
+  const configured = process.env.FLW_BASE_URL?.trim();
+  if (!configured) return fallback;
+
+  // Never let a malformed or untrusted override break checkout or redirect
+  // authorization headers to an unexpected host.
+  try {
+    const url = new URL(configured);
+    if (
+      url.protocol === "https:" &&
+      url.hostname.toLowerCase() === "api.flutterwave.com" &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      !url.search &&
+      !url.hash &&
+      (url.pathname === "" || url.pathname === "/" || url.pathname.replace(/\/+$/, "") === "/v3")
+    ) {
+      return "https://api.flutterwave.com/v3";
+    }
+  } catch {
+    // Fall through to the canonical provider endpoint.
+  }
+
+  console.warn("[Flutterwave] Ignoring invalid FLW_BASE_URL; using canonical v3 endpoint.");
+  return fallback;
 }
 
 function getSecretKey(): string {
@@ -90,7 +115,7 @@ async function flwFetch<T>(
   options: RequestInit = {},
   retries = 1
 ): Promise<T> {
-  const url = `${getBaseUrl()}${endpoint}`;
+  const url = `${getFlutterwaveApiBaseUrl()}${endpoint}`;
 
   const res = await fetch(url, {
     ...options,
