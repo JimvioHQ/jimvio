@@ -20,7 +20,7 @@ export function getFlutterwaveApiBaseUrl(): string {
       !url.port &&
       !url.search &&
       !url.hash &&
-      (url.pathname === "" || url.pathname === "/" || url.pathname.replace(/\\/+$/, "") === "/v3")
+      (url.pathname === "" || url.pathname === "/" || url.pathname.replace(/\/+$/, "") === "/v3")
     ) {
       return "https://api.flutterwave.com/v3";
     }
