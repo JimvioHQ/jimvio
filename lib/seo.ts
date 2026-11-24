@@ -326,7 +326,7 @@ export function constructMetadata({
         {
           rel: "mask-icon",
           url: "/icons/safari-pinned-tab.svg",
-          color: "#FB4C07",
+          color: "#F95405",
         },
       ],
     },
