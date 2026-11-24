@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
         storeId: store.id,
         orderChannel: "shopify",
         normalized,
-        idempotencyKey: `shopify:${idempotencyKey}`,
+        idempotencyKey: `shopify:${webhookId || `${topic}:${normalized.externalOrderId}:${String(payload.updated_at ?? payload.created_at ?? "")}`}`,
       });
 
       if (ingest.ok) {
