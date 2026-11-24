@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 /* ── Config ─────────────────────────────────────────────────────── */
 
-function getBaseUrl(): string {
+export function getFlutterwaveApiBaseUrl(): string {
   const fallback = "https://api.flutterwave.com/v3";
   const configured = process.env.FLW_BASE_URL?.trim();
   if (!configured) return fallback;
@@ -17,6 +17,7 @@ function getBaseUrl(): string {
       url.hostname.toLowerCase() === "api.flutterwave.com" &&
       !url.username &&
       !url.password &&
+      !url.port &&
       !url.search &&
       !url.hash &&
       (url.pathname === "" || url.pathname === "/" || url.pathname.replace(/\\/+$/, "") === "/v3")
@@ -114,7 +115,7 @@ async function flwFetch<T>(
   options: RequestInit = {},
   retries = 1
 ): Promise<T> {
-  const url = `${getBaseUrl()}${endpoint}`;
+  const url = `${getFlutterwaveApiBaseUrl()}${endpoint}`;
 
   const res = await fetch(url, {
     ...options,
