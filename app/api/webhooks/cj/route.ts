@@ -376,8 +376,7 @@ async function markCjCatalogUnavailable(
 
 async function syncVariantByVid(
     supabase: SupabaseClient,
-    params: CJVariantParams,
-    exchangeRate: number
+    params: CJVariantParams
 ): Promise<void> {
     let row = await resolveVariantRow(
         supabase,
@@ -391,10 +390,7 @@ async function syncVariantByVid(
     }
 
     if (!row) {
-        console.warn(
-            `[CJ webhook] syncVariantByVid: no variant found for vid=${params.vid} sku=${params.variantSku}`
-        );
-        return;
+        throw new Error("CJ variant not found for vid=" + params.vid + " sku=" + params.variantSku);
     }
 
     const updates: Record<string, unknown> = {};
@@ -419,12 +415,7 @@ async function syncVariantByVid(
                 jimvio_price_calculated_at: priced.calculated_at,
             },
         });
-        if (rpcErr) {
-            console.warn(
-                `[CJ webhook] merge_variant_source_metadata failed:`,
-                rpcErr.message
-            );
-        }
+        if (rpcErr) throw new Error("CJ variant pricing metadata sync failed: " + rpcErr.message);
     }
 
     // ✅ Don't touch is_active for VARIANT webhooks — use STOCK for availability
@@ -455,12 +446,7 @@ async function syncVariantByVid(
         .update(updates)
         .eq("id", row.id);
 
-    if (error) {
-        console.error(
-            `[CJ webhook] Failed to update variant vid=${params.vid}:`,
-            error.message
-        );
-    }
+    if (error) throw new Error("CJ variant update failed vid=" + params.vid + ": " + error.message);
 }
 
 async function syncStock(
@@ -471,27 +457,20 @@ async function syncStock(
 
     const updates = Object.entries(params).map(async ([vidKey, entries]) => {
         const normalizedVid = normalizeCjVid(vidKey) ?? normalizeCjVid(entries[0]?.vid);
-        if (!normalizedVid) {
-            console.warn("[CJ webhook] Stock: skipping entry with missing vid");
-            return;
-        }
+        if (!normalizedVid) throw new Error("CJ stock webhook contains an invalid variant ID");
 
         const totalStock = sumCJStockRows(entries);
 
         let variantRow = await resolveVariantByCjVid(supabase, normalizedVid);
 
-        if (!variantRow) {
-            console.warn(
-                `[CJ webhook] Stock: no variant found for vid=${normalizedVid} — may not be imported yet`
-            );
-            return;
-        }
+        if (!variantRow) throw new Error("CJ stock variant not found for vid=" + normalizedVid);
 
-        const { data: variantMeta } = await supabase
+        const { data: variantMeta, error: variantMetaError } = await supabase
             .from("product_variants")
             .select("product_id")
             .eq("id", variantRow.id)
             .maybeSingle();
+        if (variantMetaError) throw new Error("CJ stock product lookup failed: " + variantMetaError.message);
 
         if (variantMeta?.product_id) {
             productIdsToSync.add(variantMeta.product_id as string);
@@ -509,13 +488,7 @@ async function syncStock(
             .update({ inventory_quantity: totalStock })
             .eq("id", variantRow.id);
 
-        if (error) {
-            console.error(
-                `[CJ webhook] Stock update failed vid=${normalizedVid}:`,
-                error.message
-            );
-            return;
-        }
+        if (error) throw new Error("CJ stock update failed vid=" + normalizedVid + ": " + error.message);
 
         console.log(
             `[CJ webhook] Stock updated vid=${normalizedVid} ` +
@@ -524,7 +497,12 @@ async function syncStock(
         );
     });
 
-    await Promise.allSettled(updates);
+    const results = await Promise.allSettled(updates);
+    const failures = results.filter((result) => result.status === "rejected");
+    if (failures.length > 0) {
+        const first = failures[0] as PromiseRejectedResult;
+        throw new Error("CJ stock sync failed for " + failures.length + " variant(s): " + String(first.reason));
+    }
 
     for (const productId of productIdsToSync) {
         await syncProductInventoryFromVariants(supabase, productId);
@@ -652,7 +630,6 @@ export async function POST(req: Request): Promise<Response> {
                 return;
             }
 
-            const exchangeRate = await getUSDToRWFRate();
             const product = mapParamsToCJProduct(params);
 
             const { success, productId, error } = await upsertCJProduct(
@@ -740,8 +717,7 @@ export async function POST(req: Request): Promise<Response> {
                 return;
             }
 
-            const exchangeRate = await getUSDToRWFRate();
-            await syncVariantByVid(supabase, params, exchangeRate);
+            await syncVariantByVid(supabase, params);
             console.log(`[CJ webhook] VARIANT sync ok vid=${params.vid}`);
             await markWebhookProcessed(supabase, eventId);
             return;
