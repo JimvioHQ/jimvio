@@ -69,12 +69,15 @@ export async function PATCH(
   const action = typeof body?.action === "string" ? body.action : "";
   const note = typeof body?.note === "string" ? body.note : undefined;
   const amount = body?.amount != null ? Number(body.amount) : undefined;
+  const refundKey = typeof body?.refundKey === "string"
+    ? body.refundKey.trim().slice(0, 200)
+    : req.headers.get("idempotency-key")?.trim().slice(0, 200);
 
   try {
     let ok = false;
     if (action === "approve") ok = await approveCommission(id);
     else if (action === "reject") ok = await rejectCommission(id, note);
-    else if (action === "refund") ok = await refundCommission(id, amount, note);
+    else if (action === "refund") ok = await refundCommission(id, amount, note, refundKey);
     else if (action === "cancel") ok = await cancelCommission(id, note);
     else {
       return NextResponse.json(
