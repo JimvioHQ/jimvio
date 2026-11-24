@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
 
     const paidAtIso = new Date().toISOString();
     const txId = String(payment_id);
+    let retryableProcessingFailure = false;
 
     for (const oid of orderIds) {
       const idempotencyKey = `nowp-${txId}-${payment_status}`;
@@ -117,6 +118,18 @@ export async function POST(req: NextRequest) {
             if (eventId) await markWebhookProcessed(supabase, eventId, oid);
             continue;
           }
+
+          if (eventId) {
+            await markWebhookFailed(
+              supabase,
+              eventId,
+              "Wallet deposit completion failed: " + (dep.reason ?? "unknown"),
+            );
+          }
+          if (dep.reason === "rpc_error" || !dep.reason) {
+            retryableProcessingFailure = true;
+          }
+          continue;
         }
 
         const ugc = await confirmUgcEscrowPayment(supabase, {
@@ -244,7 +257,15 @@ export async function POST(req: NextRequest) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("[webhooks/nowpayments] ✗ finalize", oid, msg);
         if (eventId) await markWebhookFailed(supabase, eventId, msg);
+        retryableProcessingFailure = true;
       }
+    }
+
+    if (retryableProcessingFailure) {
+      return NextResponse.json(
+        { error: "One or more payments could not be finalized; provider retry is required." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ received: true });
