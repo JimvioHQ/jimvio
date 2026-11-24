@@ -3,7 +3,7 @@
  * Provider-specific logic stays out of React components.
  */
 
-import { FlutterwaveError } from "@/lib/flutterwave";
+import { FlutterwaveError, getFlutterwaveApiBaseUrl } from "@/lib/flutterwave";
 import { getRates } from "@/lib/currency/rates";
 import {
   getMoMoMarketByCountry,
@@ -13,33 +13,7 @@ import {
   type FlutterwaveMoMoMarket,
 } from "@/lib/payments/flutterwave-mobile-money-capabilities";
 
-function getBaseUrl(): string {
-  const fallback = "https://api.flutterwave.com/v3";
-  const configured = process.env.FLW_BASE_URL?.trim();
-  if (!configured) return fallback;
 
-  // Never let a malformed or untrusted override break checkout or redirect
-  // authorization headers to an unexpected host.
-  try {
-    const url = new URL(configured);
-    if (
-      url.protocol === "https:" &&
-      url.hostname.toLowerCase() === "api.flutterwave.com" &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash &&
-      (url.pathname === "" || url.pathname === "/" || url.pathname.replace(/\\/+$/, "") === "/v3")
-    ) {
-      return "https://api.flutterwave.com/v3";
-    }
-  } catch {
-    // Fall through to the canonical provider endpoint.
-  }
-
-  console.warn("[Flutterwave] Ignoring invalid FLW_BASE_URL; using canonical v3 endpoint.");
-  return fallback;
-}
 
 function getSecretKey(): string {
   const key = process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY;
@@ -352,7 +326,7 @@ export async function createMobileMoneyPayment(
     payloadKeys: Object.keys(payload).sort(),
   });
 
-  const url = `${getBaseUrl()}/charges?type=${encodeURIComponent(market.chargeType)}`;
+  const url = `${getFlutterwaveApiBaseUrl()}/charges?type=${encodeURIComponent(market.chargeType)}`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
