@@ -98,7 +98,9 @@ describe("affiliate workspace nav active", () => {
     assert.match(attribution, /isSupportedAffiliateCurrency/);
     assert.match(commissions, /original_commission_amount/);
     assert.doesNotMatch(commissions, /resolveAffiliateOffer|offerForAffiliateProduct/);
-    assert.match(commissions, /if \(existing\) return \{ created: false/);
+    assert.match(commissions, /rpc\("create_pending_affiliate_commission_atomic"/);
+    assert.match(commissions, /rpc\("approve_affiliate_commission_atomic"/);
+    assert.match(commissions, /rpc\("clawback_affiliate_commission_atomic"/);
   });
 
   it("does not keep the affiliate sidebar promotional card", () => {
