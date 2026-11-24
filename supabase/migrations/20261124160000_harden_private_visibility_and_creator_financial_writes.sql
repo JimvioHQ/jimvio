@@ -152,9 +152,8 @@ GRANT SELECT ON TABLE public.affiliates TO authenticated;
 CREATE OR REPLACE FUNCTION public.protect_affiliate_financial_fields()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
 AS $function$
-DECLARE jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 BEGIN
-  IF jwt_role IN ('anon', 'authenticated') THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' THEN
       IF coalesce(NEW.total_clicks, 0) <> 0
         OR coalesce(NEW.total_conversions, 0) <> 0
@@ -226,9 +225,8 @@ CREATE POLICY influencers_update_own
 CREATE OR REPLACE FUNCTION public.protect_influencer_financial_fields()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
 AS $function$
-DECLARE jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 BEGIN
-  IF jwt_role IN ('anon', 'authenticated') THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' THEN
       IF coalesce(NEW.total_earnings, 0) <> 0
         OR coalesce(NEW.available_balance, 0) <> 0
@@ -272,9 +270,8 @@ CREATE TRIGGER trg_protect_influencer_financial_fields
 CREATE OR REPLACE FUNCTION public.protect_vendor_financial_metrics()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
 AS $function$
-DECLARE jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 BEGIN
-  IF jwt_role IN ('anon', 'authenticated') THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' THEN
       IF coalesce(NEW.total_sales, 0) <> 0
         OR coalesce(NEW.total_revenue, 0) <> 0
@@ -320,9 +317,8 @@ CREATE TRIGGER trg_protect_vendor_financial_metrics
 CREATE OR REPLACE FUNCTION public.protect_profile_social_metrics()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
 AS $function$
-DECLARE jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 BEGIN
-  IF jwt_role IN ('anon', 'authenticated') THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' THEN
       IF coalesce(NEW.follower_count, 0) <> 0
         OR coalesce(NEW.following_count, 0) <> 0
@@ -379,9 +375,8 @@ DROP POLICY IF EXISTS ugc_campaigns_select ON public.ugc_campaigns;
 CREATE OR REPLACE FUNCTION public.protect_live_ugc_campaign_terms()
 RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public'
 AS $function$
-DECLARE jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 BEGIN
-  IF jwt_role IN ('anon', 'authenticated') THEN
+  IF current_user IN ('anon', 'authenticated') THEN
     IF TG_OP = 'INSERT' AND NEW.status = 'active' THEN
       RAISE EXCEPTION 'Campaigns must be activated through the authorized activation flow'
         USING ERRCODE = 'insufficient_privilege';
