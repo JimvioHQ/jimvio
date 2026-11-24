@@ -71,6 +71,7 @@ describe("shopify order normalization", () => {
     assert.equal(normalized.total, 25);
     assert.equal(normalized.shippingAmount, 5);
     assert.equal(normalized.paymentStatus, "pending");
+    assert.equal(normalized.isCancelled, false);
   });
 });
 
@@ -87,9 +88,20 @@ describe("Shopify financial status normalization", () => {
     assert.equal(normalizeShopifyFinancialStatus("partially_refunded"), "refunded");
   });
 
-  it("does not treat a cancelled order as payable", () => {
-    assert.equal(normalizeShopifyFinancialStatus("paid", "2026-11-24T10:00:00Z"), "cancelled");
-    assert.equal(normalizeShopifyFinancialStatus("refunded", "2026-11-24T10:00:00Z"), "refunded");
+  it("keeps captured payment separate from the Shopify cancellation flag", () => {
+    const connector = new ShopifyStoreConnector({
+      shopDomain: "example.myshopify.com",
+      accessToken: "test",
+      apiVersion: "2024-10",
+    });
+    const normalized = connector.normalizeOrder({
+      id: 1003,
+      financial_status: "paid",
+      cancelled_at: "2026-11-24T10:00:00Z",
+      line_items: [],
+    });
+    assert.equal(normalized.paymentStatus, "paid");
+    assert.equal(normalized.isCancelled, true);
   });
 
   it("prefers Shopify's authoritative total shipping amount when present", () => {
