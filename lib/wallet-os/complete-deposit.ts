@@ -68,7 +68,7 @@ export async function completeWalletDepositByReference(
     verifiedAmount?: number | null;
     verifiedCurrency?: string | null;
   },
-): Promise<{ handled: boolean; credited: boolean; amount: number }> {
+): Promise<{ handled: boolean; credited: boolean; amount: number; reason?: string }> {
   const ref = opts.providerReference.trim();
   if (!ref) return { handled: false, credited: false, amount: 0 };
 
@@ -86,7 +86,7 @@ export async function completeWalletDepositByReference(
       verifiedAmount: opts.verifiedAmount,
       verifiedCurrency: opts.verifiedCurrency,
     });
-    return { handled: true, ...result };
+    return { handled: result.credited || result.amount > 0, ...result };
   }
 
   const { data: tx } = await db
