@@ -109,18 +109,20 @@ export async function markWebhookProcessed(
   eventId: string,
   orderId?: string | null,
 ): Promise<void> {
-  await db
+  const now = new Date().toISOString();
+  const { error } = await db
     .from("webhook_events")
     .update({
       status: "processed",
       processing_status: "processed",
-      processed_at: new Date().toISOString(),
+      processed_at: now,
       error: null,
       dead_letter: false,
       ...(orderId ? { order_id: orderId } : {}),
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     })
     .eq("id", eventId);
+  if (error) throw new Error("Unable to mark webhook processed: " + error.message);
 }
 
 export async function markWebhookFailed(
