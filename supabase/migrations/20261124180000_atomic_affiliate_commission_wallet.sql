@@ -18,6 +18,120 @@ ALTER TABLE public.affiliate_commission_refund_events ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.affiliate_commission_refund_events FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.affiliate_commission_refund_events TO postgres, service_role;
 
+CREATE OR REPLACE FUNCTION public.create_pending_affiliate_commission_atomic(
+  p_affiliate_id uuid,
+  p_order_id uuid,
+  p_order_item_id uuid,
+  p_product_id uuid,
+  p_vendor_id uuid,
+  p_link_id uuid,
+  p_campaign_id uuid,
+  p_commission_rate numeric,
+  p_order_amount numeric,
+  p_commission_amount numeric,
+  p_attribution_model text DEFAULT 'last_touch',
+  p_attributed_at timestamptz DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $function$
+DECLARE
+  v_user_id uuid;
+  v_commission_id uuid;
+  v_now timestamptz := pg_catalog.now();
+BEGIN
+  IF p_commission_amount IS NULL OR p_commission_amount <= 0
+     OR p_order_amount IS NULL OR p_order_amount < 0
+     OR p_commission_rate IS NULL OR p_commission_rate < 0 OR p_commission_rate > 100 THEN
+    RETURN pg_catalog.jsonb_build_object('created', false, 'reason', 'invalid_commission_values');
+  END IF;
+
+  SELECT user_id
+    INTO v_user_id
+    FROM public.affiliates
+   WHERE id = p_affiliate_id
+   FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Affiliate not found';
+  END IF;
+
+  INSERT INTO public.affiliate_commissions (
+    affiliate_id, link_id, order_id, order_item_id, product_id, vendor_id, campaign_id,
+    commission_rate, order_amount, commission_amount, original_commission_amount,
+    status, lifecycle_status, attribution_model, attributed_at, created_at, updated_at
+  ) VALUES (
+    p_affiliate_id, p_link_id, p_order_id, p_order_item_id, p_product_id, p_vendor_id, p_campaign_id,
+    p_commission_rate, p_order_amount, p_commission_amount, p_commission_amount,
+    'pending', 'pending', COALESCE(p_attribution_model, 'last_touch'),
+    COALESCE(p_attributed_at, v_now), v_now, v_now
+  )
+  ON CONFLICT (order_item_id) WHERE order_item_id IS NOT NULL DO NOTHING
+  RETURNING id INTO v_commission_id;
+
+  IF v_commission_id IS NULL THEN
+    SELECT id INTO v_commission_id
+      FROM public.affiliate_commissions
+     WHERE order_item_id = p_order_item_id;
+    RETURN pg_catalog.jsonb_build_object(
+      'created', false,
+      'commission_id', v_commission_id,
+      'user_id', v_user_id,
+      'reason', 'already_exists'
+    );
+  END IF;
+
+  PERFORM public.increment_affiliate_earnings(p_affiliate_id, p_commission_amount);
+
+  INSERT INTO public.affiliate_ledger (
+    affiliate_id, commission_id, entry_type, amount, note
+  ) VALUES (
+    p_affiliate_id, v_commission_id, 'commission_pending',
+    p_commission_amount, 'Commission pending approval'
+  );
+
+  IF p_campaign_id IS NOT NULL THEN
+    UPDATE public.affiliate_campaigns
+       SET budget_spent = COALESCE(budget_spent, 0) + p_commission_amount,
+           updated_at = v_now
+     WHERE id = p_campaign_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Affiliate campaign not found';
+    END IF;
+  END IF;
+
+  IF p_link_id IS NOT NULL THEN
+    UPDATE public.affiliate_links
+       SET total_conversions = COALESCE(total_conversions, 0) + 1,
+           total_earnings = COALESCE(total_earnings, 0) + p_commission_amount,
+           updated_at = v_now
+     WHERE id = p_link_id
+       AND affiliate_id = p_affiliate_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Affiliate link not found or does not belong to affiliate';
+    END IF;
+  END IF;
+
+  RETURN pg_catalog.jsonb_build_object(
+    'created', true,
+    'commission_id', v_commission_id,
+    'user_id', v_user_id
+  );
+END;
+$function$;
+
+ALTER FUNCTION public.create_pending_affiliate_commission_atomic(
+  uuid, uuid, uuid, uuid, uuid, uuid, uuid, numeric, numeric, numeric, text, timestamptz
+) OWNER TO postgres;
+REVOKE ALL ON FUNCTION public.create_pending_affiliate_commission_atomic(
+  uuid, uuid, uuid, uuid, uuid, uuid, uuid, numeric, numeric, numeric, text, timestamptz
+) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_pending_affiliate_commission_atomic(
+  uuid, uuid, uuid, uuid, uuid, uuid, uuid, numeric, numeric, numeric, text, timestamptz
+) TO postgres, service_role;
+
 CREATE OR REPLACE FUNCTION public.approve_affiliate_commission_atomic(p_commission_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
