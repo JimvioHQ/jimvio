@@ -12,7 +12,7 @@ export function isOrderPaymentEligibleForFulfillment(
   const payment = String(paymentStatus ?? "").toLowerCase();
   const status = String(orderStatus ?? "").toLowerCase();
   return ["paid", "completed"].includes(payment) &&
-    !["cancelled", "refunded"].includes(status);
+    !["cancelled", "refunded", "shipped", "delivered", "completed"].includes(status);
 }
 
 export type RouteFulfillmentResult =
