@@ -747,7 +747,7 @@ export async function POST(req: Request): Promise<Response> {
                     throw err;
                 }
 
-                await markWebhookProcessed(supabase, logged.eventId);
+                await markWebhookProcessed(supabase, eventId);
                 return;
             } catch (err) {
                 const message = err instanceof Error ? err.message : "Unknown error";
@@ -756,7 +756,7 @@ export async function POST(req: Request): Promise<Response> {
                     await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
                     continue;
                 }
-                await markWebhookFailed(supabase, logged.eventId!, message);
+                await markWebhookFailed(supabase, eventId, message);
             }
         }
     });
