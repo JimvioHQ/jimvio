@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
         });
         // Only a verified captured payment may trigger CJ supplier fulfillment.
         // orders/paid and orders/updated can arrive after the initial orders/create event.
-        if (normalized.paymentStatus === "paid") {
+        if (normalized.paymentStatus === "paid" && !normalized.isCancelled) {
           let routeResult:
             | { ok: true }
             | { ok: false; code?: string }
