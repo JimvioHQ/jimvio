@@ -88,7 +88,7 @@ async function reconcileOne(db: SupabaseClient, tx: Tx, now: number, s: Reconcil
         verifiedAmount: tx.amount_usd != null && Number.isFinite(Number(tx.amount_usd)) ? Number(tx.amount_usd) : Number(tx.amount),
         verifiedCurrency: PLATFORM_CURRENCY,
       });
-      if (r.credited) {
+      if (r.credited || r.amount > 0) {
         await db.from("transactions").update({ status: "completed", updated_at: nowIso }).eq("id", tx.id).eq("status", "pending");
         s.paid++;
       }
