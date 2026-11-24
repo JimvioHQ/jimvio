@@ -33,18 +33,14 @@ export async function completeWalletDeposit(
     return { credited: false, amount: 0 };
   }
 
-  const result = data as { credited?: boolean; amount?: number | string } | null;
+  const result = data as { credited?: boolean; amount?: number | string; user_id?: string } | null;
   const credited = result?.credited === true;
   const amount = Number(result?.amount ?? 0);
   const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
 
-  if (credited) {
+  if (credited && result?.user_id) {
     await logWalletActivity({
-      userId: (await db
-        .from("wallet_deposits")
-        .select("user_id")
-        .eq("id", opts.depositId)
-        .maybeSingle()).data?.user_id ?? "",
+      userId: result.user_id,
       action: "deposit_completed",
       surface: "deposits",
       amount: safeAmount,
