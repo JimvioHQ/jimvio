@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NormalizedInboundOrder } from "../stores/types";
 import { claimIdempotency, completeIdempotency } from "../api/idempotency";
 import { logIntegration } from "../observability/log";
+import { buildExternalOrderPaymentPatch } from "./payment-state";
 
 export type IngestOrderResult =
   | { ok: true; orderId: string; created: boolean; duplicate: boolean }
@@ -53,38 +54,12 @@ export async function ingestStoreOrder(
   }
 
   if (existing?.id) {
-    const currentPayment = String(existing.payment_status ?? "pending");
-    const currentStatus = String(existing.status ?? "pending");
-    const patch: Record<string, unknown> = {};
-    const now = new Date().toISOString();
-    const alreadyFulfilled = Boolean(existing.cj_order_id) ||
-      ["processing", "shipped", "delivered", "completed"].includes(currentStatus);
-
-    if (
-      incomingPaymentStatus === "paid" &&
-      !["paid", "completed", "refunded"].includes(currentPayment) &&
-      !["cancelled", "refunded"].includes(currentStatus)
-    ) {
-      patch.payment_status = "paid";
-      patch.paid_at = now;
-      if (isCancelled && !alreadyFulfilled) patch.status = "cancelled";
-      else if (currentStatus === "pending") patch.status = "confirmed";
-    } else if (incomingPaymentStatus === "refunded") {
-      patch.payment_status = "refunded";
-      if (!alreadyFulfilled) patch.status = "refunded";
-    } else if (incomingPaymentStatus === "cancelled" || isCancelled) {
-      if (!["refunded", "cancelled"].includes(currentPayment)) {
-        if (!["paid", "completed"].includes(currentPayment)) {
-          patch.payment_status = "cancelled";
-        }
-        if (!alreadyFulfilled) patch.status = "cancelled";
-      }
-    } else if (incomingPaymentStatus === "failed") {
-      if (!["paid", "completed", "refunded"].includes(currentPayment)) {
-        patch.payment_status = "failed";
-        if (!alreadyFulfilled) patch.status = "cancelled";
-      }
-    }
+    const patch = buildExternalOrderPaymentPatch(
+      existing,
+      incomingPaymentStatus,
+      isCancelled,
+      new Date().toISOString()
+    );
 
     if (Object.keys(patch).length) {
       patch.updated_at = now;
