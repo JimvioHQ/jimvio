@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         // Mark the failed event as processed
         await adminDb
           .from("webhook_events")
-          .update({ status: "processed", updated_at: new Date().toISOString() })
+          .update({ status: "processed", processing_status: "processed", processed_at: new Date().toISOString(), error: null, dead_letter: false, updated_at: new Date().toISOString() })
           .eq("id", event.id);
 
         recovered++;
