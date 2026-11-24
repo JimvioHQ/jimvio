@@ -67,6 +67,8 @@ export type NormalizedInboundOrder = {
   email?: string | null;
   phone?: string | null;
   currency: string;
+  /** Verified external payment state; omitted values fail closed to pending. */
+  paymentStatus?: "paid" | "pending" | "failed" | "refunded" | "cancelled";
   subtotal: number;
   shippingAmount: number;
   taxAmount: number;
