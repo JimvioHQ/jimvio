@@ -172,7 +172,7 @@ export async function approveCommission(commissionId: string) {
   return true;
 }
 
-/** Approve all pending commissions for an order (e.g. on delivery completion). */
+/** Approve pending commissions and repair any previously approved commission whose wallet credit was interrupted. */
 export async function approveCommissionsForOrder(orderId: string) {
   const client = db();
   const { data: rows } = await client
