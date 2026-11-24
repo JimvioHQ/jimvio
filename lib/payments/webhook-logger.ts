@@ -72,7 +72,7 @@ export async function logWebhookEvent(
 
   const updatedAtMs = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
   const inFlight =
-    existing.status === "received" &&
+    ["received", "processing"].includes(String(existing.status)) &&
     Number.isFinite(updatedAtMs) &&
     now.getTime() - updatedAtMs < WEBHOOK_IN_FLIGHT_MS;
 
