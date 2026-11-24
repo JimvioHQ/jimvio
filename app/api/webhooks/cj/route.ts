@@ -611,6 +611,7 @@ export async function POST(req: Request): Promise<Response> {
     if (!logged.eventId) {
         return Response.json({ ok: false, error: "Webhook event could not be persisted" }, { status: 503 });
     }
+    const eventId = logged.eventId;
 
     after(async () => {
         for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -625,10 +626,7 @@ export async function POST(req: Request): Promise<Response> {
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;
 
-            if (isTestPing(params)) {
-                console.log("[CJ webhook] Test ping acknowledged");
-                return Response.json({ ok: true, event: "TEST_PING" });
-            }
+
 
             if (payload.messageType === "DELETE") {
                 await markCjCatalogUnavailable(supabase, params.pid);
@@ -751,21 +749,7 @@ export async function POST(req: Request): Promise<Response> {
         // ── ORDER / LOGISTIC ──────────────────────────────────────────────
         if (payload.type === "ORDER" || payload.type === "LOGISTIC") {
             const params = payload.params as unknown as CJOrderParams;
-            const idempotencyKey = payload.messageId
-                ? `cj:${payload.messageId}`
-                : `cj:${payload.type}:${params.cjOrderId ?? params.orderNumber}:${params.orderStatus}:${params.trackNumber ?? ""}:${params.updateDate ?? ""}`;
-            const logged = await logWebhookEvent(supabase, {
-                provider: "cj",
-                idempotencyKey,
-                payload,
-            });
-            if (logged.isDuplicate) {
-                return Response.json({ ok: true, duplicate: true });
-            }
-            try {
-                await syncOrderFromWebhook(supabase, params);
-                if (logged.eventId) await markWebhookProcessed(supabase, logged.eventId);
-            } catch (err) {
+            await syncOrderFromWebhook(supabase, params); catch (err) {
                 const message = err instanceof Error ? err.message : "Order sync failed";
                 if (logged.eventId) await markWebhookFailed(supabase, logged.eventId, message);
                 throw err;
