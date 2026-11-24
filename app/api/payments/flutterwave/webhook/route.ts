@@ -369,14 +369,14 @@ export async function POST(req: NextRequest) {
       if (!isFlutterwaveSuccessfulStatus(verified.status)) {
         console.warn("[Flutterwave webhook] ✗ Secondary verify failed", { txId });
         if (eventId) await markWebhookFailed(supabase, eventId, "Secondary verification failed");
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ error: "Payment verification is not yet successful; retry required." }, { status: 500 });
       }
 
       // FIX #3: Verify amount matches what we expect
       if (verified.amount == null || Number(verified.amount) <= 0) {
         console.warn("[Flutterwave webhook] ✗ Verified amount invalid", { verified });
         if (eventId) await markWebhookFailed(supabase, eventId, "Invalid verified amount");
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ error: "Verified amount is invalid." }, { status: 400 });
       }
 
       // FIX #8: Verify currency matches
@@ -386,7 +386,7 @@ export async function POST(req: NextRequest) {
           verifiedCurrency: verified.currency,
         });
         if (eventId) await markWebhookFailed(supabase, eventId, "Currency mismatch");
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ error: "Payment currency mismatch." }, { status: 400 });
       }
 
       console.info("[Flutterwave webhook] ✓ Secondary verify passed", { txId });
@@ -400,7 +400,7 @@ export async function POST(req: NextRequest) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("[Flutterwave webhook] ✗ Verify API error — aborting", { msg, txId });
         if (eventId) await markWebhookFailed(supabase, eventId, `Verify API error: ${msg}`);
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ error: "Verification service unavailable; retry required." }, { status: 500 });
       }
     }
   } else {
@@ -449,7 +449,7 @@ export async function POST(req: NextRequest) {
           expectedCurrency: depositTx.currency,
         });
         if (eventId) await markWebhookFailed(supabase, eventId, "MoMo amount mismatch");
-        return NextResponse.json({ received: true });
+        return NextResponse.json({ error: "MoMo amount mismatch." }, { status: 400 });
       }
       walletVerifiedAmount = Number(depositTx.amount_usd);
       walletVerifiedCurrency = "USD";
@@ -464,6 +464,10 @@ export async function POST(req: NextRequest) {
     if (deposit.handled) {
       if (eventId) await markWebhookProcessed(supabase, eventId, null);
       return NextResponse.json({ received: true, walletDeposit: true });
+    }
+    if (deposit.reason === "rpc_error") {
+      if (eventId) await markWebhookFailed(supabase, eventId, "Wallet deposit atomic credit failed");
+      return NextResponse.json({ error: "Wallet deposit credit failed; retry required." }, { status: 500 });
     }
 
     // UGC MoMo: confirm using USD amount_usd when local currency was charged.
@@ -545,7 +549,7 @@ export async function POST(req: NextRequest) {
 
     console.warn("[Flutterwave webhook] No transaction row for tx_ref", { txRef });
     if (eventId) await markWebhookFailed(supabase, eventId, "Transaction record not found");
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ error: "Transaction record not found; retry required." }, { status: 500 });
   }
 
   const { orderId, transactionId } = resolved;
@@ -566,7 +570,7 @@ export async function POST(req: NextRequest) {
   if (orderError || !order) {
     console.warn("[Flutterwave webhook] Order not found", { orderId });
     if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ error: "Order not found; retry required." }, { status: 500 });
   }
 
   // Amount check against saved transaction (same currency as Flutterwave charge)
@@ -586,7 +590,7 @@ export async function POST(req: NextRequest) {
       orderId,
     });
     if (eventId) await markWebhookFailed(supabase, eventId, "Amount mismatch");
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ error: "Amount mismatch." }, { status: 400 });
   }
 
   // 11. Link webhook_event ↔ order and transaction
