@@ -129,6 +129,8 @@ export async function POST(req: NextRequest) {
       email: body.email ?? null,
       phone: body.phone ?? null,
       currency: body.currency || "USD",
+      // API-ingested orders are unverified until a trusted payment webhook confirms capture.
+      paymentStatus: "pending",
       subtotal: Number(body.subtotal ?? 0),
       shippingAmount: Number(body.shipping_amount ?? 0),
       taxAmount: Number(body.tax_amount ?? 0),
