@@ -321,7 +321,7 @@ export function UGCSubmissionsPage() {
                         <Wallet className="h-4 w-4 shrink-0" />
                         {paid
                           ? `${formatMoney(payout.amount, "USD")} added to your wallet${payout.paid_at ? ` on ${new Date(payout.paid_at).toLocaleDateString()}` : ""}.`
-                          : `${formatMoney(payout.amount, "USD")} reaches your wallet ${timeLeft(payout.release_at) ?? "soon"} (24h check for views Jimvio couldn't verify).`}
+                          : `${formatMoney(payout.amount, "USD")} reaches your wallet ${timeLeft(payout.release_at) ?? "soon"}.`}
                       </p>
                     ) : null}
                     {!verified && sub.verification_note ? (

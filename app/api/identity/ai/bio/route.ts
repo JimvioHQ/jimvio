@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/ugc/platform/auth";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { completePrimaryText } from "@/lib/ai/text-generation";
 import { readOpenAIKey } from "@/lib/ai/openai-runtime";
+import { generateGeminiText, readGeminiKey } from "@/lib/ai/gemini-fallback";
 import { isConfidentialAiRequest } from "@/lib/ai/ai-guard";
 import { BIO_MODES, bioAssistInstructions, type BioAssistMode } from "@/lib/identity/ai-builder";
 import { getIdentityByUserId } from "@/lib/identity/resolve";
@@ -23,8 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   const apiKey = readOpenAIKey();
-  if (!apiKey) {
-    return NextResponse.json({ error: "AI writing is not configured right now." }, { status: 503 });
+  const geminiKey = readGeminiKey();
+  if (!apiKey && !geminiKey) {
+    return NextResponse.json({ error: "AI writing is temporarily unavailable. Please try again later." }, { status: 503 });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -54,14 +56,23 @@ export async function POST(req: NextRequest) {
     .join("\n");
 
   try {
-    const draft = await completePrimaryText({
-      apiKey,
-      instructions: bioAssistInstructions(mode),
-      input: facts,
-      temperature: 0.4,
-      maxOutputTokens: 700,
-      geminiFallback: true,
-    });
+    const instructions = bioAssistInstructions(mode);
+    const draft = apiKey
+      ? await completePrimaryText({
+          apiKey,
+          instructions,
+          input: facts,
+          temperature: 0.4,
+          maxOutputTokens: 700,
+          geminiFallback: true,
+        })
+      : await generateGeminiText({
+          instructions,
+          prompt: facts,
+          temperature: 0.4,
+          maxOutputTokens: 700,
+        });
+    if (!draft?.trim()) throw new Error("No configured AI provider returned a draft.");
     return NextResponse.json({
       draft: draft.trim(),
       mode,
