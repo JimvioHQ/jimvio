@@ -20,6 +20,8 @@ assert.match(migration, /coalesce\(old\.is_published, false\)/i);
 assert.match(migration, /set post_count = coalesce\(post_count, 0\) \+ 1/i);
 assert.match(migration, /set post_count = greatest\(0, coalesce\(post_count, 0\) - 1\)/i);
 assert.match(migration, /update public\.communities c\s+set post_count = coalesce\(/i);
+assert.match(migration, /alter table public\.communities disable trigger update_communities_updated_at/i);
+assert.match(migration, /alter table public\.communities enable trigger update_communities_updated_at/i);
 assert.match(migration, /where p\.is_published is true/i);
 assert.doesNotMatch(migration, /\b(delete from|truncate)\b/i);
 
