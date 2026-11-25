@@ -24,6 +24,7 @@ export type TrendingCommunity = {
   online_members: number;
   trending_score: number;
   verified: boolean;
+  owner_verified?: boolean;
   href: string;
   join_href: string;
   is_free?: boolean;
