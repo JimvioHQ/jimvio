@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/CurrencyContext";
 import { ViewVerificationPanel, type VerificationFields } from "@/components/ugc/verification/ViewVerificationPanel";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 
 type Detail = VerificationFields & {
   id: string;
@@ -23,7 +24,7 @@ type Detail = VerificationFields & {
   rejection_reason?: string | null;
   reviewed_at?: string | null;
   media?: Array<{ type?: string; url: string; thumbnail_url?: string | null }>;
-  influencer?: { display_name?: string; profile_image?: string | null } | null;
+  influencer?: { display_name?: string; profile_image?: string | null; is_verified?: boolean | null } | null;
   campaign?: {
     title?: string;
     payment_model?: string;
@@ -187,7 +188,7 @@ export function SubmissionReviewDrawer({
           <div className="mt-4 space-y-4 text-[13px] text-[#374151]">
             <section>
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Submission</p>
-              <p className="mt-1 font-semibold text-[#111827]">{detail.influencer?.display_name ?? "Creator"}</p>
+              <p className="mt-1 inline-flex items-center gap-1 font-semibold text-[#111827]">{detail.influencer?.display_name ?? "Creator"} <BlueVerifiedBadge verified={Boolean(detail.influencer?.is_verified)} size="sm" label="Verified creator" /></p>
               <p>{detail.campaign?.title ?? "Campaign"}</p>
               <p className="break-all text-[12px] text-[#6B7280]">{detail.id}</p>
               <p className="mt-1 capitalize">
