@@ -18,7 +18,7 @@ import { IdentityButton, IdentityCard, IdentityEmptyState, IdentityPill, cn } fr
 interface WalletTransaction {
   id: string;
   type: string;
-  surface: "marketplace" | "affiliate" | "community" | "other";
+  surface: "marketplace" | "affiliate" | "community" | "ugc" | "other";
   amount: number;
   currency: string;
   status: string;
