@@ -71,10 +71,10 @@ jobs:
           fi
           echo "vercel_cli=true" >> "$GITHUB_OUTPUT"
           npx vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          # Vercel masks secret env values when pulling them into CI. Keep the
-          # build-only Supabase URL valid so server modules can initialize;
-          # the preview runtime still receives its real values from Vercel.
-          NEXT_PUBLIC_SUPABASE_URL="https://placeholder.supabase.co" npx vercel build --token="$VERCEL_TOKEN"
+          # Keep the public URL identical to the value configured for both
+          # Preview and Production. NEXT_PUBLIC_* values are inlined at build
+          # time, so never substitute a fake URL into the deployed client bundle.
+          NEXT_PUBLIC_SUPABASE_URL="https://vsfhwfimudpdipdkxbww.supabase.co" npx vercel build --token="$VERCEL_TOKEN"
           URL=$(npx vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $URL" >> "$GITHUB_STEP_SUMMARY"
