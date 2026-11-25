@@ -30,9 +30,7 @@ export function communityTrendingScore(input: TrendingCommunityInput): number {
   );
 }
 
-export function isCommunityVerified(input: {
-  is_featured?: boolean | null;
-  member_count?: number | null;
-}): boolean {
-  return Boolean(input.is_featured) || (Number(input.member_count ?? 0) || 0) >= 100;
+/** A community inherits the blue tick only from its verified owner. */
+export function isCommunityVerified(input: { owner_verified?: boolean | null }): boolean {
+  return input.owner_verified === true;
 }

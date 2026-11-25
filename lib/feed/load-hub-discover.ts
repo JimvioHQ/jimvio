@@ -19,6 +19,7 @@ import {
   type FeedSidebarPopularUser,
 } from "@/lib/feed/load-feed-sidebar";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
+import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
 import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection";
 import {
@@ -39,13 +40,15 @@ import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 type Db = { from: (relation: string) => any };
 
 const COMMUNITY_SELECT =
-  "id, name, slug, category, tagline, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency";
+  "id, owner_id, name, slug, category, tagline, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency";
 const RECENT_POST_DAYS = 30;
 /** One spare so the viewer can be hidden client-side and five still show. */
 export const DISCOVER_POPULAR_USERS = POPULAR_USER_COUNT + 1;
 
 type CommunityRow = {
   id: string;
+  owner_id?: string | null;
+  owner_verified?: boolean;
   name: string;
   slug: string;
   category: string | null;
@@ -89,6 +92,7 @@ function mapCommunity(row: CommunityRow): TrendingCommunity {
   return {
     id: row.id,
     name: row.name,
+    owner_verified: row.owner_verified === true,
     slug: row.slug,
     category: row.category,
     tagline: (typeof row.tagline === "string" && row.tagline.trim()) || null,
@@ -97,7 +101,7 @@ function mapCommunity(row: CommunityRow): TrendingCommunity {
     member_count: memberCount,
     online_members: Number(row.online_members ?? 0) || 0,
     trending_score: Number(row.trending_score ?? 0) || 0,
-    verified: isCommunityVerified({ is_featured: row.is_featured, member_count: memberCount }),
+    verified: isCommunityVerified({ owner_verified: row.owner_verified }),
     is_free: row.is_free !== false,
     monthly_price: row.monthly_price ?? null,
     currency: row.currency ?? null,
@@ -199,7 +203,10 @@ export async function loadTrendingCommunities(
     ];
   }
 
-  const activity = await loadRealActivity(db, rows.map((r) => r.id), signal);
+  const [activity, verifiedOwners] = await Promise.all([
+    loadRealActivity(db, rows.map((r) => r.id), signal),
+    loadVerifiedUserIds(db, rows.map((row) => row.owner_id ?? "")),
+  ]);
   const scored = rows.map((row) => {
     const realMembers = activity?.members.get(row.id);
     const memberCount =
@@ -207,6 +214,7 @@ export async function loadTrendingCommunities(
     const recentPosts = activity?.recentPosts.get(row.id) ?? 0;
     return {
       ...row,
+      owner_verified: Boolean(row.owner_id && verifiedOwners.has(row.owner_id)),
       member_count: memberCount,
       online_members: 0,
       trending_score: communityTrendingScore({
