@@ -19,8 +19,7 @@ function surfaceForTransactionType(type: string): WalletSurface {
  * Wraps `getUserWalletData` for the authenticated user, ensuring a `wallets`
  * row exists first (inserted with zero balances if missing), then reshapes
  * the result into the flat, camelCase contract consumed by
- * `IdentityWalletClient` — adding a `ugc` earnings bucket sourced from
- * `ugc_payouts` (UGC payouts never land in `transactions`).
+ * `IdentityWalletClient`, using the canonical payouts ledger for UGC earnings.
  */
 export async function GET() {
   const { user, db: rawDb, error } = await requireUser();
@@ -69,10 +68,11 @@ export async function GET() {
     reference: string | null;
     created_at: string;
   }>;
-  const baseAggregation = (result.aggregation ?? { vendor: 0, affiliate: 0, creator: 0, other: 0 }) as {
+  const baseAggregation = (result.aggregation ?? { vendor: 0, affiliate: 0, creator: 0, ugc: 0, other: 0 }) as {
     vendor: number;
     affiliate: number;
     creator: number;
+    ugc: number;
     other: number;
   };
 
