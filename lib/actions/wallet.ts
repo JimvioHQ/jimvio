@@ -56,7 +56,7 @@ export async function getUserWalletData() {
   const recentTransactions = [...(transactions ?? []), ...ugcTransactions]
     .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
 
-  // 4. Aggregate by earning source. UGC is included in creator earnings.
+  // 4. Aggregate by earning source, keeping UGC separate from community bonuses.
   const aggregation = aggregateWalletEarnings(recentTransactions);
 
   return {
