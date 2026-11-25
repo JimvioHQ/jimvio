@@ -137,7 +137,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "content",
     "Posts",
     "content",
-    "channel.manage",
+    "content.manage",
     "Posts, pins, and media library"
   ),
   courses: navItem(
@@ -151,14 +151,14 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "events",
     "Events",
     "events",
-    "channel.manage",
+    "events.manage",
     "Calendar, RSVP, and workshops"
   ),
   missions: navItem(
     "missions",
     "Missions",
     "missions",
-    "channel.manage",
+    "content.manage",
     "Challenges, submissions, and reviews"
   ),
   live: navItem(
