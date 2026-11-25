@@ -5,6 +5,7 @@ import { markRecordingReady } from "@/lib/live/egress";
 import { extractEgressFileResult } from "@/lib/live/egress-file-result";
 import { handleStreamEgressWebhook } from "@/lib/live/destinations/destination-manager";
 import { liveStudioLog } from "@/lib/live/observability";
+import { normalizeEgressStorageError } from "@/lib/live/egress-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
 
       if (event.event === "egress_ended" && (hasFile || !hasStream)) {
         const error = failed
-          ? info.error || "Egress failed"
+          ? normalizeEgressStorageError(info.error || "Egress failed")
           : !location
             ? "Egress completed without a storage location"
             : null;
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
       if (hasStream || failed) {
         await handleStreamEgressWebhook({
           egressId,
-          error: failed ? info.error || "Stream egress failed" : null,
+          error: failed ? normalizeEgressStorageError(info.error || "Stream egress failed") : null,
           streamResults: (info.streamResults ?? []).map((r) => ({
             url: undefined,
             status: r.status,

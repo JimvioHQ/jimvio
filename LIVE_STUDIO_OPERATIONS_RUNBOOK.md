@@ -34,6 +34,8 @@ Client (Next.js Studio)
 |----------|---------|
 | `LIVEKIT_EGRESS_S3_*` | Egress file output (or configure LiveKit Cloud storage) |
 
+For Backblaze B2, `LIVEKIT_EGRESS_S3_ACCESS_KEY` must be the **standard S3-compatible Application Key ID** and `LIVEKIT_EGRESS_S3_SECRET` its matching **Application Key**. Do not use the B2 master application key; it is not supported by the S3-compatible API. Restrict the key to the `jimvio-live-recordings` bucket with `writeFiles` and `readFiles` access. Use the bucket's exact region (existing Jimvio recordings use `us-east-005`) and endpoint `https://s3.us-east-005.backblazeb2.com`.
+
 Webhook URL: `https://<host>/api/live/egress/webhook`
 
 ---

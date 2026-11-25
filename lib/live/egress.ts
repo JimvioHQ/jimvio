@@ -31,6 +31,7 @@ import {
 } from "@/lib/live/livekit-config";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { liveStudioLog } from "@/lib/live/observability";
+import { normalizeEgressStorageError } from "@/lib/live/egress-errors";
 import { extractEgressFileResult } from "@/lib/live/egress-file-result";
 import { getCanonicalAppOrigin } from "@/lib/app-origin";
 
@@ -70,7 +71,7 @@ export function buildEgressFileOutput(sessionId: string): EgressFileOutputResult
   const bucket = process.env.LIVEKIT_EGRESS_S3_BUCKET?.trim();
   const accessKey = process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY?.trim();
   const secret = process.env.LIVEKIT_EGRESS_S3_SECRET?.trim();
-  const region = process.env.LIVEKIT_EGRESS_S3_REGION?.trim() || "auto";
+  const region = process.env.LIVEKIT_EGRESS_S3_REGION?.trim() || "us-east-005";
   const endpoint = process.env.LIVEKIT_EGRESS_S3_ENDPOINT?.trim();
 
   if (!bucket || !accessKey || !secret) {
@@ -201,7 +202,7 @@ async function waitForEgressRunning(
       if (failed) {
         return {
           status: "failed",
-          error: info.error || "Recording couldn't be saved — egress aborted before media started",
+          error: normalizeEgressStorageError(info.error || "Recording could not be saved — egress aborted before media started"),
         };
       }
     } catch {
@@ -333,12 +334,12 @@ export async function startSessionEgress(input: {
       .from("live_recordings")
       .update({
         status: "failed",
-        error: e instanceof Error ? e.message : "Egress start failed",
+        error: normalizeEgressStorageError(e instanceof Error ? e.message : "Egress start failed"),
         updated_at: new Date().toISOString(),
       })
       .eq("id", recording.id);
     return {
-      error: e instanceof Error ? e.message : "Egress start failed",
+      error: normalizeEgressStorageError(e instanceof Error ? e.message : "Egress start failed"),
       status: 500,
     };
   }
