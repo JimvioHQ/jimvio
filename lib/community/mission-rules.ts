@@ -146,7 +146,7 @@ export function matchesMissionListFilter(input: {
   const state = input.participantStatus ?? undefined;
   if (input.filter === "completed") return state === "approved" || state === "completed";
   if (input.filter === "active") return input.status === "published" && state !== "approved" && state !== "completed";
-  if (input.filter === "in_progress") return state === "joined" || state === "submitted" || state === "rejected";
+  if (input.filter === "in_progress") return state === "joined" || state === "submitted";
   return true;
 }
 
