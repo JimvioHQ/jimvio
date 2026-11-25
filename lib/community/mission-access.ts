@@ -146,7 +146,11 @@ export async function listMissions(input: {
       for (const row of rows ?? []) progress.set(row.task_id, row.status);
     }
 
-    for (const task of visible) {
+    const visibleIds = new Set(visible.map((task: any) => task.id));
+    let consumedFromPage = 0;
+    for (const task of page) {
+      consumedFromPage += 1;
+      if (!visibleIds.has(task.id)) continue;
       const participantStatus = progress.get(task.id) ?? "not_started";
       if (
         matchesMissionListFilter({
@@ -156,7 +160,13 @@ export async function listMissions(input: {
         })
       ) {
         selected.push({ task, participantStatus });
-        if (selected.length >= limit) break;
+        if (selected.length >= limit) {
+          // Resume immediately after the last row consumed, not after the
+          // entire fetched page, so no matching rows are skipped.
+          scanOffset = scanOffset - page.length + consumedFromPage;
+          hasMore = scanOffset < totalCount;
+          break;
+        }
       }
     }
 
