@@ -1,7 +1,8 @@
 import "server-only";
 
 /** Resolve public account ticks from authoritative verification records only. */
-type VerificationDb = { from: (table: string) => any };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VerificationDb = { from: any };
 
 export async function loadVerifiedUserIds(db: VerificationDb, userIds: string[]): Promise<Set<string>> {
   const ids = [...new Set(userIds.filter(Boolean))];

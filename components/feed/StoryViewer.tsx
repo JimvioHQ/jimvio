@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 
 export type StoryViewerItem = {
   id: string;
@@ -21,6 +22,7 @@ export type StoryViewerGroup = {
     full_name: string | null;
     avatar_url: string | null;
     username: string | null;
+    is_verified?: boolean;
   };
   stories: StoryViewerItem[];
 };
@@ -224,7 +226,10 @@ export function StoryViewer({
                 />
               ) : null}
             </div>
-            <span className="text-sm font-semibold text-white">{name}</span>
+            <span className="inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-white">
+              <span className="truncate">{name}</span>
+              <BlueVerifiedBadge verified={Boolean(group.author.is_verified)} size="sm" label="Verified account" />
+            </span>
           </div>
         </div>
 

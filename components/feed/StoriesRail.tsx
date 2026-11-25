@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase/realtime-subscribe";
 import { cn, getInitials } from "@/lib/utils";
 import { StoryViewer, type StoryViewerGroup } from "@/components/feed/StoryViewer";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
@@ -303,8 +304,9 @@ export function StoriesRail() {
                     </div>
                     </PresenceAvatarFrame>
                   </div>
-                  <span className="max-w-[64px] truncate text-center text-[11px] font-medium text-[var(--color-text-secondary)]">
-                    {name}
+                  <span className="inline-flex max-w-[64px] items-center justify-center gap-0.5 text-center text-[11px] font-medium text-[var(--color-text-secondary)]">
+                    <span className="max-w-[52px] truncate">{name}</span>
+                    <BlueVerifiedBadge verified={Boolean(group.author.is_verified)} size="xs" label="Verified account" />
                   </span>
                 </button>
               );
