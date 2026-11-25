@@ -211,7 +211,7 @@ export function IdentityWalletClient() {
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <IdentityPill tone={tx.status === "completed" ? "success" : "warning"}>{tx.status}</IdentityPill>
+                    <IdentityPill tone={tx.status === "completed" || tx.status === "paid" ? "success" : "warning"}>{tx.status}</IdentityPill>
                     <span className={cn("text-[13px] font-semibold", "text-[#1C8A44]")}>
                       +{formatCurrency(tx.amount, tx.currency)}
                     </span>
