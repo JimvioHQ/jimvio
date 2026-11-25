@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import type { Json } from "@/types/supabase";
@@ -68,6 +70,7 @@ export type HubMessagePeer = {
   level: number;
   streakDays: number;
   isOnline: boolean;
+  isVerified: boolean;
   isCreator?: boolean;
   topPercentLabel?: string | null;
   sharedCommunities: Array<{ id: string; name: string; slug: string; href: string }>;
@@ -769,7 +772,7 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
   const supabase = await createClient();
   const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
 
-  const [{ data: profile }, { data: pointsRows }, { data: myCommunities }, { data: peerCommunities }] =
+  const [{ data: profile }, { data: pointsRows }, { data: myCommunities }, { data: peerCommunities }, verifiedUserIds] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -790,6 +793,7 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
         .select("community_id, communities(id, name, slug)")
         .eq("user_id", peerId)
         .eq("status", "active"),
+      loadVerifiedUserIds(createServiceRoleClient(), [peerId]),
     ]);
 
   if (!profile) return null;
@@ -819,6 +823,7 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
     level: points.level,
     streakDays: points.streak_days,
     isOnline,
+    isVerified: verifiedUserIds.has(peerId),
     isCreator: points.level >= 5,
     topPercentLabel:
       points.level >= 20

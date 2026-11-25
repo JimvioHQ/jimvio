@@ -64,6 +64,7 @@ export type HubPeerInfo = {
   level: number;
   streakDays: number;
   isOnline: boolean;
+  isVerified?: boolean;
   isCreator?: boolean;
   topPercentLabel?: string | null;
   sharedCommunities: Array<{

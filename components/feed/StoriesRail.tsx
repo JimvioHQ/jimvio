@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { createClient } from "@/lib/supabase/client";
 import {
-  subscribePostgresChanges,
+  subscribePostgresChangesMany,
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
 import { cn, getInitials } from "@/lib/utils";
@@ -42,7 +42,7 @@ function StoryAvatar({
   if (url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={url} alt={name} className="h-full w-full rounded-full object-cover" />
+      <img src={url} alt={name} loading="eager" decoding="async" className="h-full w-full rounded-full object-cover" />
     );
   }
   return (
@@ -61,14 +61,12 @@ export function StoriesRail() {
     null
   );
   const fileRef = useRef<HTMLInputElement>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadStories = useCallback(async () => {
     try {
-      const res = await fetch("/api/stories");
-      if (!res.ok) {
-        setGroups([]);
-        return;
-      }
+      const res = await fetch("/api/stories", { cache: "no-store" });
+      if (!res.ok) return;
       const data = (await res.json()) as {
         groups?: StoryApiGroup[];
         current_user_id?: string;
@@ -76,7 +74,7 @@ export function StoriesRail() {
       setGroups(data.groups ?? []);
       setCurrentUserId(data.current_user_id ?? null);
     } catch {
-      setGroups([]);
+      // Keep the last successful rail visible during transient network errors.
     } finally {
       setLoading(false);
     }
@@ -90,22 +88,40 @@ export function StoriesRail() {
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
-    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
+
+    const scheduleRefresh = (payload?: { eventType?: string; new?: Record<string, unknown>; old?: Record<string, unknown> }) => {
+      // Story-view RPCs update counters on the story row; that should not reload the rail.
+      if (payload?.eventType === "UPDATE") {
+        const changed = Object.keys(payload.new ?? {}).filter(
+          (key) => JSON.stringify(payload.new?.[key]) !== JSON.stringify(payload.old?.[key]),
+        );
+        if (changed.every((key) => ["view_count", "unique_view_count", "reply_count", "updated_at"].includes(key))) return;
+      }
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        refreshTimerRef.current = null;
+        void loadStories();
+      }, 300);
+    };
 
     void (async () => {
-      channel = await subscribePostgresChanges(
+      channel = await subscribePostgresChangesMany(
         supabase,
         "feed-stories",
-        { event: "*", schema: "public", table: "community_stories" },
-        () => {
-          void loadStories();
-        },
+        [
+          { config: { event: "INSERT", schema: "public", table: "community_stories" }, onChange: scheduleRefresh },
+          { config: { event: "UPDATE", schema: "public", table: "community_stories" }, onChange: scheduleRefresh },
+          { config: { event: "DELETE", schema: "public", table: "community_stories" }, onChange: scheduleRefresh },
+        ],
         () => cancelled
       );
     })();
 
     return () => {
       cancelled = true;
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
       unsubscribeRealtime(supabase, channel, "feed-stories");
     };
   }, [loadStories]);
@@ -246,9 +262,14 @@ export function StoriesRail() {
           onChange={(e) => void onPickFile(e.target.files)}
         />
 
-        {loading
-          ? null
-          : otherGroups.map((group) => {
+        {loading ? (
+          Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="flex w-[64px] shrink-0 flex-col items-center gap-1.5" aria-hidden>
+              <div className="h-[60px] w-[60px] animate-pulse rounded-full bg-[var(--color-surface-secondary)]" />
+              <div className="h-2.5 w-12 animate-pulse rounded bg-[var(--color-surface-secondary)]" />
+            </div>
+          ))
+        ) : otherGroups.map((group) => {
               const name = displayName(group);
               const ring = group.has_unseen ? STORY_RING : STORY_RING_SEEN;
               const thumb =

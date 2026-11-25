@@ -142,7 +142,7 @@ export function StoryViewer({
         void recordView(story.id, watchMs, 100);
         goNext();
       }
-    }, 50);
+    }, 100);
     return () => window.clearInterval(tick);
   }, [story, paused, goNext, recordView]);
 
@@ -242,6 +242,7 @@ export function StoryViewer({
               poster={story.thumbnail_url ?? undefined}
               className="max-h-full max-w-full object-contain"
               playsInline
+              preload="auto"
               muted={false}
             />
           ) : (
@@ -250,6 +251,8 @@ export function StoryViewer({
               key={story.id}
               src={story.media_url}
               alt={story.caption ?? "Story"}
+              loading="eager"
+              decoding="async"
               className="max-h-full max-w-full object-contain"
             />
           )}
