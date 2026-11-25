@@ -505,9 +505,12 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
       const location = file.location;
 
       if (complete || failed) {
+        // Reconciliation is a user-facing failure path too. Normalize provider
+        // errors here just as the start and webhook paths do, so raw S3 diagnostics
+        // do not leak into the recording status or user-facing toast.
         const error =
           failed
-            ? info.error || "Egress failed"
+            ? normalizeEgressStorageError(info.error || "Egress failed")
             : !location
               ? "Egress completed without a storage location"
               : null;
