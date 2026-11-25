@@ -1072,6 +1072,7 @@ export function HubMessagesPage() {
               userId={currentUserId}
               isVendorSide={activeThread.market.isVendorSide}
               vendorId={activeThread.market.vendorId}
+              peerVerified={Boolean(activeThread.market.peerVerified)}
               peerName={activeThread.name}
               peerAvatar={activeThread.avatarUrl}
               contextLabel={activeThread.subtitle ?? "Marketplace"}

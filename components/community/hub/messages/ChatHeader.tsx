@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar, HubBadge } from "../hub-ui";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import type { HubPeerInfo, HubThread } from "./types";
 
 function IconBtn({
@@ -91,6 +92,7 @@ export function ChatHeader({
               <p className="truncate text-[13.5px] font-semibold text-[var(--color-text-primary)]">
                 {thread.name}
               </p>
+              <BlueVerifiedBadge verified={Boolean(peer?.isVerified)} size="sm" label="Verified account" />
               {showCreator && <HubBadge variant="orange">Creator</HubBadge>}
               {isSpaceChat && <HubBadge variant="default">Space</HubBadge>}
             </div>

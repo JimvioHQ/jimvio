@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 // import React, { useState } from "react";
 // import Image from "next/image";
@@ -11,6 +11,7 @@
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { asStringArray, cn } from "@/lib/utils";
 // import { ProductActionModule } from "@/components/marketplace/product-action-module";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 // import { FollowButton } from "@/components/marketplace/follow-button";
 // import { ReviewForm } from "@/components/marketplace/review-form";
 // import { ImageGallery } from "@/components/marketplace/image-gallery";
@@ -480,7 +481,6 @@
 //   );
 // }
 
-"use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -796,7 +796,7 @@ function VendorSectionCard({
                 {vendor.business_name ?? "Independent Creator"}
               </Link>
               {vendor.verification_status === "verified" && (
-                <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified supplier" />
+                <BlueVerifiedBadge verified size="sm" label="Verified seller" />
               )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] flex-wrap mt-0.5">

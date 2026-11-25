@@ -23,7 +23,7 @@ export async function GET(
       *,
       media:ugc_submission_media(*),
       campaign:ugc_campaigns!campaign_id (*),
-      influencer:influencers!influencer_id (id, display_name, profile_image, user_id),
+      influencer:influencers!influencer_id (id, display_name, profile_image, user_id, is_verified),
       snapshots:ugc_view_snapshots(*)
     `)
     .eq('id', id)

@@ -59,10 +59,7 @@ export default async function FeedPage({
         member_count: memberCount,
         online_members: 0,
         trending_score: 0,
-        verified: isCommunityVerified({
-          is_featured: Boolean(row.is_featured),
-          member_count: memberCount,
-        }),
+        verified: isCommunityVerified({ owner_verified: row.owner_verified === true }),
         href: `/communities/${row.slug}`,
         join_href: `/communities/${row.slug}/subscribe`,
       };

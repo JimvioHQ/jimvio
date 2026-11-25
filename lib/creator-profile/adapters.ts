@@ -223,6 +223,7 @@ export function mapInfluencerUserToCreatorProfile(influencer: {
   profile_image?: string | null;
   bio?: string | null;
   total_followers?: number | null;
+  is_verified?: boolean | null;
 }, clips: Record<string, unknown>[]) {
   const slug = influencer.user_id;
   const videos = clips.map((clip) => ({
@@ -245,7 +246,7 @@ export function mapInfluencerUserToCreatorProfile(influencer: {
         bio: influencer.bio ?? "Creator on Jimvio.",
         coverImage: null,
         avatarImage: influencer.profile_image ?? null,
-        isVerified: false,
+        isVerified: influencer.is_verified === true,
         level: "bronze" as CreatorLevel,
         country: "Global",
         languages: ["English"],

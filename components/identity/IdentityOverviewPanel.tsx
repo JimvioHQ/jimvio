@@ -6,13 +6,35 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
   const { profile } = payload;
   const brands = payload.resume.filter((r) => r.entryType === "brand");
   const categories = Array.from(new Set([...profile.specialties, ...profile.industries]));
+  const availabilityLabels: Record<string, string> = {
+    open: "Open to work",
+    limited: "Limited availability",
+    booked: "Fully booked",
+    unavailable: "Not available",
+  };
+  const availabilityLabel = availabilityLabels[profile.availability] ?? null;
+  const summaryMeta = [profile.country, availabilityLabel].filter((value): value is string => Boolean(value));
 
   return (
     <div className="space-y-6">
-      {profile.bio ? (
+      {profile.headline || profile.bio || summaryMeta.length > 0 ? (
         <IdentityCard className="p-5">
-          <IdentitySectionHeading eyebrow="About" title="Bio" className="mb-3" />
-          <p className="max-w-2xl text-[13.5px] leading-relaxed text-[#3E3A34]">{profile.bio}</p>
+          <IdentitySectionHeading eyebrow="About" title="Professional Summary" className="mb-3" />
+          {profile.headline ? (
+            <p className="mb-2 max-w-2xl text-[13.5px] font-semibold leading-relaxed text-[#1C1B19]">{profile.headline}</p>
+          ) : null}
+          {profile.bio ? (
+            <p className="max-w-2xl whitespace-pre-line text-[13.5px] leading-relaxed text-[#3E3A34]">{profile.bio}</p>
+          ) : null}
+          {summaryMeta.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {summaryMeta.map((item) => (
+                <span key={item} className="rounded-full border border-black/[0.06] bg-black/[0.02] px-2.5 py-1 text-[11px] text-[#59544B]">
+                  {item}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </IdentityCard>
       ) : null}
 

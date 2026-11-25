@@ -40,6 +40,7 @@ export type CommunityRow = {
   is_member?: boolean;
   is_owner?: boolean;
   settings?: unknown;
+  owner_verified?: boolean | null;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
@@ -79,10 +80,7 @@ export function SharedCommunityCard({
   const featured = variant === "featured";
   const detailHref = `/communities/${c.slug}`;
   const memberCount = resolveCommunityMemberCount(c);
-  const verified = isCommunityVerified({
-    is_featured: c.is_featured,
-    member_count: memberCount,
-  });
+  const verified = isCommunityVerified({ owner_verified: c.owner_verified });
   const joined = Boolean(c.is_member || c.is_owner);
   const joinHref = c.is_free
     ? `/communities/${c.slug}`

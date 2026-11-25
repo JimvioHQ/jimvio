@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { rotateStoryAuthors, storyRotationBucket } from "@/lib/feed/story-rotation";
+import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ type ProfileRow = {
   full_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  is_verified?: boolean;
 };
 
 type StoryRow = {
@@ -90,6 +92,7 @@ export async function GET() {
   }
 
   const rows = (data ?? []) as StoryRow[];
+  const verifiedUserIds = await loadVerifiedUserIds(reader, rows.map((row) => row.author_id));
   // Guest feed is newest-first for fast cutoff; restore chronological within groups later.
   if (!user) {
     rows.reverse();
@@ -114,6 +117,7 @@ export async function GET() {
       full_name: string | null;
       avatar_url: string | null;
       username: string | null;
+      is_verified: boolean;
     };
     has_unseen: boolean;
     stories: Array<{
@@ -167,6 +171,7 @@ export async function GET() {
           full_name: profile?.full_name ?? null,
           avatar_url: profile?.avatar_url ?? null,
           username: profile?.username ?? null,
+          is_verified: verifiedUserIds.has(row.author_id),
         },
         has_unseen: false,
         stories: [],

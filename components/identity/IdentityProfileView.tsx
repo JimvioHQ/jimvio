@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera, Lock, MapPin, Share2 } from "lucide-react";
+import { Camera, Lock, Share2 } from "lucide-react";
 import type { IdentityProfilePayload } from "@/lib/identity/types";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -12,14 +12,9 @@ import {
   resolveIdentitySection,
   type IdentityV2SectionId,
 } from "@/lib/identity/v2-sections";
-import {
-  resolvePrimaryIdentityLabel,
-  shouldShowCreatorProgramBadge,
-} from "@/lib/identity/identity-types";
-import { formatPublicCountry } from "@/lib/identity/public-location";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
-import { IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
+import { IdentityCard } from "@/components/identity/identity-ui";
 import { IdentityTabNav, type IdentityTab } from "@/components/identity/IdentityTabNav";
 import { IdentitySocialLinks } from "@/components/identity/IdentitySocialLinks";
 import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
@@ -27,18 +22,8 @@ import { IdentityProfileActions } from "@/components/identity/IdentityProfileAct
 import { IdentityV2Sections } from "@/components/identity/IdentityV2Sections";
 import { ShortProfessionalBio } from "@/components/identity/ShortProfessionalBio";
 
-const AVAILABILITY_META: Record<
-  string,
-  { label: string; tone: "success" | "warning" | "danger" | "neutral" }
-> = {
-  open: { label: "Open to work", tone: "success" },
-  limited: { label: "Limited availability", tone: "warning" },
-  booked: { label: "Fully booked", tone: "danger" },
-  unavailable: { label: "Not available", tone: "neutral" },
-};
-
 export function IdentityProfileView({ payload }: { payload: IdentityProfilePayload }) {
-  const { profile, isOwner, levelProgress } = payload;
+  const { profile, isOwner } = payload;
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -46,13 +31,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
   const scrolledRef = useRef<string | null>(null);
 
   const displayName = profile.fullName || profile.username || "Jimvio member";
-  const availability = AVAILABILITY_META[profile.availability] ?? AVAILABILITY_META.open;
-  const location = formatPublicCountry(profile.country);
-  const identityLabel = resolvePrimaryIdentityLabel(profile.industries, profile.specialties);
-  const showCreatorBadge = shouldShowCreatorProgramBadge(identityLabel, {
-    isInfluencer: payload.isInfluencer,
-    xp: levelProgress.xp,
-  });
   const jimvioFollowers = payload.jimvioFollowers ?? 0;
   const jimvioFollowing = payload.jimvioFollowing ?? 0;
 
@@ -186,23 +164,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                 {profile.username ? (
                   <p className="mt-0.5 text-[13.5px] text-[#6B7280]">@{profile.username}</p>
                 ) : null}
-
-                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                  {location ? (
-                    <IdentityPill tone="neutral" icon={<MapPin className="h-3 w-3" />}>
-                      {location}
-                    </IdentityPill>
-                  ) : null}
-                  {identityLabel ? (
-                    <IdentityPill tone="accent">{identityLabel}</IdentityPill>
-                  ) : null}
-                  {showCreatorBadge ? (
-                    <IdentityPill tone="accent">
-                      {levelProgress.levelLabel} Creator
-                    </IdentityPill>
-                  ) : null}
-                  <IdentityPill tone={availability.tone}>{availability.label}</IdentityPill>
-                </div>
 
                 <ShortProfessionalBio
                   lines={profile.shortBioLines}

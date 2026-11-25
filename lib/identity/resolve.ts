@@ -404,7 +404,7 @@ async function buildProfilePayload(
     city: profile.city,
     country: profile.country,
     language: profile.language,
-    isVerified: Boolean(profile.is_verified),
+    isVerified: false,
     joinedAt: profile.created_at ?? null,
     headline: identity.headline,
     coverImage: identity.cover_image,
@@ -507,6 +507,7 @@ async function buildProfilePayload(
     reviews,
     moduleSnapshots,
     { data: influencerRow },
+    { data: vendorVerificationRow },
   ] = await Promise.all([
     socialsQuery,
     portfolioQuery,
@@ -520,8 +521,17 @@ async function buildProfilePayload(
     computeCreatorStats(profile.id),
     loadPublicReviews(db, profile.id),
     getModuleSnapshots(profile.id),
-    db.from("influencers").select("id").eq("user_id", profile.id).maybeSingle(),
+    db.from("influencers").select("id, is_verified").eq("user_id", profile.id).maybeSingle(),
+    db.from("vendors").select("verification_status").eq("user_id", profile.id).maybeSingle(),
   ]);
+
+  const accountVerified = Boolean(
+    identity.identity_verified ||
+    influencerRow?.is_verified === true ||
+    String(vendorVerificationRow?.verification_status ?? "").toLowerCase() === "verified"
+  );
+  profileCore.isVerified = accountVerified;
+  profileCore.identityVerified = accountVerified;
 
   const modulePresence = modulePresenceFromSnapshots(moduleSnapshots);
   const isInfluencer = Boolean(influencerRow?.id);

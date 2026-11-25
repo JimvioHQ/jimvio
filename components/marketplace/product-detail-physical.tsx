@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn, normalizeImages, getEffectiveCompareAtPrice, getProductDiscountPercent, hasRealProductDiscount } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { SellToStoreButton } from "@/components/commerce-os/sell-to-store-button";
 import { ProductChatTrigger } from "@/components/marketplace/product-chat-trigger";
 import { FollowButton } from "@/components/marketplace/follow-button";
@@ -882,7 +883,7 @@ function VendorSectionCard({
               {vendor.business_name ?? "Official Store"}
             </Link>
             {verified ? (
-              <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-label="Verified seller: business details reviewed by Jimvio" />
+              <BlueVerifiedBadge verified size="sm" label="Verified seller" />
             ) : null}
           </div>
           <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">

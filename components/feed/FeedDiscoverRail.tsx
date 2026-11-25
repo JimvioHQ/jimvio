@@ -5,7 +5,8 @@ import { useFeedHubDiscover } from "@/components/feed/use-feed-hub-discover";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { fetchPinsShared } from "@/lib/community/pins-client";
 import Link from "next/link";
-import { BadgeCheck, Flame, Pin } from "lucide-react";
+import { Flame, Pin } from "lucide-react";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 import { CommunityAvatarImage, CommunityCoverImage } from "@/components/community/community-media";
@@ -23,6 +24,7 @@ export type TrendingCommunity = {
   online_members: number;
   trending_score: number;
   verified: boolean;
+  owner_verified?: boolean;
   href: string;
   join_href: string;
   is_free?: boolean;
@@ -148,14 +150,7 @@ function CommunityMiniCard({
             <p className="line-clamp-2 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug tracking-tight text-[var(--color-text-primary)]">
               {name}
             </p>
-            {verified ? (
-              <BadgeCheck
-                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#3b82f6]"
-                fill="currentColor"
-                strokeWidth={0}
-                aria-label="Verified community"
-              />
-            ) : null}
+            <BlueVerifiedBadge verified={Boolean(verified)} size="sm" label="Verified community" />
           </div>
           <p className="mt-1 truncate text-[11px] leading-snug text-[var(--color-text-muted)]">
             {description}

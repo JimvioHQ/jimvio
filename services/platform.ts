@@ -1,6 +1,7 @@
 import { unstable_cache } from "next/cache";
 import { getAdminDB } from "./base";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 
 async function fetchPlatformStats() {
   const admin = getAdminDB();
@@ -161,7 +162,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
   const { data, error } = await admin
     .from("communities")
     .select(
-      "id, name, slug, tagline, member_count, post_count, avatar_url, cover_image, category, is_private, is_active, is_featured, is_free, monthly_price, currency, visibility, visibility_mode, archived_at, settings",
+      "id, owner_id, name, slug, tagline, member_count, post_count, avatar_url, cover_image, category, is_private, is_active, is_featured, is_free, monthly_price, currency, visibility, visibility_mode, archived_at, settings",
     )
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
@@ -180,8 +181,11 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
     "@/lib/community/member-count"
   );
   const discoverable = (data ?? []).filter(communityIsPubliclyDiscoverable);
-  return selectDiscoveryCommunities(discoverable, limit).map((row) => ({
+  const selected = selectDiscoveryCommunities(discoverable, limit);
+  const verifiedOwners = await loadVerifiedUserIds(admin, selected.map((row) => row.owner_id ?? ""));
+  return selected.map((row) => ({
     ...row,
+    owner_verified: Boolean(row.owner_id && verifiedOwners.has(row.owner_id)),
     member_count: resolveCommunityMemberCount(row),
   }));
 }
@@ -190,7 +194,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v9-${limit}`],
+    [`homepage-communities-v10-${limit}`],
     { revalidate: 60 },
   )();
 }
