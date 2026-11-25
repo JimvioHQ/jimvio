@@ -115,12 +115,16 @@ export async function listDiscoverableEvents(input: {
       .eq("created_by", input.userId)
       .order("starts_at", { ascending: false });
   } else if (filter === "registered") {
-    const { data: rsvps } = await admin()
+    const { data: rsvps, error: rsvpError } = await admin()
       .from("community_event_rsvps")
       .select("event_id")
       .eq("user_id", input.userId)
       .eq("status", "going")
       .limit(200);
+    if (rsvpError) {
+      logCommunityFailure("events.registered-rsvps", rsvpError);
+      throw new Error(publicErrorMessage(rsvpError, "Could not load registered events"));
+    }
     const ids = (rsvps ?? []).map((row: { event_id: string }) => row.event_id);
     if (!ids.length) return { events: [], nextCursor: null };
     query = admin()
@@ -154,11 +158,15 @@ export async function listDiscoverableEvents(input: {
   const ids = filtered.map((event: any) => event.id);
   const rsvpMap = new Map<string, string>();
   if (ids.length) {
-    const { data: rsvps } = await admin()
+    const { data: rsvps, error: rsvpError } = await admin()
       .from("community_event_rsvps")
       .select("event_id, status")
       .eq("user_id", input.userId)
       .in("event_id", ids);
+    if (rsvpError) {
+      logCommunityFailure("events.rsvp-status", rsvpError);
+      throw new Error(publicErrorMessage(rsvpError, "Could not load event registrations"));
+    }
     for (const row of rsvps ?? []) rsvpMap.set(row.event_id, row.status);
   }
 
