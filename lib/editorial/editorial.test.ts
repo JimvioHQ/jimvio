@@ -619,7 +619,7 @@ describe("editorial lifecycle decisions", () => {
     assert.match(storyImage, /role="img"/);
     assert.match(storyImage, /isAllowedImageHost/);
     assert.match(storyImage, /unoptimized=\{!shouldUseImageOptimizer\(src\)\}/);
-    assert.match(storyImage, /if \(src\.startsWith\("\/"\)\) return true/);
+    assert.match(storyImage, /if \(src\.startsWith\("\/"\) && !src\.startsWith\("\/\/"\)\) return true/);
     const homeView = read("components/editorial/home-view.tsx");
     // The current homepage composes six deduplicated latest stories after the lead cards.
     assert.match(homeView, /const latest = uniqueArticles\(/);
