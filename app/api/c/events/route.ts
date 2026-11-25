@@ -66,6 +66,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   if (manage && communityId) {
     try {
       const events = await listCommunityEventsForOwner(user.id, communityId);
