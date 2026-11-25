@@ -21,6 +21,7 @@ type HubCourse = {
   currency?: string | null;
   thumbnail_url?: string | null;
   instructor_name?: string | null;
+  published_at?: string | null;
 };
 
 export default function HubCoursesPage() {
@@ -61,6 +62,11 @@ export default function HubCoursesPage() {
           setCourses(json.courses ?? []);
           setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
         }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load courses");
+          setCourses([]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -88,7 +94,11 @@ export default function HubCoursesPage() {
     rows.sort((a, b) => {
       if (sort === "title") return a.title.localeCompare(b.title);
       if (sort === "price") return (a.price_cents ?? 0) - (b.price_cents ?? 0);
-      if (sort === "recent") return 0;
+      if (sort === "recent") {
+        const aPublished = a.published_at ? Date.parse(a.published_at) : 0;
+        const bPublished = b.published_at ? Date.parse(b.published_at) : 0;
+        return bPublished - aPublished || a.title.localeCompare(b.title);
+      }
       return b.progress - a.progress;
     });
     return rows;
