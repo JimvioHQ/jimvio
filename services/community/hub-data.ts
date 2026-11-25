@@ -154,6 +154,7 @@ export type HubCourseItem = {
   language?: string | null;
   total_duration?: number | null;
   thumbnail_url?: string | null;
+  published_at?: string | null;
 };
 
 export type HubLiveRoom = {
@@ -1189,7 +1190,7 @@ export async function getHubCourses(
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(supabase, userId);
   const select =
-    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
+    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1243,6 +1244,7 @@ export async function getHubCourses(
     category?: string | null;
     tags?: string[] | null;
     total_lessons: number | null;
+    published_at?: string | null;
     room_id: string;
     creator_id: string;
     communities: { name: string; slug: string } | null;
@@ -1306,6 +1308,7 @@ export async function getHubCourses(
       language?: string | null;
       total_duration?: number | null;
       thumbnail_url?: string | null;
+      published_at?: string | null;
     };
 
     return {
@@ -1328,6 +1331,7 @@ export async function getHubCourses(
       language: extra.language ?? "en",
       total_duration: extra.total_duration ?? null,
       thumbnail_url: extra.thumbnail_url ?? null,
+      published_at: extra.published_at ?? null,
     };
   });
 }
