@@ -339,7 +339,7 @@ export async function startSessionEgress(input: {
       })
       .eq("id", recording.id);
     return {
-      error: e instanceof Error ? e.message : "Egress start failed",
+      error: normalizeEgressStorageError(e instanceof Error ? e.message : "Egress start failed"),
       status: 500,
     };
   }
