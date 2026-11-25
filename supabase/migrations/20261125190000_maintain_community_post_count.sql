@@ -65,11 +65,20 @@ on public.community_posts
 for each row
 execute function public.sync_community_post_count();
 
--- Reconcile existing cached counters from the source rows.
-update public.communities c
-set post_count = coalesce((
-  select count(*)::integer
-  from public.community_posts p
-  where p.community_id = c.id
-    and p.is_published is true
-), 0);
+-- Reconcile existing cached counters from the source rows without
+-- changing community updated_at ordering as a side effect of this backfill.
+do $block$
+begin
+  alter table public.communities disable trigger update_communities_updated_at;
+
+  update public.communities c
+  set post_count = coalesce((
+    select count(*)::integer
+    from public.community_posts p
+    where p.community_id = c.id
+      and p.is_published is true
+  ), 0);
+
+  alter table public.communities enable trigger update_communities_updated_at;
+end;
+$block$;
