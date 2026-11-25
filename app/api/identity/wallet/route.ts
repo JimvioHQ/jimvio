@@ -76,22 +76,6 @@ export async function GET() {
     other: number;
   };
 
-  // UGC earnings are recorded via `ugc_payouts`, not `transactions` — add them separately.
-  let ugcEarnings = 0;
-  try {
-    const { data: influencer } = await db.from("influencers").select("id").eq("user_id", user.id).maybeSingle();
-    if (influencer?.id) {
-      const { data: payouts } = await db
-        .from("ugc_payouts")
-        .select("amount")
-        .eq("influencer_id", influencer.id)
-        .eq("status", "paid");
-      ugcEarnings = (payouts ?? []).reduce((sum: number, p: { amount: number | string }) => sum + Number(p.amount ?? 0), 0);
-    }
-  } catch (err) {
-    console.error("GET /api/identity/wallet: ugc_payouts lookup failed", err);
-  }
-
   return NextResponse.json({
     balance: Number(wallet.available_balance ?? 0),
     pending: Number(wallet.pending_balance ?? 0),
@@ -105,7 +89,7 @@ export async function GET() {
       marketplace: Number(baseAggregation.vendor ?? 0),
       affiliate: Number(baseAggregation.affiliate ?? 0),
       community: Number(baseAggregation.creator ?? 0),
-      ugc: Math.round(ugcEarnings * 100) / 100,
+      ugc: Number(baseAggregation.ugc ?? 0),
       other: Number(baseAggregation.other ?? 0),
     },
     transactions: transactions.map((tx) => ({
