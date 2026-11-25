@@ -22,7 +22,7 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -87,7 +87,7 @@ jobs:
       APPLY_MIGRATIONS: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v5
