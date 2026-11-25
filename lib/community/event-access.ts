@@ -125,7 +125,7 @@ export async function listDiscoverableEvents(input: {
     if (!ids.length) return { events: [], nextCursor: null };
     query = admin()
       .from("community_events")
-      .select("*, communities(name, slug, visibility)", { count: "exact" })
+      .select(eventSelect, { count: "exact" })
       .in("id", ids)
       .order("starts_at", { ascending: true });
   } else {
