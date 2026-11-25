@@ -591,6 +591,6 @@ describe("external ingestion", () => {
       assert.equal(feed.imageRights, "none");
       assert.equal(feed.enabled, false);
     }
-    assert.equal(LICENSED_PROVIDERS.length >= 4, true);
+    const arxivFeed = VERIFIED_FEEDS.find((feed) => feed.name === "arXiv Computers and Society");\n    assert.equal(arxivFeed?.locator, "https://rss.arxiv.org/rss/cs.CY");\n    assert.equal(LICENSED_PROVIDERS.length >= 4, true);
   });
 });
