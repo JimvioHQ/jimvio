@@ -6,7 +6,7 @@ All schedules use UTC. The root `vercel.json` remains the single schedule source
 
 Vercel Hobby Cron Jobs run once per day per configured job, with per-hour timing precision (up to ±59 minutes). Pro and Enterprise support once-per-minute schedules. The project limit is 100 Cron Jobs per project on every plan, so Jimvio's 16 entries fit the count limit.
 
-The connected Jimvio Vercel team currently reports Pro. This configuration moves 13 jobs to once-daily schedules, but three time-sensitive jobs remain more frequent for safety. Therefore, **the current configuration is not yet safe to deploy on Hobby** until those operations are moved to an external scheduler/event-driven mechanism or their frequency reduction is explicitly accepted.
+The connected Jimvio Vercel team currently reports **Hobby**. All 16 configured Cron Jobs therefore run once daily; Vercel Hobby does not support the shorter intervals required by payment reconciliation, failed-webhook recovery, and stock-health checks. The current schedule is within the plan limit, but **operationally incomplete for time-sensitive payment and inventory recovery**. Do not describe those checks as hourly or every 10/30 minutes until the project is upgraded to Pro or an external scheduler is configured and verified.
 
 ## Complete Cron inventory and final schedules
 
@@ -26,20 +26,20 @@ The connected Jimvio Vercel team currently reports Pro. This configuration moves
 | `/api/cron/cj-strategy-import` | `10 * * * *` | `0 11 * * *` | Daily at 11:00 instead of hourly; product discovery throughput is reduced. |
 | `/api/cron/ugc-release-payouts` | `17 * * * *` | `0 12 * * *` | Daily at 12:00. Wallet release remains enabled, but eligible creator earnings may wait up to an additional 24 hours after the 24-hour hold. |
 | `/api/cron/retry-failed-webhooks` | `0 2 * * *` | `21 * * * *` | Remains hourly. Its current code scans failed events from the preceding 24 hours and handles at most 20 per run; daily execution with Hobby's ±59-minute timing could miss events outside that lookback or leave a backlog. |
-| `/api/cron/reconcile-payments` | `*/10 * * * *` | `5,15,25,35,45,55 * * * *` | Remains every 10 minutes. Daily-only recovery could leave provider-confirmed orders and wallet deposits pending for almost 24 hours when a webhook is missed. |
-| `/api/cron/cj-stock-health` | `*/30 * * * *` | `10,40 * * * *` | Remains every 30 minutes. It detects unavailable stock and unpublishes/requeues products; daily checks could leave stale inventory purchasable and increase oversell risk. |
+| `/api/cron/reconcile-payments` | `*/10 * * * *` | `15 12 * * *` | Daily on Hobby. A missed webhook can leave provider-confirmed orders and wallet deposits pending until the next daily reconciliation. |
+| `/api/cron/cj-stock-health` | `*/30 * * * *` | `10 11 * * *` | Daily on Hobby. It detects unavailable stock and unpublishes/requeues products; stale inventory can remain purchasable for up to a day. |
 
-## Safety exceptions blocking a Hobby downgrade
+## Safety exceptions requiring Pro or a verified external scheduler
 
 1. **Payment reconciliation — every 10 minutes.** The route verifies provider-side payment status when webhooks do not arrive, completes confirmed orders and wallet deposits, and expires stale attempts. Reducing it to once daily could leave paid orders and wallet deposits pending for almost 24 hours. The normal webhook path remains intact, but this fallback is time-sensitive.
 2. **CJ stock health — every 30 minutes.** The route monitors stock, unpublishes unavailable products and requeues ready products. Daily checks create an avoidable stale-stock window and potential overselling.
 3. **Failed-webhook recovery — hourly.** Its current implementation has a 24-hour lookback and a 20-event cap. The ±59-minute Hobby timing window can exceed that lookback, and a daily batch can leave a vendor-credit recovery backlog.
 
-These three high-frequency jobs need an external scheduler or event-driven replacement before the project can safely move to Hobby. Their API endpoints remain available and protected; they are not removed or disabled here.
+These three operations cannot meet their documented recovery cadence on the current Hobby plan. Upgrade the Vercel team to Pro or configure an external scheduler that calls the existing protected endpoints with the existing CRON_SECRET. The external scheduler must be tested end-to-end before it is considered active. Their API endpoints remain available and protected; they are not removed or disabled here.
 
 ## Staggering and duplicate-work review
 
-The 13 daily jobs use distinct UTC hour slots. The recurring payment and stock jobs use separate minute phases (5/15/25/35/45/55 and 10/40); hourly webhook recovery uses minute 21. No configured entry shares the same exact cron minute. Hobby execution itself is only hour-precise, so execution-time overlap is still possible around hour boundaries.
+All 16 configured jobs use distinct UTC daily hour slots, with no duplicate scheduled hour. Hobby execution itself is only hour-precise, so execution-time overlap is still possible around hour boundaries.
 
 The UGC view-sync route also calls the pending-payout release helper. The dedicated daily payout route remains in place; both use the same compare-and-swap release path, so one payout cannot be released twice. CJ catalog sync and strategy import use the existing heavy-worker lock. Marketplace maintenance defers while a heavy sync/enrichment worker is active.
 
