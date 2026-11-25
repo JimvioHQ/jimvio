@@ -1,5 +1,6 @@
 
 import { SupabaseClient } from "@supabase/supabase-js";
+import { resolveAffiliateRefundKey } from "@/lib/payments/refund-idempotency";
 
 
 export type OrderStatusValue =
@@ -59,21 +60,6 @@ const VALID_ORDER_STATUSES = new Set<OrderStatusValue>([
     "checkout_direct",
 ]);
 
-function resolveAffiliateRefundKey(orderId: string, options: BaseOptions): string {
-    const metadata = options.metadata ?? {};
-    const candidate =
-        options.providerTransactionId ??
-        metadata.refund_id ??
-        metadata.refundId ??
-        metadata.event_id ??
-        metadata.webhook_id ??
-        metadata.webhookId ??
-        metadata.idempotency_key;
-    const stable = candidate == null ? "" : String(candidate).trim();
-    return stable
-        ? `order:${orderId}:refund:${stable}`
-        : `order:${orderId}:refund:${options.notes ?? "status-change"}`;
-}
 const VALID_PAYMENT_STATUSES = new Set<PaymentStatusValue>([
     "pending",
     "processing",
