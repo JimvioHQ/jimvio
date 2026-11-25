@@ -1230,6 +1230,15 @@ export async function getHubCourses(
       .limit(40)
   );
   const [memberRes, publicRes] = await Promise.all([memberPromise, publicPromise]);
+  if (memberRes.error) {
+    logCommunityFailure("courses.member-list", memberRes.error);
+    throw new Error(publicErrorMessage(memberRes.error, "Could not load courses"));
+  }
+  if (publicRes.error) {
+    logCommunityFailure("courses.public-list", publicRes.error);
+    throw new Error(publicErrorMessage(publicRes.error, "Could not load courses"));
+  }
+
   const merged = new Map<string, Record<string, unknown>>();
   for (const row of [...(memberRes.data ?? []), ...(publicRes.data ?? [])]) {
     merged.set(String(row.id), row);
