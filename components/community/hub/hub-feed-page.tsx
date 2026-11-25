@@ -88,6 +88,7 @@ export function HubFeedPage() {
   const [activeTab, setActiveTab] = useState<(typeof FEED_TABS)[number]["label"]>("For You");
   const [loading, setLoading] = useState(true);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const [hubError, setHubError] = useState<string | null>(null);
   const [data, setData] = useState<HubDashboard | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -101,17 +102,25 @@ export function HubFeedPage() {
     let cancelled = false;
     async function loadHub() {
       setLoading(true);
+      if (!cancelled) setHubError(null);
       try {
         const res = await fetch("/api/c/hub");
         if (res.status === 401) {
           if (!cancelled) setNeedsAuth(true);
           return;
         }
-        if (!res.ok) return;
-        const json = (await res.json()) as HubDashboard;
+        const json = (await res.json().catch(() => ({}))) as HubDashboard & { error?: string };
+        if (!res.ok) {
+          throw new Error(json.error || "Could not load Community dashboard");
+        }
         if (!cancelled) {
           setNeedsAuth(false);
           setData(json);
+        }
+      } catch (error) {
+        console.error("[CommunityHub] dashboard load failed:", error);
+        if (!cancelled) {
+          setHubError("Community dashboard is temporarily unavailable. Please refresh to try again.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -144,6 +153,14 @@ export function HubFeedPage() {
               nextPath="/communities"
               description="Sign in to see your personalized stats, post to the feed, and join community conversations."
             />
+          )}
+          {hubError && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-200"
+            >
+              {hubError}
+            </div>
           )}
           {/* Stats row */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
