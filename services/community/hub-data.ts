@@ -1266,25 +1266,37 @@ export async function getHubCourses(
     const lessonQ = opts.lessonQ.trim();
     const ids = filtered.map((c) => c.id);
     if (ids.length === 0) return [];
-    const { data: lessons } = await supabase
+    const { data: lessons, error: lessonsError } = await supabase
       .from("course_lessons")
       .select("course_id, title")
       .in("course_id", ids)
       .ilike("title", `%${lessonQ}%`)
       .limit(100);
+    if (lessonsError) {
+      logCommunityFailure("courses.lesson-search", lessonsError);
+      throw new Error(publicErrorMessage(lessonsError, "Could not search course lessons"));
+    }
     const hit = new Set((lessons ?? []).map((l) => l.course_id));
     filtered = filtered.filter((c) => hit.has(c.id));
   }
 
   const courseIds = filtered.map((c) => c.id);
-  const { data: progressRows } =
+  const progressResult =
     courseIds.length > 0
       ? await supabase
           .from("lesson_progress")
           .select("course_id, is_completed")
           .eq("user_id", userId)
           .in("course_id", courseIds)
-      : { data: [] as { course_id: string; is_completed: boolean | null }[] };
+      : {
+          data: [] as { course_id: string; is_completed: boolean | null }[],
+          error: null,
+        };
+  if (progressResult.error) {
+    logCommunityFailure("courses.progress", progressResult.error);
+    throw new Error(publicErrorMessage(progressResult.error, "Could not load course progress"));
+  }
+  const progressRows = progressResult.data ?? [];
 
   const progressByCourse = new Map<string, { completed: number; total: number }>();
   for (const row of progressRows ?? []) {
