@@ -71,7 +71,7 @@ export function buildEgressFileOutput(sessionId: string): EgressFileOutputResult
   const bucket = process.env.LIVEKIT_EGRESS_S3_BUCKET?.trim();
   const accessKey = process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY?.trim();
   const secret = process.env.LIVEKIT_EGRESS_S3_SECRET?.trim();
-  const region = process.env.LIVEKIT_EGRESS_S3_REGION?.trim() || "auto";
+  const region = process.env.LIVEKIT_EGRESS_S3_REGION?.trim() || "us-east-005";
   const endpoint = process.env.LIVEKIT_EGRESS_S3_ENDPOINT?.trim();
 
   if (!bucket || !accessKey || !secret) {
