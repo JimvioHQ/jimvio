@@ -31,6 +31,7 @@ import {
 } from "@/lib/live/livekit-config";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { liveStudioLog } from "@/lib/live/observability";
+import { normalizeEgressStorageError } from "@/lib/live/egress-errors";
 import { extractEgressFileResult } from "@/lib/live/egress-file-result";
 import { getCanonicalAppOrigin } from "@/lib/app-origin";
 
@@ -201,7 +202,7 @@ async function waitForEgressRunning(
       if (failed) {
         return {
           status: "failed",
-          error: info.error || "Recording couldn't be saved — egress aborted before media started",
+          error: normalizeEgressStorageError(info.error || "Recording could not be saved — egress aborted before media started"),
         };
       }
     } catch {
@@ -333,7 +334,7 @@ export async function startSessionEgress(input: {
       .from("live_recordings")
       .update({
         status: "failed",
-        error: e instanceof Error ? e.message : "Egress start failed",
+        error: normalizeEgressStorageError(e instanceof Error ? e.message : "Egress start failed"),
         updated_at: new Date().toISOString(),
       })
       .eq("id", recording.id);
