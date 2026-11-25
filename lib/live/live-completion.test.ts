@@ -290,8 +290,8 @@ describe("Jimvio Live completion — recording egress output", () => {
   it("uses the historical Backblaze bucket region as the Egress default", () => {
     const egress = read("lib/live/egress.ts");
     const playback = read("lib/live/recording-storage.ts");
-    assert.match(egress, /LIVEKIT_EGRESS_S3_REGION\\?\\.trim\\(\\) \\|\\| "us-east-005"/);
-    assert.match(playback, /LIVEKIT_EGRESS_S3_REGION\\?\\.trim\\(\\) \\|\\| "us-east-005"/);
+    assert.match(egress, /LIVEKIT_EGRESS_S3_REGION\?\.trim\(\) \|\| "us-east-005"/);
+    assert.match(playback, /LIVEKIT_EGRESS_S3_REGION\?\.trim\(\) \|\| "us-east-005"/);
   });
 
   it("rejects malformed configured S3 endpoints before Egress is started", () => {
