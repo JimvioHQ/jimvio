@@ -4,16 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
-import { ensureWallet } from "@/lib/wallet-os/ensure";
 import { logWalletActivity } from "@/lib/wallet-os/activity";
-import type { createServiceRoleClient } from "@/lib/supabase/service-role";
-
-type ServiceClient = ReturnType<typeof createServiceRoleClient>;
-
-function depositCreditRef(depositId: string) {
-  return `WDEP-${depositId}`;
-}
-
 export async function completeWalletDeposit(
   db: SupabaseClient,
   opts: {
@@ -24,143 +15,49 @@ export async function completeWalletDeposit(
     verifiedAmount?: number | null;
     verifiedCurrency?: string | null;
   },
-): Promise<{ credited: boolean; amount: number }> {
-  const { data: deposit } = await db
-    .from("wallet_deposits")
-    .select("id, user_id, amount, currency, status, reference")
-    .eq("id", opts.depositId)
-    .maybeSingle();
+): Promise<{ credited: boolean; amount: number; reason?: string }> {
+  const { data, error } = await db.rpc("complete_wallet_deposit_atomic", {
+    p_deposit_id: opts.depositId,
+    p_provider_reference: opts.providerReference ?? null,
+    p_provider: opts.provider ?? null,
+    p_verified_amount: opts.verifiedAmount ?? null,
+    p_verified_currency: opts.verifiedCurrency ?? null,
+  });
 
-  if (!deposit) return { credited: false, amount: 0 };
-  if (deposit.status === "completed") return { credited: false, amount: Number(deposit.amount ?? 0) };
-  if (deposit.status === "failed" || deposit.status === "cancelled") {
-    return { credited: false, amount: 0 };
+  if (error) {
+    console.error("[completeWalletDeposit] atomic completion failed", {
+      depositId: opts.depositId,
+      code: error.code,
+      message: error.message,
+    });
+    return { credited: false, amount: 0, reason: "rpc_error" };
   }
 
-  const amount = Math.round(Number(deposit.amount ?? 0) * 100) / 100;
-  if (!(amount > 0)) return { credited: false, amount: 0 };
+  const result = data as { credited?: boolean; amount?: number | string; user_id?: string; reason?: string } | null;
+  const credited = result?.credited === true;
+  const amount = Number(result?.amount ?? 0);
+  const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
 
-  if (
-    opts.verifiedAmount != null &&
-    Number.isFinite(Number(opts.verifiedAmount))
-  ) {
-    const expectedCurrency = (deposit.currency || PLATFORM_CURRENCY).toUpperCase();
-    const receivedCurrency = (opts.verifiedCurrency || PLATFORM_CURRENCY).toUpperCase();
-    const received = Math.round(Number(opts.verifiedAmount) * 100) / 100;
-    if (
-      receivedCurrency !== expectedCurrency ||
-      Math.abs(received - amount) > 0.05
-    ) {
-      console.error("[completeWalletDeposit] amount mismatch", {
-        depositId: deposit.id,
-        received,
-        receivedCurrency,
-        expected: amount,
-        expectedCurrency,
-      });
-      return { credited: false, amount: 0 };
-    }
-  }
-
-  const reference = depositCreditRef(deposit.id);
-  const { data: existingTx } = await db
-    .from("transactions")
-    .select("id")
-    .eq("reference", reference)
-    .maybeSingle();
-  if (existingTx) {
-    await db
-      .from("wallet_deposits")
-      .update({
-        status: "completed",
-        completed_at: new Date().toISOString(),
-        reference: opts.providerReference ?? deposit.reference,
-      })
-      .eq("id", deposit.id)
-      .neq("status", "completed");
-    return { credited: false, amount };
-  }
-
-  const wallet = await ensureWallet(deposit.user_id, db as unknown as ServiceClient);
-  let credited = false;
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const fresh = await ensureWallet(deposit.user_id, db as unknown as ServiceClient);
-    const avail = Number(fresh.available_balance ?? 0);
-    const earned = Number(fresh.total_earned ?? 0);
-    const { data: updated } = await db
-      .from("wallets")
-      .update({
-        available_balance: avail + amount,
-        total_earned: earned + amount,
+  if (credited && result?.user_id) {
+    try {
+      await logWalletActivity({
+        userId: result.user_id,
+        action: "deposit_completed",
+        surface: "deposits",
+        amount: safeAmount,
         currency: PLATFORM_CURRENCY,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", deposit.user_id)
-      .eq("available_balance", avail)
-      .select("user_id")
-      .maybeSingle();
-    if (updated) {
-      credited = true;
-      break;
+        metadata: { depositId: opts.depositId, provider: opts.provider },
+        db,
+      });
+    } catch (activityError) {
+      console.error("[completeWalletDeposit] activity log failed after committed credit", {
+        depositId: opts.depositId,
+        error: activityError instanceof Error ? activityError.message : "unknown",
+      });
     }
   }
 
-  if (!credited) {
-    console.error("[completeWalletDeposit] CAS failed", deposit.id);
-    return { credited: false, amount: 0 };
-  }
-
-  const { error: txError } = await db.from("transactions").insert({
-    user_id: deposit.user_id,
-    type: "wallet_deposit",
-    amount,
-    currency: PLATFORM_CURRENCY,
-    status: "completed",
-    reference,
-    description: "Wallet deposit",
-    provider: opts.provider ?? null,
-    provider_transaction_id: opts.providerReference ?? null,
-    metadata: { deposit_id: deposit.id },
-  });
-
-  if (txError) {
-    if (String(txError.code) !== "23505") {
-      // Roll back wallet credit
-      const fresh = await ensureWallet(deposit.user_id, db as unknown as ServiceClient);
-      await db
-        .from("wallets")
-        .update({
-          available_balance: Math.max(0, Number(fresh.available_balance ?? 0) - amount),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", deposit.user_id);
-      console.error("[completeWalletDeposit] txn insert failed", txError);
-      return { credited: false, amount: 0 };
-    }
-  }
-
-  await db
-    .from("wallet_deposits")
-    .update({
-      status: "completed",
-      completed_at: new Date().toISOString(),
-      reference: opts.providerReference ?? deposit.reference,
-      currency: PLATFORM_CURRENCY,
-    })
-    .eq("id", deposit.id);
-
-  await logWalletActivity({
-    userId: deposit.user_id,
-    action: "deposit_completed",
-    surface: "deposits",
-    amount,
-    currency: PLATFORM_CURRENCY,
-    metadata: { depositId: deposit.id, provider: opts.provider },
-    db,
-  });
-
-  void wallet;
-  return { credited: true, amount };
+  return { credited, amount: safeAmount, reason: result?.reason };
 }
 
 export async function completeWalletDepositByReference(
@@ -171,7 +68,7 @@ export async function completeWalletDepositByReference(
     verifiedAmount?: number | null;
     verifiedCurrency?: string | null;
   },
-): Promise<{ handled: boolean; credited: boolean; amount: number }> {
+): Promise<{ handled: boolean; credited: boolean; amount: number; reason?: string }> {
   const ref = opts.providerReference.trim();
   if (!ref) return { handled: false, credited: false, amount: 0 };
 
@@ -189,7 +86,7 @@ export async function completeWalletDepositByReference(
       verifiedAmount: opts.verifiedAmount,
       verifiedCurrency: opts.verifiedCurrency,
     });
-    return { handled: true, ...result };
+    return { handled: result.credited || result.amount > 0, ...result };
   }
 
   const { data: tx } = await db
@@ -211,5 +108,5 @@ export async function completeWalletDepositByReference(
     verifiedAmount: opts.verifiedAmount,
     verifiedCurrency: opts.verifiedCurrency,
   });
-  return { handled: true, ...result };
+  return { handled: result.credited || result.amount > 0, ...result };
 }

@@ -33,159 +33,88 @@ export async function createPendingCommission(input: {
   attributedAt?: string | null;
 }): Promise<{ created: boolean; commissionId?: string }> {
   const client = db();
-
-  const { data: existing } = await client
-    .from("affiliate_commissions")
-    .select("id")
-    .eq("order_item_id", input.orderItemId)
-    .maybeSingle();
-  if (existing) return { created: false, commissionId: existing.id };
-
-  const { data, error } = await client
-    .from("affiliate_commissions")
-    .insert({
-      affiliate_id: input.affiliateId,
-      link_id: input.linkId ?? null,
-      order_id: input.orderId,
-      order_item_id: input.orderItemId,
-      product_id: input.productId,
-      vendor_id: input.vendorId,
-      campaign_id: input.campaignId ?? null,
-      commission_rate: input.commissionRate,
-      order_amount: input.orderAmount,
-      commission_amount: input.commissionAmount,
-      original_commission_amount: input.commissionAmount,
-      status: "pending",
-      lifecycle_status: "pending",
-      attribution_model: input.attributionModel ?? "last_touch",
-      attributed_at: input.attributedAt ?? new Date().toISOString(),
-    })
-    .select("id")
-    .single();
-
-  if (error) {
-    // Unique race
-    if (String(error.code) === "23505") return { created: false };
-    throw error;
-  }
-
-  await client.rpc("increment_affiliate_earnings", {
+  const { data, error } = await client.rpc("create_pending_affiliate_commission_atomic", {
     p_affiliate_id: input.affiliateId,
-    p_amount: input.commissionAmount,
+    p_order_id: input.orderId,
+    p_order_item_id: input.orderItemId,
+    p_product_id: input.productId,
+    p_vendor_id: input.vendorId,
+    p_link_id: input.linkId ?? null,
+    p_campaign_id: input.campaignId ?? null,
+    p_commission_rate: input.commissionRate,
+    p_order_amount: input.orderAmount,
+    p_commission_amount: input.commissionAmount,
+    p_attribution_model: input.attributionModel ?? "last_touch",
+    p_attributed_at: input.attributedAt ?? null,
   });
+  if (error) throw error;
 
-  await client.from("affiliate_ledger").insert({
-    affiliate_id: input.affiliateId,
-    commission_id: data.id,
-    entry_type: "commission_pending",
-    amount: input.commissionAmount,
-    note: "Commission pending approval",
-  });
+  const result = data as {
+    created?: boolean;
+    commission_id?: string;
+    user_id?: string;
+    reason?: string;
+  } | null;
 
-  if (input.campaignId) {
-    const { data: camp } = await client
-      .from("affiliate_campaigns")
-      .select("budget_spent")
-      .eq("id", input.campaignId)
-      .maybeSingle();
-    if (camp) {
-      await client
-        .from("affiliate_campaigns")
-        .update({
-          budget_spent: Number(camp.budget_spent ?? 0) + input.commissionAmount,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", input.campaignId);
+  if (!result?.created) {
+    if (result?.reason && result.reason !== "already_exists") {
+      throw new Error(`Unable to create affiliate commission: ${result.reason}`);
     }
+    return { created: false, commissionId: result?.commission_id };
   }
 
-  if (input.linkId) {
-    const { data: link } = await client
-      .from("affiliate_links")
-      .select("total_conversions, total_earnings")
-      .eq("id", input.linkId)
-      .maybeSingle();
-    if (link) {
-      await client
-        .from("affiliate_links")
-        .update({
-          total_conversions: Number(link.total_conversions ?? 0) + 1,
-          total_earnings: Number(link.total_earnings ?? 0) + input.commissionAmount,
-        })
-        .eq("id", input.linkId);
-    }
-  }
-
-  try {
-    const { data: affiliate } = await client
-      .from("affiliates")
-      .select("user_id")
-      .eq("id", input.affiliateId)
-      .maybeSingle();
-    if (affiliate?.user_id) {
+  if (result.commission_id && result.user_id) {
+    try {
       const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
       await notifyAffiliateCommission({
-        affiliateUserId: affiliate.user_id,
+        affiliateUserId: result.user_id,
         amount: input.commissionAmount,
-        commissionId: data.id,
+        commissionId: result.commission_id,
         status: "pending",
       });
+    } catch (err) {
+      console.warn("[createPendingCommission] notification skipped:", err);
     }
-  } catch (err) {
-    console.warn("[createPendingCommission] notification skipped:", err);
   }
 
-  return { created: true, commissionId: data.id };
+  return { created: true, commissionId: result.commission_id };
 }
 
 export async function approveCommission(commissionId: string) {
   const client = db();
-  const { data, error } = await client.rpc("approve_affiliate_commission", {
+  const { data, error } = await client.rpc("approve_affiliate_commission_atomic", {
     p_commission_id: commissionId,
   });
   if (error) throw error;
-  if (!data) return false;
 
-  try {
-    const { data: row } = await client
-      .from("affiliate_commissions")
-      .select("commission_amount, affiliate_id, order_id")
-      .eq("id", commissionId)
-      .maybeSingle();
-    if (row?.affiliate_id) {
-      const { data: affiliate } = await client
-        .from("affiliates")
-        .select("user_id")
-        .eq("id", row.affiliate_id)
-        .maybeSingle();
-      if (affiliate?.user_id) {
-        const { creditWalletForApprovedCommission } = await import(
-          "@/lib/affiliate/credit-wallet"
-        );
-        await creditWalletForApprovedCommission(client, {
-          commissionId,
-          affiliateUserId: affiliate.user_id,
-          amount: Number(row.commission_amount ?? 0),
-          orderId: row.order_id ?? null,
-        });
+  const result = data as {
+    approved?: boolean;
+    credited?: boolean;
+    already_credited?: boolean;
+    amount?: number | string;
+    user_id?: string;
+  } | null;
 
-        const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
-        await notifyAffiliateCommission({
-          affiliateUserId: affiliate.user_id,
-          amount: Number(row.commission_amount ?? 0),
-          commissionId,
-          status: "approved",
-        });
-      }
+  if (!result?.approved) return false;
+
+  if (result.credited && result.user_id) {
+    try {
+      const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
+      await notifyAffiliateCommission({
+        affiliateUserId: result.user_id,
+        amount: Number(result.amount ?? 0),
+        commissionId,
+        status: "approved",
+      });
+    } catch (err) {
+      console.warn("[approveCommission] notification skipped:", err);
     }
-  } catch (err) {
-    console.warn("[approveCommission] wallet/notification skipped:", err);
   }
 
   return true;
 }
 
-/** Approve all pending commissions for an order (e.g. on delivery completion). */
+/** Approve pending commissions and repair any previously approved commission whose wallet credit was interrupted. */
 export async function approveCommissionsForOrder(orderId: string) {
   const client = db();
   const { data: rows } = await client
@@ -195,7 +124,7 @@ export async function approveCommissionsForOrder(orderId: string) {
 
   let approved = 0;
   for (const row of rows ?? []) {
-    if (row.lifecycle_status !== "pending") continue;
+    if (row.lifecycle_status !== "pending" && row.lifecycle_status !== "approved") continue;
     const ok = await approveCommission(row.id);
     if (ok) approved += 1;
   }
@@ -214,58 +143,28 @@ export async function rejectCommission(commissionId: string, note?: string) {
 export async function refundCommission(
   commissionId: string,
   refundAmount?: number,
-  note?: string
+  note?: string,
+  refundKey?: string
 ) {
   const client = db();
-  const { data: before } = await client
-    .from("affiliate_commissions")
-    .select("id, commission_amount, lifecycle_status, affiliate_id, order_id")
-    .eq("id", commissionId)
-    .maybeSingle();
+  const stableRefundKey =
+    refundKey ??
+    `manual:${commissionId}:${refundAmount == null ? "full" : Number(refundAmount).toFixed(2)}:${note ?? "refund"}`;
 
-  const priorLifecycle = before?.lifecycle_status ?? null;
-  const priorAmount = Number(before?.commission_amount ?? 0);
-
-  const { data, error } = await client.rpc("clawback_affiliate_commission", {
+  const { data, error } = await client.rpc("clawback_affiliate_commission_atomic", {
     p_commission_id: commissionId,
+    p_refund_key: stableRefundKey,
     p_refund_amount: refundAmount ?? null,
     p_note: note ?? "Refund clawback",
   });
   if (error) throw error;
-  if (!data) return false;
 
-  // Debit wallet only if commission had already been approved (wallet-credited).
-  if (
-    before?.affiliate_id &&
-    (priorLifecycle === "approved" || priorLifecycle === "partial_refund")
-  ) {
-    const claw =
-      refundAmount != null && Number.isFinite(refundAmount)
-        ? Math.min(priorAmount, Number(refundAmount))
-        : priorAmount;
-    try {
-      const { data: affiliate } = await client
-        .from("affiliates")
-        .select("user_id")
-        .eq("id", before.affiliate_id)
-        .maybeSingle();
-      if (affiliate?.user_id) {
-        const { debitWalletForClawedCommission } = await import(
-          "@/lib/affiliate/credit-wallet"
-        );
-        await debitWalletForClawedCommission(client, {
-          commissionId,
-          affiliateUserId: affiliate.user_id,
-          amount: claw,
-          orderId: before.order_id ?? null,
-        });
-      }
-    } catch (err) {
-      console.warn("[refundCommission] wallet debit skipped:", err);
-    }
-  }
-
-  return true;
+  const result = data as {
+    processed?: boolean;
+    already_processed?: boolean;
+    amount?: number | string;
+  } | null;
+  return result?.processed === true || result?.already_processed === true;
 }
 
 export async function cancelCommission(commissionId: string, note?: string) {
@@ -280,7 +179,7 @@ export async function cancelCommission(commissionId: string, note?: string) {
 /** Claw back all commissions for an order (full or proportional). */
 export async function clawbackCommissionsForOrder(
   orderId: string,
-  opts?: { partialRatio?: number; note?: string }
+  opts?: { partialRatio?: number; note?: string; refundKey?: string }
 ) {
   const client = db();
   const { data: rows } = await client
@@ -295,18 +194,22 @@ export async function clawbackCommissionsForOrder(
       opts?.partialRatio != null
         ? Math.round(base * opts.partialRatio * 100) / 100
         : undefined;
-    await refundCommission(row.id, amount, opts?.note);
+    const refundKey = opts?.refundKey
+      ? `${opts.refundKey}:${row.id}`
+      : `order:${orderId}:${opts?.note ?? "refund"}:${row.id}`;
+    await refundCommission(row.id, amount, opts?.note, refundKey);
   }
 }
 
 /** Call when an order is marked refunded / cancelled after payment. */
 export async function handleOrderRefundForAffiliates(
   orderId: string,
-  opts?: { partialRatio?: number; note?: string }
+  opts?: { partialRatio?: number; note?: string; refundKey?: string }
 ) {
   await clawbackCommissionsForOrder(orderId, {
     partialRatio: opts?.partialRatio,
     note: opts?.note ?? "Order refunded",
+    refundKey: opts?.refundKey,
   });
 }
 

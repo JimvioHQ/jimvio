@@ -1,100 +1,165 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type WebhookEventStatus = "received" | "processed" | "failed";
-
-export interface LogWebhookOptions {
-  provider: string;
-  /** Must be globally unique per successful payment event (e.g. `flw-{txId}`) */
-  idempotencyKey: string;
-  payload: unknown;
-  orderId?: string | null;
-}
-
-export interface LogWebhookResult {
-  /** true when this exact key was already processed — caller should skip */
-  isDuplicate: boolean;
-  /** DB row id — pass back to markWebhookProcessed / markWebhookFailed */
-  eventId: string | null;
-}
+const WEBHOOK_MAX_ATTEMPTS = 5;
+const WEBHOOK_IN_FLIGHT_MS = 2 * 60 * 1000;
 
 /**
- * Insert a new webhook event row (idempotent).
- * Returns `isDuplicate: true` if a row with the same key already exists
- * with status = 'processed'.
+ * Persist an idempotent webhook claim. Processed events stay terminal; failed
+ * events and stale in-flight events can be claimed again with compare-and-swap.
  */
 export async function logWebhookEvent(
   db: SupabaseClient,
-  opts: LogWebhookOptions
-): Promise<LogWebhookResult> {
-  // Use upsert with ignoreDuplicates to guarantee atomicity and prevent race conditions
-  const { data: upserted, error: upsertError } = await db
+  opts: {
+    provider: string;
+    idempotencyKey: string;
+    payload: unknown;
+    orderId?: string | null;
+  },
+): Promise<{ eventId: string | null; isDuplicate: boolean }> {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const { data: inserted, error: insertError } = await db
     .from("webhook_events")
     .upsert(
       {
         provider: opts.provider,
         idempotency_key: opts.idempotencyKey,
-        payload: opts.payload as object,
-        status: "received" as WebhookEventStatus,
+        payload: opts.payload,
         order_id: opts.orderId ?? null,
+        status: "received",
+        processing_status: "processing",
+        attempt_count: 1,
+        dead_letter: false,
+        error: null,
+        updated_at: nowIso,
       },
-      { onConflict: "idempotency_key", ignoreDuplicates: true }
+      { onConflict: "idempotency_key", ignoreDuplicates: true },
     )
-    .select("id, status")
+    .select("id")
     .maybeSingle();
 
-  if (upsertError) {
-    throw new Error(`Failed to log webhook event: ${upsertError.message}`);
+  if (insertError) {
+    console.error("[webhook-logger] insert/claim failed", {
+      provider: opts.provider,
+      code: insertError.code,
+      message: insertError.message,
+    });
+    throw new Error(`Failed to persist webhook event: ${insertError.message}`);
   }
 
-  // If upserted is null, ignoreDuplicates skipped insertion because the row already exists
-  if (!upserted) {
-    const { data: existing } = await db
-      .from("webhook_events")
-      .select("id, status")
-      .eq("idempotency_key", opts.idempotencyKey)
-      .single();
-
-    if (existing) {
-      // Any prior receipt of this key is a duplicate — including in-flight
-      // "received" rows — so concurrent webhook retries cannot double-finalize.
-      return {
-        isDuplicate: true,
-        eventId: existing.id,
-      };
-    }
+  if (inserted?.id) {
+    return { eventId: inserted.id, isDuplicate: false };
   }
 
-  return { isDuplicate: false, eventId: upserted?.id ?? null };
+  const { data: existing, error: existingError } = await db
+    .from("webhook_events")
+    .select("id, status, updated_at, attempt_count, dead_letter")
+    .eq("idempotency_key", opts.idempotencyKey)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Failed to load existing webhook event: ${existingError.message}`);
+  }
+  if (!existing?.id) {
+    throw new Error("Webhook event claim could not be confirmed after an idempotency conflict.");
+  }
+
+  if (existing.status === "processed" || existing.status === "ignored" || existing.dead_letter) {
+    return { eventId: existing.id, isDuplicate: true };
+  }
+
+  const updatedAtMs = existing.updated_at ? new Date(existing.updated_at).getTime() : 0;
+  const inFlight =
+    ["received", "processing"].includes(String(existing.status)) &&
+    Number.isFinite(updatedAtMs) &&
+    now.getTime() - updatedAtMs < WEBHOOK_IN_FLIGHT_MS;
+
+  if (inFlight) {
+    return { eventId: existing.id, isDuplicate: true };
+  }
+
+  const nextAttempt = Number(existing.attempt_count ?? 0) + 1;
+  const { data: claimed, error: claimError } = await db
+    .from("webhook_events")
+    .update({
+      status: "received",
+      processing_status: "processing",
+      attempt_count: nextAttempt,
+      dead_letter: false,
+      error: null,
+      updated_at: nowIso,
+    })
+    .eq("id", existing.id)
+    .eq("status", existing.status)
+    .eq("updated_at", existing.updated_at)
+    .select("id")
+    .maybeSingle();
+
+  if (claimError) {
+    throw new Error(`Failed to claim retryable webhook event: ${claimError.message}`);
+  }
+  if (!claimed?.id) {
+    // Another concurrent request won the compare-and-swap; let that request finish.
+    return { eventId: existing.id, isDuplicate: true };
+  }
+
+  return { eventId: claimed.id, isDuplicate: false };
 }
 
-/** Mark webhook row as successfully processed */
 export async function markWebhookProcessed(
   db: SupabaseClient,
   eventId: string,
-  orderId?: string | null
+  orderId?: string | null,
 ): Promise<void> {
-  await db
+  const now = new Date().toISOString();
+  const { error } = await db
     .from("webhook_events")
     .update({
-      status: "processed" as WebhookEventStatus,
-      order_id: orderId ?? undefined,
-      updated_at: new Date().toISOString(),
+      status: "processed",
+      processing_status: "processed",
+      processed_at: now,
+      error: null,
+      dead_letter: false,
+      ...(orderId ? { order_id: orderId } : {}),
+      updated_at: now,
     })
     .eq("id", eventId);
+  if (error) throw new Error("Unable to mark webhook processed: " + error.message);
 }
 
-/** Mark webhook row as failed with error detail */
 export async function markWebhookFailed(
   db: SupabaseClient,
   eventId: string,
-  error: string
+  error: string,
+  orderId?: string | null,
 ): Promise<void> {
-  await db
+  const { data: existing, error: lookupError } = await db
+    .from("webhook_events")
+    .select("attempt_count")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (lookupError || !existing) {
+    throw new Error(`Unable to load webhook retry count: ${lookupError?.message ?? "event not found"}`);
+  }
+
+  const deadLetter = Number(existing.attempt_count ?? 1) >= WEBHOOK_MAX_ATTEMPTS;
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await db
     .from("webhook_events")
     .update({
-      status: "failed" as WebhookEventStatus,
+      status: deadLetter ? "dead_letter" : "failed",
+      processing_status: deadLetter ? "dead_letter" : "failed",
       error: error.slice(0, 2000),
-      updated_at: new Date().toISOString(),
+      dead_letter: deadLetter,
+      ...(orderId ? { order_id: orderId } : {}),
+      updated_at: now,
     })
     .eq("id", eventId);
+
+  if (updateError) {
+    throw new Error(`Unable to persist webhook failure state: ${updateError.message}`);
+  }
 }

@@ -306,9 +306,33 @@ export async function POST(req: NextRequest) {
                 verifiedCurrency: "USD",
             });
 
+            if (!result.credited && result.amount <= 0) {
+                const retryable = result.reason === "rpc_error" || !result.reason;
+                const errorCode = `wallet_deposit_${result.reason ?? "completion_failed"}`;
+                await supabase
+                    .from("webhook_events")
+                    .update({
+                        status: retryable ? "failed" : "error",
+                        error: errorCode,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", webhookEvent.id);
+
+                return NextResponse.json(
+                    {
+                        returnCode: "FAIL",
+                        returnMessage: retryable
+                            ? "Wallet deposit finalization is temporarily unavailable; retry later."
+                            : "Wallet deposit requires review before it can be credited.",
+                    },
+                    { status: retryable ? 500 : 400 }
+                );
+            }
+
             console.info("[binance-webhook] wallet deposit processed", {
                 depositId: deposit.id,
                 credited: result.credited,
+                alreadyHandled: !result.credited && result.amount > 0,
                 merchantTradeNo: data.merchantTradeNo,
             });
 
@@ -316,7 +340,10 @@ export async function POST(req: NextRequest) {
                 .from("webhook_events")
                 .update({
                     status: "processed",
+                    processing_status: "processed",
                     order_id: null,
+                    error: null,
+                    updated_at: new Date().toISOString(),
                 })
                 .eq("id", webhookEvent.id);
 
