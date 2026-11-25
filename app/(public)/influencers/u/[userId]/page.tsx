@@ -20,7 +20,7 @@ export default async function InfluencerByUserPage({ params }: PageProps) {
 
   const { data: influencer } = await db
     .from("influencers")
-    .select("id, user_id, display_name, profile_image, bio, total_followers")
+    .select("id, user_id, display_name, profile_image, bio, total_followers, is_verified")
     .eq("user_id", userId)
     .eq("is_active", true)
     .maybeSingle();

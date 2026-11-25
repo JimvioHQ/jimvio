@@ -3,7 +3,8 @@
 import { cn } from "@/lib/utils";
 import type { CreatorProfileIdentity, CreatorProfileStats } from "@/lib/creator-profile/types";
 import { CREATOR_LEVEL_LABELS } from "@/lib/creator-profile";
-import { BadgeCheck, Globe, Languages, Sparkles } from "lucide-react";
+import { Globe, Languages, Sparkles } from "lucide-react";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 
 function formatCount(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -81,12 +82,7 @@ export function CreatorProfileHeader({ identity, stats }: CreatorProfileHeaderPr
               <h1 className="truncate text-2xl font-black tracking-[-0.02em] text-[var(--color-text-primary)] sm:text-3xl">
                 {identity.displayName}
               </h1>
-              {identity.isVerified && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400">
-                  <BadgeCheck className="size-3.5" />
-                  Verified
-                </span>
-              )}
+              <BlueVerifiedBadge verified={identity.isVerified} size="md" label="Verified account" />
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent)]/10 px-2 py-0.5 text-[11px] font-bold text-[var(--color-accent)]">
                 <Sparkles className="size-3.5" />
                 {CREATOR_LEVEL_LABELS[identity.level]}
