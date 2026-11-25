@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Send, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { MessageBubble, type MessageRow } from "@/components/messages/message-bubble";
 import { ChatInput } from "@/components/messages/chat-input";
 import { QuoteRequestModal } from "@/components/messages/quote-request-modal";
@@ -29,6 +30,7 @@ export type MarketplaceChatPaneProps = {
   vendorId: string;
   peerName: string;
   peerAvatar: string | null;
+  peerVerified?: boolean;
   /** e.g. "Marketplace · you're buying" */
   contextLabel: string;
   storeHref?: string | null;
@@ -49,7 +51,7 @@ function PeerAvatar({ src, name }: { src: string | null; name: string }) {
  * delivery with resync on reconnect, quotes, offers and product sharing.
  */
 export function MarketplaceChatPane(props: MarketplaceChatPaneProps) {
-  const { conversationId, userId, isVendorSide, vendorId, peerName, peerAvatar, contextLabel, storeHref, onBack, onActivity } = props;
+  const { conversationId, userId, isVendorSide, vendorId, peerName, peerAvatar, peerVerified, contextLabel, storeHref, onBack, onActivity } = props;
   const supabase = useMemo(() => createClient(), []);
   const refreshCounts = useCartStore((s) => s.refreshCounts);
 
@@ -238,7 +240,7 @@ export function MarketplaceChatPane(props: MarketplaceChatPaneProps) {
         )}
         <PeerAvatar src={peerAvatar} name={peerName} />
         <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-semibold leading-tight truncate">{peerName}</p>
+          <p className="inline-flex items-center gap-1 text-[14px] font-semibold leading-tight truncate">{peerName} <BlueVerifiedBadge verified={Boolean(peerVerified)} size="sm" label="Verified account" /></p>
           <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1">
             <Store className="h-3 w-3 flex-shrink-0" aria-hidden />
             {contextLabel}

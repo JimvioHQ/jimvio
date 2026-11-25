@@ -46,7 +46,7 @@ export type HubMessageThread = {
   roomId: string | null;
   href: string | null;
   /** Marketplace threads only. */
-  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null };
+  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null; peerVerified?: boolean };
 };
 
 export type HubMessageItem = {
@@ -219,7 +219,7 @@ type MarketConvRow = {
   buyer_id: string;
   vendor_id: string;
   updated_at: string | null;
-  vendor: { business_name?: string | null; business_slug?: string | null; business_logo?: string | null } | null;
+  vendor: { business_name?: string | null; business_slug?: string | null; business_logo?: string | null; verification_status?: string | null } | null;
 };
 
 /** Buyer ↔ store chats where the viewer is the buyer or owns the store (RLS applies). */
@@ -231,14 +231,14 @@ async function loadMarketplaceThreads(userId: string, readCursors: Map<string, s
     const or = [`buyer_id.eq.${userId}`, ...(vendorIds.length ? [`vendor_id.in.(${vendorIds.join(",")})`] : [])].join(",");
     const { data: convs, error } = await supabase
       .from("conversations")
-      .select("id, buyer_id, vendor_id, updated_at, vendor:vendors!vendor_id (business_name, business_slug, business_logo)")
+      .select("id, buyer_id, vendor_id, updated_at, vendor:vendors!vendor_id (business_name, business_slug, business_logo, verification_status)")
       .or(or)
       .order("updated_at", { ascending: false })
       .limit(50);
     if (error || !convs?.length) return [];
     const rows = convs as unknown as MarketConvRow[];
     const buyerIds = [...new Set(rows.filter((c) => c.buyer_id !== userId).map((c) => c.buyer_id))];
-    const [{ data: msgs }, { data: buyers }] = await Promise.all([
+    const [{ data: msgs }, { data: buyers }, verifiedBuyerIds] = await Promise.all([
       supabase
         .from("conversation_messages")
         .select("conversation_id, sender_id, body, message_type, created_at")
@@ -248,6 +248,7 @@ async function loadMarketplaceThreads(userId: string, readCursors: Map<string, s
       buyerIds.length
         ? supabase.from("profiles").select("id, full_name, username, avatar_url").in("id", buyerIds)
         : Promise.resolve({ data: [] as never[] }),
+      loadVerifiedUserIds(createServiceRoleClient(), buyerIds),
     ]);
     const last = new Map<string, { sender_id: string; body: string | null; message_type: string | null; created_at: string | null }>();
     for (const m of msgs ?? []) if (!last.has(m.conversation_id)) last.set(m.conversation_id, m);
@@ -274,7 +275,15 @@ async function loadMarketplaceThreads(userId: string, readCursors: Map<string, s
         peerId: iAmBuyer ? null : c.buyer_id,
         roomId: null,
         href: iAmBuyer ? storeHref : buyer?.username ? `/u/${buyer.username}` : null,
-        market: { conversationId: c.id, vendorId: c.vendor_id, isVendorSide: !iAmBuyer, storeHref },
+        market: {
+          conversationId: c.id,
+          vendorId: c.vendor_id,
+          isVendorSide: !iAmBuyer,
+          storeHref,
+          peerVerified: iAmBuyer
+            ? c.vendor?.verification_status === "verified"
+            : verifiedBuyerIds.has(c.buyer_id),
+        },
       };
     });
   } catch {

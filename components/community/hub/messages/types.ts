@@ -19,7 +19,7 @@ export type HubThread = {
   roomId: string | null;
   href: string | null;
   /** Marketplace (buyer ↔ store) threads only. */
-  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null };
+  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null; peerVerified?: boolean };
 };
 
 export type HubMessageAttachment = {
