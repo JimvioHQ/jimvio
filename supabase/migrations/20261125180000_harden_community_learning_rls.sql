@@ -3,8 +3,6 @@
 -- browser roles should only see published courses they are allowed to access.
 -- No rows are deleted or modified.
 
-begin;
-
 -- Remove legacy permissive SELECT policies. PostgreSQL combines permissive
 -- policies with OR, so these USING (true) policies bypass narrower policies.
 drop policy if exists community_courses_select on public.community_courses;
@@ -86,5 +84,3 @@ revoke all privileges on table public.course_modules from anon;
 revoke all privileges on table public.community_tasks from anon;
 grant select on table public.community_courses to anon;
 grant select on table public.course_modules to anon;
-
-commit;
