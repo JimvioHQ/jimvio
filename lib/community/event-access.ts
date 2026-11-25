@@ -129,6 +129,7 @@ export async function listDiscoverableEvents(input: {
     query = query.gte("starts_at", now).order("starts_at", { ascending: true });
   }
 
+  if (input.communitySlug) query = query.eq("communities.slug", input.communitySlug);
   if (input.kind) query = query.eq("kind", input.kind);
   if (input.q) {
     const q = input.q.replace(/[%_,]/g, "").slice(0, 80);
@@ -145,9 +146,7 @@ export async function listDiscoverableEvents(input: {
     if (filter === "organized" || filter === "registered") return true;
     return isDiscoverableEvent(event);
   });
-  const filtered = input.communitySlug
-    ? rows.filter((event: any) => event.communities?.slug === input.communitySlug)
-    : rows;
+  const filtered = rows;
 
   const ids = filtered.map((event: any) => event.id);
   const rsvpMap = new Map<string, string>();
@@ -168,7 +167,7 @@ export async function listDiscoverableEvents(input: {
         registration_status: rsvpMap.get(event.id) ?? null,
       }),
     ),
-    nextCursor: filtered.length === limit ? offset + limit : null,
+    nextCursor: (data ?? []).length === limit ? offset + limit : null,
   };
 }
 
