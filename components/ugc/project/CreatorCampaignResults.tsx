@@ -62,7 +62,6 @@ function PayoutLine({ payout, formatMoney }: { payout: Payout; formatMoney: (n: 
       {paid
         ? `${formatMoney(payout.amount, "USD")} added to your wallet${payout.paid_at ? ` on ${formatDate(payout.paid_at)}` : ""}.`
         : `${formatMoney(payout.amount, "USD")} reaches your wallet ${left ?? "soon"}.`}
-      {!paid ? <span className="text-[11.5px] font-normal text-[#9A3412]">Held 24h because Jimvio couldn't verify every view automatically.</span> : null}
     </p>
   );
 }
