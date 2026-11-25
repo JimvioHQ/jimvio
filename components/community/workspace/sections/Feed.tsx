@@ -412,6 +412,13 @@ export function FeedSection({
                     .map((p: Post) => p.id)
             );
             setLikedIds((prev) => replace ? liked : new Set([...prev, ...liked]));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to load feed");
+            if (replace) {
+                setPosts([]);
+                setHasMore(false);
+                setCursor(null);
+            }
         } finally {
             if (replace) setLoading(false);
         }
@@ -486,6 +493,8 @@ export function FeedSection({
                     .map((p: Post) => p.id)
             );
             setLikedIds((prev) => new Set([...prev, ...liked]));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Failed to load more posts");
         } finally {
             loadingMoreRef.current = false;
             setLoadingMore(false);
