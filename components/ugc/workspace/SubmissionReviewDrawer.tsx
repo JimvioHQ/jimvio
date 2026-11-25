@@ -10,6 +10,7 @@ type Detail = VerificationFields & {
   id: string;
   funding?: { state?: string; remainingUsd?: number } | null;
   post_url: string;
+  thumbnail_url?: string | null;
   platform: string;
   status: string;
   caption?: string | null;
@@ -102,10 +103,16 @@ export function SubmissionReviewDrawer({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Could not calculate the reward.");
+      const deliveryNote =
+        json.paymentModel === "fixed_per_content"
+          ? "The fixed reward is credited to the creator's wallet after approval."
+          : json.viewsSource === "platform_verified"
+            ? "Views are verified, so the creator is paid right after you approve."
+            : "Views need manual review, so the payout waits 24 hours after approval.";
       setQuote(
         `Eligible reward ${formatMoney(Number(json.payable ?? 0), "USD")}${
           json.cappedBy ? ` (limited by ${json.cappedBy === "budget" ? "remaining budget" : "max payout"})` : ""
-        }. ${json.viewsSource === "platform_verified" ? "Views are verified, so the creator is paid right after you approve." : "Views aren't verified by Jimvio, so the payment waits 24 hours after approval."}`,
+        }. ${deliveryNote}`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not calculate the reward.");
@@ -193,12 +200,18 @@ export function SubmissionReviewDrawer({
               {media?.url ? (
                 media.type === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media.url} alt="" className="mt-2 max-h-48 w-full rounded-xl object-cover" />
+                  <img src={media.url} alt="Submitted content preview" className="mt-2 max-h-64 w-full rounded-xl object-cover" />
                 ) : (
-                  <video src={media.url} controls className="mt-2 w-full rounded-xl bg-black" />
+                  <video src={media.url} controls preload="metadata" className="mt-2 max-h-72 w-full rounded-xl bg-black" />
                 )
+              ) : detail.thumbnail_url ? (
+                <a href={detail.post_url} target="_blank" rel="noreferrer" className="mt-2 block overflow-hidden rounded-xl border border-[#E5E7EB]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={detail.thumbnail_url} alt="Submitted post thumbnail" className="max-h-64 w-full object-cover" />
+                  <span className="block px-3 py-2 text-[11px] font-semibold text-[#FF5A1F]">Open original post</span>
+                </a>
               ) : (
-                <p className="mt-2 text-[12px] text-[#6B7280]">No uploaded preview. Use the content URL.</p>
+                <p className="mt-2 text-[12px] text-[#6B7280]">No uploaded preview is available yet. Use the original post link above.</p>
               )}
             </section>
 
