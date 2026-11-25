@@ -96,10 +96,13 @@ export async function listDiscoverableEvents(input: {
   const offset = Math.max(input.cursor ?? 0, 0);
   const filter = input.filter || "upcoming";
   const now = new Date().toISOString();
+  const eventSelect = input.communitySlug
+    ? "*, communities!inner(name, slug, visibility)"
+    : "*, communities(name, slug, visibility)";
 
   let query = admin()
     .from("community_events")
-    .select("*, communities(name, slug, visibility)", { count: "exact" })
+    .select(eventSelect, { count: "exact" })
     .eq("visibility", "public")
     .eq("status", "published");
 
@@ -108,7 +111,7 @@ export async function listDiscoverableEvents(input: {
   } else if (filter === "organized") {
     query = admin()
       .from("community_events")
-      .select("*, communities(name, slug, visibility)", { count: "exact" })
+      .select(eventSelect, { count: "exact" })
       .eq("created_by", input.userId)
       .order("starts_at", { ascending: false });
   } else if (filter === "registered") {
