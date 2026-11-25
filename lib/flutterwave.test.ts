@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { after, describe, it } from "node:test";
-import { validateFlutterwaveWebhookRequest } from "./flutterwave";
+import { isFlutterwaveRefundStatus, isFlutterwaveSuccessfulStatus, validateFlutterwaveWebhookRequest } from "./flutterwave";
 
 const originalSecret = process.env.FLW_WEBHOOK_SECRET;
 const secret = "jimvio-flutterwave-webhook-unit-test-secret";
@@ -37,6 +37,21 @@ describe("Flutterwave webhook signature verification", () => {
     assert.equal(validateFlutterwaveWebhookRequest(headers, "{}"), true);
     headers.set("verif-hash", "incorrect");
     assert.equal(validateFlutterwaveWebhookRequest(headers, "{}"), false);
+  });
+
+
+  it("recognizes refund, reversal, and chargeback events without treating ordinary success as a refund", () => {
+    assert.equal(isFlutterwaveRefundStatus("refunded"), true);
+    assert.equal(isFlutterwaveRefundStatus("successful", "chargeback.created"), true);
+    assert.equal(isFlutterwaveRefundStatus("reversed"), true);
+    assert.equal(isFlutterwaveRefundStatus("successful", "payment.completed"), false);
+  });
+
+  it("normalizes successful provider status variants", () => {
+    assert.equal(isFlutterwaveSuccessfulStatus("successful"), true);
+    assert.equal(isFlutterwaveSuccessfulStatus("succeeded"), true);
+    assert.equal(isFlutterwaveSuccessfulStatus("completed"), true);
+    assert.equal(isFlutterwaveSuccessfulStatus("pending"), false);
   });
 
   it("fails closed when the webhook secret is absent", () => {
