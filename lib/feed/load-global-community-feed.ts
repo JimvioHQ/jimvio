@@ -12,6 +12,7 @@ import {
 } from "@/lib/feed/global-feed-exclusions";
 import { diversifyFeed, rankGlobalFeedItems } from "@/lib/feed/global-feed-ranking";
 import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
+import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 import {
   applyFeedTabFilter,
   sortRisingByVelocity,
@@ -53,6 +54,7 @@ export type GlobalCommunityFeedPost = Record<string, unknown> & {
   view_count?: number | null;
   profiles?: {
     username?: string | null;
+    is_verified?: boolean;
     email?: string | null;
     full_name?: string | null;
     avatar_url?: string | null;
@@ -134,9 +136,10 @@ async function hydratePosts(
   if (signal && communityQuery) communityQuery = communityQuery.abortSignal(signal);
   if (signal && profileQuery) profileQuery = profileQuery.abortSignal(signal);
 
-  const [communityRes, profileRes] = await Promise.all([
+  const [communityRes, profileRes, verifiedUserIds] = await Promise.all([
     communityQuery ?? Promise.resolve({ data: [], error: null }),
     profileQuery ?? Promise.resolve({ data: [], error: null }),
+    loadVerifiedUserIds(db, authorIds),
   ]);
 
   if (
@@ -197,6 +200,7 @@ async function hydratePosts(
             full_name: profile.full_name,
             avatar_url: profile.avatar_url,
             username: profile.username,
+            is_verified: verifiedUserIds.has(profile.id),
           }
         : null,
     };

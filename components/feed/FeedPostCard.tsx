@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { resolveFeedPublisher } from "@/lib/feed/post-identity";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
@@ -76,6 +77,7 @@ export type ApiPost = {
     full_name?: string | null;
     avatar_url?: string | null;
     username?: string | null;
+    is_verified?: boolean | null;
   } | null;
   author_id?: string | null;
 };
@@ -161,7 +163,7 @@ function mapApiPost(post: ApiPost): DisplayPost {
       handle: publisher.handle,
       username: publisher.kind === "profile" ? (username ?? null) : null,
       profileHref: publisher.href,
-      verified: false,
+      verified: post.profiles?.is_verified === true,
       avatar: publisher.avatar,
       kind: publisher.kind,
       userId: publisher.kind === "profile" ? post.author_id ?? null : null,
@@ -297,11 +299,7 @@ function HubFeedArticle({
                   {post.author.name}
                 </span>
               )}
-              {post.author.verified && (
-                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900">
-                  <Check className="h-2 w-2 text-white" strokeWidth={3} />
-                </span>
-              )}
+              <BlueVerifiedBadge verified={post.author.verified} size="sm" label="Verified account" />
               {post.author.profileHref ? (
                 <Link
                   href={post.author.profileHref}
