@@ -35,25 +35,40 @@ export async function GET(req: NextRequest) {
   const admin = createServiceRoleClient();
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: reports }, { data: logs }, { count: spamPrevented }] =
-    await Promise.all([
-      admin
-        .from("community_content_reports")
-        .select("id, reason, status, created_at, reviewed_at")
-        .eq("community_id", communityId)
-        .gte("created_at", since),
-      admin
-        .from("community_moderation_logs")
-        .select("id, action, moderator_id, created_at")
-        .eq("community_id", communityId)
-        .gte("created_at", since),
-      admin
-        .from("community_content_reports")
-        .select("id", { count: "exact", head: true })
-        .eq("community_id", communityId)
-        .eq("queue", "spam")
-        .in("status", ["dismissed", "actioned"]),
-    ]);
+  const [reportsResult, logsResult, spamResult] = await Promise.all([
+    admin
+      .from("community_content_reports")
+      .select("id, reason, status, created_at, reviewed_at")
+      .eq("community_id", communityId)
+      .gte("created_at", since),
+    admin
+      .from("community_moderation_logs")
+      .select("id, action, moderator_id, created_at")
+      .eq("community_id", communityId)
+      .gte("created_at", since),
+    admin
+      .from("community_content_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("queue", "spam")
+      .in("status", ["dismissed", "actioned"]),
+  ]);
+
+  if (reportsResult.error || logsResult.error || spamResult.error) {
+    console.error("[CommunityModeration] analytics query failed", {
+      reports: reportsResult.error?.message,
+      logs: logsResult.error?.message,
+      spam: spamResult.error?.message,
+    });
+    return NextResponse.json(
+      { error: "Moderation analytics are temporarily unavailable" },
+      { status: 500 },
+    );
+  }
+
+  const reports = reportsResult.data ?? [];
+  const logs = logsResult.data ?? [];
+  const spamPrevented = spamResult.count;
 
   const dayMap = new Map<string, number>();
   for (let i = 13; i >= 0; i--) {
@@ -79,10 +94,17 @@ export async function GET(req: NextRequest) {
   const modIds = Array.from(modMap.keys());
   const nameById = new Map<string, string>();
   if (modIds.length) {
-    const { data: profiles } = await admin
+    const { data: profiles, error: profilesError } = await admin
       .from("profiles")
       .select("id, full_name, username")
       .in("id", modIds);
+    if (profilesError) {
+      console.error("[CommunityModeration] moderator profile lookup failed", profilesError.message);
+      return NextResponse.json(
+        { error: "Moderation analytics are temporarily unavailable" },
+        { status: 500 },
+      );
+    }
     for (const p of profiles ?? []) {
       nameById.set(
         p.id,
