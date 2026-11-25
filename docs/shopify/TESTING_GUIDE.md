@@ -49,7 +49,7 @@ Do not put secrets in this document. Provide a development store + Jimvio test a
 
 1. Place a test order on the development store (Shopify Admin or storefront).  
 2. Within a short time, open Jimvio **Orders**.  
-3. Expected: order ingested via `orders/create` (or `orders/updated`) webhook; line items mapped when possible.
+3. Expected: order ingested as pending unless Shopify reports `financial_status=paid`; `orders/paid` and `orders/updated` move the existing order to paid, while cancelled/refunded events never trigger supplier fulfillment.
 
 ## 7. How fulfillment works
 

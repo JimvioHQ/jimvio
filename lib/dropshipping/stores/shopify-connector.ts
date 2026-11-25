@@ -8,6 +8,18 @@ import type {
   StorePriceUpdate,
 } from "./types";
 
+export function normalizeShopifyFinancialStatus(
+  financialStatus: unknown
+): "paid" | "pending" | "failed" | "refunded" | "cancelled" {
+  const status = String(financialStatus ?? "").trim().toLowerCase();
+  if (status === "paid") return "paid";
+  if (status === "refunded" || status === "partially_refunded") return "refunded";
+  if (status === "voided") return "cancelled";
+  if (status === "failed") return "failed";
+  // pending, authorized, partially_paid, unpaid and unknown states never fulfill.
+  return "pending";
+}
+
 type ShopifyClientConfig = {
   shopDomain: string;
   accessToken: string;
@@ -429,15 +441,18 @@ export class ShopifyStoreConnector implements StoreConnector {
       phone: (payload.phone as string) ?? null,
       currency: String(payload.currency ?? "USD"),
       subtotal: Number(payload.subtotal_price ?? 0),
-      shippingAmount: Number(
-        (payload.total_shipping_price_set as { shop_money?: { amount?: string } })?.shop_money
-          ?.amount ?? payload.shipping_lines
-          ? ((payload.shipping_lines as Array<{ price?: string }>) ?? []).reduce(
-              (s, l) => s + Number(l.price ?? 0),
-              0
-            )
-          : 0
-      ),
+      shippingAmount: (() => {
+        const totalShipping = (
+          payload.total_shipping_price_set as { shop_money?: { amount?: string } } | undefined
+        )?.shop_money?.amount;
+        if (totalShipping != null) return Number(totalShipping);
+        return ((payload.shipping_lines as Array<{ price?: string }>) ?? []).reduce(
+          (sum, line) => sum + Number(line.price ?? 0),
+          0
+        );
+      })(),
+      paymentStatus: normalizeShopifyFinancialStatus(payload.financial_status),
+      isCancelled: Boolean(payload.cancelled_at),
       taxAmount: Number(payload.total_tax ?? 0),
       discountAmount: Number(payload.total_discounts ?? 0),
       total: Number(payload.total_price ?? 0),

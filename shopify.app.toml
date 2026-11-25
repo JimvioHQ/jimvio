@@ -36,7 +36,7 @@ api_version = "2024-07"
   uri = "/api/webhooks/dropshipping/shopify"
 
   [[webhooks.subscriptions]]
-  topics = [ "orders/create", "orders/updated" ]
+  topics = [ "orders/create", "orders/updated", "orders/paid", "orders/cancelled" ]
   uri = "/api/webhooks/dropshipping/shopify"
 
   [[webhooks.subscriptions]]

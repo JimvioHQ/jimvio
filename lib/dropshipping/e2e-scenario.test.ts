@@ -83,6 +83,8 @@ describe("Dropshipping OS E2E scenario (fixtures)", () => {
       ],
     });
     assert.equal(a.externalOrderId, b.externalOrderId);
+  // Imported Shopify orders stay pending until Shopify confirms payment.
+  assert.equal(a.paymentStatus, "pending");
     const idemA = `shopify:${a.externalOrderId}`;
     const idemB = `shopify:${b.externalOrderId}`;
     assert.equal(idemA, idemB);

@@ -68,7 +68,7 @@ Never put client secret or tokens in `NEXT_PUBLIC_*` vars, git, or client bundle
 
 After a successful connect, Jimvio attempts **idempotent** registration for:
 
-- `orders/create`, `orders/updated`
+- `orders/create`, `orders/updated`, `orders/paid`, `orders/cancelled`
 - `products/create`, `products/update`, `products/delete`
 - `app/uninstalled`
 

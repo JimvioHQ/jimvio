@@ -5,6 +5,16 @@ import { claimIdempotency, completeIdempotency } from "../api/idempotency";
 import { logIntegration } from "../observability/log";
 import { usableCjVid } from "@/lib/cj/variant-vid";
 
+export function isOrderPaymentEligibleForFulfillment(
+  paymentStatus: string | null | undefined,
+  orderStatus: string | null | undefined
+): boolean {
+  const payment = String(paymentStatus ?? "").toLowerCase();
+  const status = String(orderStatus ?? "").toLowerCase();
+  return ["paid", "completed"].includes(payment) &&
+    !["cancelled", "refunded", "shipped", "delivered", "completed"].includes(status);
+}
+
 export type RouteFulfillmentResult =
   | {
       ok: true;
@@ -26,6 +36,28 @@ export async function routeOrderFulfillment(
   const scope = "fulfillment_route";
   const idemKey = `fulfill:${orderId}`;
 
+  const { data: order } = await db
+    .from("orders")
+    .select(
+      "id, order_number, vendor_id, merchant_store_id, jimvio_store_id, order_channel, cj_order_id, cj_shipping_method, shipping_address, currency, fulfillment_status_normalized, payment_status, status"
+    )
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order) {
+    return { ok: false, error: "Order not found.", code: "ORDER_NOT_FOUND" };
+  }
+
+  // Never submit an external order to a supplier until payment is verified.
+  // Do not claim idempotency for unpaid orders; a later paid webhook must be able to retry.
+  if (!isOrderPaymentEligibleForFulfillment(order.payment_status, order.status)) {
+    return {
+      ok: false,
+      error: "Payment is not confirmed or the order is cancelled/refunded.",
+      code: "PAYMENT_NOT_CONFIRMED",
+    };
+  }
+
   const claim = await claimIdempotency(db, {
     vendorId: null,
     scope,
@@ -35,17 +67,13 @@ export async function routeOrderFulfillment(
     return claim.responseBody as RouteFulfillmentResult;
   }
 
-  const { data: order } = await db
-    .from("orders")
-    .select(
-      "id, order_number, vendor_id, merchant_store_id, jimvio_store_id, order_channel, cj_order_id, cj_shipping_method, shipping_address, currency, fulfillment_status_normalized"
-    )
-    .eq("id", orderId)
-    .maybeSingle();
-
-  if (!order) {
-    return { ok: false, error: "Order not found.", code: "ORDER_NOT_FOUND" };
-  }
+  const releaseClaim = async () => {
+    await db
+      .from("ds_idempotency_keys")
+      .delete()
+      .eq("scope", scope)
+      .eq("idempotency_key", idemKey);
+  };
 
   if (order.cj_order_id) {
     const result: RouteFulfillmentResult = {
@@ -64,6 +92,7 @@ export async function routeOrderFulfillment(
     .eq("order_id", orderId);
 
   if (!items?.length) {
+    await releaseClaim();
     return { ok: false, error: "Order has no line items.", code: "NO_ITEMS" };
   }
 
@@ -80,7 +109,7 @@ export async function routeOrderFulfillment(
       error: "No supplier-routable lines found for this order.",
       code: "NO_SUPPLIER_LINES",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -95,7 +124,7 @@ export async function routeOrderFulfillment(
       error: "Shipping destination country is missing or invalid.",
       code: "INVALID_ADDRESS",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -120,7 +149,7 @@ export async function routeOrderFulfillment(
       error: "Product variant mapping is missing for supplier fulfillment.",
       code: "MISSING_VARIANT_MAPPING",
     };
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -137,7 +166,7 @@ export async function routeOrderFulfillment(
           error: `Supplier inventory insufficient for variant ${line.supplierVariantId}.`,
           code: "INSUFFICIENT_INVENTORY",
         };
-        await completeIdempotency(db, scope, idemKey, 409, result);
+        await releaseClaim();
         return result;
       }
     }

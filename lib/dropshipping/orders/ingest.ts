@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NormalizedInboundOrder } from "../stores/types";
 import { claimIdempotency, completeIdempotency } from "../api/idempotency";
 import { logIntegration } from "../observability/log";
+import { buildExternalOrderPaymentPatch } from "./payment-state";
 
 export type IngestOrderResult =
   | { ok: true; orderId: string; created: boolean; duplicate: boolean }
@@ -39,14 +40,47 @@ export async function ingestStoreOrder(
     return claim.responseBody as IngestOrderResult;
   }
 
-  const { data: existing } = await db
+  const releaseClaim = async () => {
+    await db
+      .from("ds_idempotency_keys")
+      .delete()
+      .eq("scope", scope)
+      .eq("idempotency_key", idemKey);
+  };
+
+  const incomingPaymentStatus = params.normalized.paymentStatus ?? "pending";
+  const isCancelled = Boolean(params.normalized.isCancelled);
+  const { data: existing, error: existingError } = await db
     .from("orders")
-    .select("id")
+    .select("id, payment_status, status, fulfillment_status_normalized, cj_order_id")
     .eq("merchant_store_id", params.storeId)
     .eq("external_order_id", externalId)
     .maybeSingle();
 
+  if (existingError) {
+    await releaseClaim();
+    return { ok: false, error: "Could not check the existing external order.", code: "ORDER_LOOKUP_FAILED" };
+  }
+
   if (existing?.id) {
+    const patch = buildExternalOrderPaymentPatch(
+      existing,
+      incomingPaymentStatus,
+      isCancelled,
+      new Date().toISOString()
+    );
+
+    if (Object.keys(patch).length) {
+      const { error: updateError } = await db
+        .from("orders")
+        .update(patch)
+        .eq("id", existing.id);
+      if (updateError) {
+        await releaseClaim();
+        return { ok: false, error: "Could not update external order payment state.", code: "ORDER_PAYMENT_UPDATE_FAILED" };
+      }
+    }
+
     const result: IngestOrderResult = {
       ok: true,
       orderId: existing.id,
@@ -93,7 +127,7 @@ export async function ingestStoreOrder(
       durationMs: Date.now() - started,
       externalId,
     });
-    await completeIdempotency(db, scope, idemKey, 422, result);
+    await releaseClaim();
     return result;
   }
 
@@ -105,16 +139,28 @@ export async function ingestStoreOrder(
     .maybeSingle();
 
   if (!vendor?.user_id) {
+    await releaseClaim();
     return { ok: false, error: "Merchant vendor account not found.", code: "VENDOR_NOT_FOUND" };
   }
+
+  const orderPaymentStatus = incomingPaymentStatus;
+  const orderStatus = isCancelled
+    ? orderPaymentStatus === "refunded" ? "refunded" : "cancelled"
+    : orderPaymentStatus === "paid"
+      ? "confirmed"
+      : orderPaymentStatus === "refunded"
+        ? "refunded"
+        : orderPaymentStatus === "failed" || orderPaymentStatus === "cancelled"
+          ? "cancelled"
+          : "pending";
 
   const { data: order, error: orderErr } = await db
     .from("orders")
     .insert({
       buyer_id: vendor.user_id,
       vendor_id: params.vendorId,
-      status: "confirmed",
-      payment_status: "paid",
+      status: orderStatus,
+      payment_status: orderPaymentStatus,
       subtotal: params.normalized.subtotal,
       shipping_amount: params.normalized.shippingAmount,
       tax_amount: params.normalized.taxAmount,
@@ -133,7 +179,7 @@ export async function ingestStoreOrder(
         : null,
       source_payload: params.normalized.rawPayload,
       fulfillment_status_normalized: "pending",
-      paid_at: new Date().toISOString(),
+      paid_at: orderPaymentStatus === "paid" ? new Date().toISOString() : null,
       metadata: {
         dropshipping_os: true,
         customer_email: params.normalized.email,
@@ -149,7 +195,7 @@ export async function ingestStoreOrder(
       error: orderErr?.message || "Failed to create Jimvio order.",
       code: "ORDER_CREATE_FAILED",
     };
-    await completeIdempotency(db, scope, idemKey, 500, result);
+    await releaseClaim();
     return result;
   }
 
@@ -186,7 +232,7 @@ export async function ingestStoreOrder(
       error: "Failed to create order items.",
       code: "ORDER_ITEMS_FAILED",
     };
-    await completeIdempotency(db, scope, idemKey, 500, result);
+    await releaseClaim();
     return result;
   }
 

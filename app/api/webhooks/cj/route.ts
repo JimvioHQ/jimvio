@@ -1,4 +1,6 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createHash } from "node:crypto";
+import { after } from "next/server";
 import {
     type CJProduct,
     type SyncResult,
@@ -158,42 +160,44 @@ async function syncOrderFromWebhook(
 ): Promise<void> {
     const cjOrderId = params.cjOrderId?.trim();
     const orderRef = (params.orderNumber ?? params.orderNum ?? "").trim();
-    if (!cjOrderId && !orderRef) return;
+    if (!cjOrderId && !orderRef) throw new Error("CJ order webhook is missing its order reference");
 
     let orderId: string | null = null;
 
     if (cjOrderId) {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from("orders")
             .select("id")
             .eq("cj_order_id", cjOrderId)
             .maybeSingle();
+        if (error) throw new Error("CJ order lookup failed: " + error.message);
         orderId = data?.id ?? null;
     }
 
     if (!orderId && orderRef) {
-        const { data: byId } = await supabase
-            .from("orders")
-            .select("id")
-            .eq("id", orderRef)
-            .maybeSingle();
-        if (byId?.id) {
-            orderId = byId.id;
-        } else {
-            const { data: byNumber } = await supabase
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderRef);
+        if (isUuid) {
+            const { data: byId, error: byIdError } = await supabase
+                .from("orders")
+                .select("id")
+                .eq("id", orderRef)
+                .maybeSingle();
+            if (byIdError) throw new Error("CJ order ID lookup failed: " + byIdError.message);
+            if (byId?.id) orderId = byId.id;
+        }
+        if (!orderId) {
+            const { data: byNumber, error: byNumberError } = await supabase
                 .from("orders")
                 .select("id")
                 .eq("order_number", orderRef)
                 .maybeSingle();
+            if (byNumberError) throw new Error("CJ order number lookup failed: " + byNumberError.message);
             orderId = byNumber?.id ?? null;
         }
     }
 
     if (!orderId) {
-        console.warn(
-            `[CJ webhook] ORDER: no local order for cjOrderId=${cjOrderId} ref=${orderRef}`
-        );
-        return;
+        throw new Error("CJ order not found locally for cjOrderId=" + cjOrderId + " ref=" + orderRef);
     }
 
     const trackingNumber = params.trackNumber?.trim() || null;
@@ -216,7 +220,7 @@ async function syncOrderFromWebhook(
     });
 
     if (trackingNumber && cjOrderId) {
-        await supabase.from("cj_tracking").upsert(
+        const { error: trackingError } = await supabase.from("cj_tracking").upsert(
             {
                 order_id: orderId,
                 cj_order_id: cjOrderId,
@@ -227,6 +231,7 @@ async function syncOrderFromWebhook(
             },
             { onConflict: "order_id" }
         );
+        if (trackingError) throw new Error("CJ tracking upsert failed: " + trackingError.message);
 
         // Push tracking to connected sales channels (Shopify) via Sync Center.
         const { data: orderRow } = await supabase
@@ -371,8 +376,7 @@ async function markCjCatalogUnavailable(
 
 async function syncVariantByVid(
     supabase: SupabaseClient,
-    params: CJVariantParams,
-    exchangeRate: number
+    params: CJVariantParams
 ): Promise<void> {
     let row = await resolveVariantRow(
         supabase,
@@ -386,10 +390,7 @@ async function syncVariantByVid(
     }
 
     if (!row) {
-        console.warn(
-            `[CJ webhook] syncVariantByVid: no variant found for vid=${params.vid} sku=${params.variantSku}`
-        );
-        return;
+        throw new Error("CJ variant not found for vid=" + params.vid + " sku=" + params.variantSku);
     }
 
     const updates: Record<string, unknown> = {};
@@ -414,12 +415,7 @@ async function syncVariantByVid(
                 jimvio_price_calculated_at: priced.calculated_at,
             },
         });
-        if (rpcErr) {
-            console.warn(
-                `[CJ webhook] merge_variant_source_metadata failed:`,
-                rpcErr.message
-            );
-        }
+        if (rpcErr) throw new Error("CJ variant pricing metadata sync failed: " + rpcErr.message);
     }
 
     // ✅ Don't touch is_active for VARIANT webhooks — use STOCK for availability
@@ -450,12 +446,7 @@ async function syncVariantByVid(
         .update(updates)
         .eq("id", row.id);
 
-    if (error) {
-        console.error(
-            `[CJ webhook] Failed to update variant vid=${params.vid}:`,
-            error.message
-        );
-    }
+    if (error) throw new Error("CJ variant update failed vid=" + params.vid + ": " + error.message);
 }
 
 async function syncStock(
@@ -466,27 +457,20 @@ async function syncStock(
 
     const updates = Object.entries(params).map(async ([vidKey, entries]) => {
         const normalizedVid = normalizeCjVid(vidKey) ?? normalizeCjVid(entries[0]?.vid);
-        if (!normalizedVid) {
-            console.warn("[CJ webhook] Stock: skipping entry with missing vid");
-            return;
-        }
+        if (!normalizedVid) throw new Error("CJ stock webhook contains an invalid variant ID");
 
         const totalStock = sumCJStockRows(entries);
 
         let variantRow = await resolveVariantByCjVid(supabase, normalizedVid);
 
-        if (!variantRow) {
-            console.warn(
-                `[CJ webhook] Stock: no variant found for vid=${normalizedVid} — may not be imported yet`
-            );
-            return;
-        }
+        if (!variantRow) throw new Error("CJ stock variant not found for vid=" + normalizedVid);
 
-        const { data: variantMeta } = await supabase
+        const { data: variantMeta, error: variantMetaError } = await supabase
             .from("product_variants")
             .select("product_id")
             .eq("id", variantRow.id)
             .maybeSingle();
+        if (variantMetaError) throw new Error("CJ stock product lookup failed: " + variantMetaError.message);
 
         if (variantMeta?.product_id) {
             productIdsToSync.add(variantMeta.product_id as string);
@@ -504,13 +488,7 @@ async function syncStock(
             .update({ inventory_quantity: totalStock })
             .eq("id", variantRow.id);
 
-        if (error) {
-            console.error(
-                `[CJ webhook] Stock update failed vid=${normalizedVid}:`,
-                error.message
-            );
-            return;
-        }
+        if (error) throw new Error("CJ stock update failed vid=" + normalizedVid + ": " + error.message);
 
         console.log(
             `[CJ webhook] Stock updated vid=${normalizedVid} ` +
@@ -519,7 +497,12 @@ async function syncStock(
         );
     });
 
-    await Promise.allSettled(updates);
+    const results = await Promise.allSettled(updates);
+    const failures = results.filter((result) => result.status === "rejected");
+    if (failures.length > 0) {
+        const first = failures[0] as PromiseRejectedResult;
+        throw new Error("CJ stock sync failed for " + failures.length + " variant(s): " + String(first.reason));
+    }
 
     for (const productId of productIdsToSync) {
         await syncProductInventoryFromVariants(supabase, productId);
@@ -554,6 +537,8 @@ function mapParamsToCJProduct(params: CJProductParams): CJProduct {
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
+export const maxDuration = 60;
+
 export async function POST(req: Request): Promise<Response> {
     const previewBlocked = previewPrivilegedForbidden();
     if (previewBlocked) return previewBlocked;
@@ -587,37 +572,49 @@ export async function POST(req: Request): Promise<Response> {
         );
     }
 
-    let vendorId: string;
-    try {
-        vendorId = await getCJVendorId(supabase);
-    } catch (err) {
-        const message = err instanceof Error ? err.message : "CJ vendor id not configured";
-        console.error("[CJ webhook] CJ vendor mapping failed:", message);
-        return Response.json(
-            { ok: false, error: "Server misconfiguration" },
-            { status: 503 }
-        );
+    if (payload.type === "PRODUCT" && isTestPing(payload.params as CJProductParams)) {
+        console.log("[CJ webhook] Test ping acknowledged");
+        return Response.json({ ok: true, event: "TEST_PING" });
     }
 
-    console.log(
-        `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
-    );
+    const idempotencyKey = payload.messageId
+        ? `cj:${payload.messageId}`
+        : `cj:sha256:${createHash("sha256").update(rawBody).digest("hex")}`;
+    const logged = await logWebhookEvent(supabase, {
+        provider: "cj",
+        idempotencyKey,
+        payload: { rawBody, event: payload },
+    });
 
-    try {
-        // ── PRODUCT ───────────────────────────────────────────────────────
+    if (logged.isDuplicate) {
+        return Response.json({ ok: true, duplicate: true });
+    }
+    if (!logged.eventId) {
+        return Response.json({ ok: false, error: "Webhook event could not be persisted" }, { status: 503 });
+    }
+    const eventId = logged.eventId;
+
+    after(async () => {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                const vendorId = await getCJVendorId(supabase);
+                console.log(
+                    `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
+                );
+
+                try {
+                    // ── PRODUCT ───────────────────────────────────────────────────────
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;
 
-            if (isTestPing(params)) {
-                console.log("[CJ webhook] Test ping acknowledged");
-                return Response.json({ ok: true, event: "TEST_PING" });
-            }
+
 
             if (payload.messageType === "DELETE") {
                 await markCjCatalogUnavailable(supabase, params.pid);
                 await scheduleProductRemoval(params.pid).catch(() => {});
                 console.log(`[CJ webhook] PRODUCT archived pid=${params.pid}`);
-                return Response.json({ ok: true, event: "PRODUCT_DELETE" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             // Empty fields = heartbeat / no-op
@@ -629,10 +626,10 @@ export async function POST(req: Request): Promise<Response> {
                 console.log(
                     `[CJ webhook] PRODUCT empty-fields update, skipping pid=${params.pid}`
                 );
-                return Response.json({ ok: true, event: "PRODUCT_NOOP" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
-            const exchangeRate = await getUSDToRWFRate();
             const product = mapParamsToCJProduct(params);
 
             const { success, productId, error } = await upsertCJProduct(
@@ -646,17 +643,18 @@ export async function POST(req: Request): Promise<Response> {
                     `[CJ webhook] PRODUCT upsert failed pid=${params.pid}:`,
                     error
                 );
-                return Response.json({ ok: false, error }, { status: 200 });
+                throw new Error(error ?? "CJ product upsert failed");
             }
 
             // Self-heal: keep cj_product_map current
             if (productId) {
-                await supabase
+                const { error: mapError } = await supabase
                     .from("cj_product_map")
                     .upsert(
                         { cj_pid: params.pid, product_id: productId },
                         { onConflict: "cj_pid" }
                     );
+                if (mapError) throw new Error("CJ product map upsert failed: " + mapError.message);
             }
 
             console.log(
@@ -665,11 +663,8 @@ export async function POST(req: Request): Promise<Response> {
 
             await scheduleFromWebhookFields(params.pid, params.fields).catch(() => {});
 
-            return Response.json({
-                ok: true,
-                event: `PRODUCT_${payload.messageType}`,
-                changedFields: params.fields,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── VARIANT ───────────────────────────────────────────────────────
@@ -690,23 +685,15 @@ export async function POST(req: Request): Promise<Response> {
                         .update({ is_active: false })
                         .eq("id", row.id);
 
-                    if (error) {
-                        console.error(
-                            `[CJ webhook] VARIANT delete failed vid=${params.vid}:`,
-                            error.message
-                        );
-                    } else {
-                        console.log(
-                            `[CJ webhook] VARIANT deactivated vid=${params.vid}`
-                        );
-                    }
+                    if (error) throw new Error("CJ variant delete failed: " + error.message);
                 } else {
                     console.warn(
                         `[CJ webhook] VARIANT DELETE: not found vid=${params.vid}`
                     );
                 }
 
-                return Response.json({ ok: true, event: "VARIANT_DELETE" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
             // Empty fields = no-op
@@ -718,49 +705,25 @@ export async function POST(req: Request): Promise<Response> {
                 console.log(
                     `[CJ webhook] VARIANT empty-fields update, skipping vid=${params.vid}`
                 );
-                return Response.json({ ok: true, event: "VARIANT_NOOP" });
+                await markWebhookProcessed(supabase, eventId);
+                return;
             }
 
-            const exchangeRate = await getUSDToRWFRate();
-            await syncVariantByVid(supabase, params, exchangeRate);
+            await syncVariantByVid(supabase, params);
             console.log(`[CJ webhook] VARIANT sync ok vid=${params.vid}`);
-            return Response.json({
-                ok: true,
-                event: `VARIANT_${payload.messageType}`,
-                changedFields: params.fields,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── ORDER / LOGISTIC ──────────────────────────────────────────────
         if (payload.type === "ORDER" || payload.type === "LOGISTIC") {
             const params = payload.params as unknown as CJOrderParams;
-            const idempotencyKey = payload.messageId
-                ? `cj:${payload.messageId}`
-                : `cj:${payload.type}:${params.cjOrderId ?? params.orderNumber}:${params.orderStatus}:${params.trackNumber ?? ""}:${params.updateDate ?? ""}`;
-            const logged = await logWebhookEvent(supabase, {
-                provider: "cj",
-                idempotencyKey,
-                payload,
-            });
-            if (logged.isDuplicate) {
-                return Response.json({ ok: true, duplicate: true });
-            }
-            try {
-                await syncOrderFromWebhook(supabase, params);
-                if (logged.eventId) await markWebhookProcessed(supabase, logged.eventId);
-            } catch (err) {
-                const message = err instanceof Error ? err.message : "Order sync failed";
-                if (logged.eventId) await markWebhookFailed(supabase, logged.eventId, message);
-                throw err;
-            }
+            await syncOrderFromWebhook(supabase, params);
             console.log(
                 `[CJ webhook] ORDER sync ok cjOrderId=${params.cjOrderId} status=${params.orderStatus}`
             );
-            return Response.json({
-                ok: true,
-                event: `ORDER_${payload.messageType}`,
-                cjOrderId: params.cjOrderId,
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         // ── STOCK ─────────────────────────────────────────────────────────
@@ -770,23 +733,39 @@ export async function POST(req: Request): Promise<Response> {
             console.log(
                 `[CJ webhook] STOCK sync ok vids=${Object.keys(params).join(",")}`
             );
-            return Response.json({
-                ok: true,
-                event: "STOCK_UPDATE",
-                vids: Object.keys(params),
-            });
+            await markWebhookProcessed(supabase, eventId);
+            return;
         }
 
         console.log(
             `[CJ webhook] Acknowledged unhandled type=${payload.type}`
         );
-        return Response.json({ ok: true, event: "IGNORED" });
+        await markWebhookProcessed(supabase, eventId);
+        return;
 
-    } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
-        console.error("[CJ webhook] Unhandled error:", message);
-        return Response.json({ ok: false, error: message }, { status: 200 });
-    }
+                } catch (err) {
+                    throw err;
+                }
+
+                await markWebhookProcessed(supabase, eventId);
+                return;
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Unknown error";
+                console.error(`[CJ webhook] Processing attempt ${attempt + 1} failed:`, message);
+                if (attempt < 2) {
+                    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+                    continue;
+                }
+                await markWebhookFailed(supabase, eventId, message);
+            }
+        }
+    });
+
+    return Response.json({
+        ok: true,
+        accepted: true,
+        messageId: payload.messageId ?? null,
+    });
 }
 
 // ─── Health check ─────────────────────────────────────────────────────────────

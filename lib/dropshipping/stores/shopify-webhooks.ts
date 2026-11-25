@@ -4,6 +4,8 @@ import { getShopifyApiVersionFromEnv } from "@/lib/platform-shopify";
 const DS_WEBHOOK_TOPICS = [
   "orders/create",
   "orders/updated",
+  "orders/paid",
+  "orders/cancelled",
   "products/create",
   "products/update",
   "products/delete",
