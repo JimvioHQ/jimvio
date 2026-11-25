@@ -6,12 +6,13 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
   const { profile } = payload;
   const brands = payload.resume.filter((r) => r.entryType === "brand");
   const categories = Array.from(new Set([...profile.specialties, ...profile.industries]));
-  const availabilityLabel = {
+  const availabilityLabels: Record<string, string> = {
     open: "Open to work",
     limited: "Limited availability",
     booked: "Fully booked",
     unavailable: "Not available",
-  }[profile.availability] ?? null;
+  };
+  const availabilityLabel = availabilityLabels[profile.availability] ?? null;
   const summaryMeta = [profile.country, availabilityLabel].filter((value): value is string => Boolean(value));
 
   return (
