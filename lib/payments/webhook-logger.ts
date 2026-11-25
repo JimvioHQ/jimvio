@@ -45,7 +45,7 @@ export async function logWebhookEvent(
       code: insertError.code,
       message: insertError.message,
     });
-    return { eventId: null, isDuplicate: false };
+    throw new Error(`Failed to persist webhook event: ${insertError.message}`);
   }
 
   if (inserted?.id) {
@@ -58,12 +58,11 @@ export async function logWebhookEvent(
     .eq("idempotency_key", opts.idempotencyKey)
     .maybeSingle();
 
-  if (existingError || !existing?.id) {
-    console.error("[webhook-logger] existing event lookup failed", {
-      provider: opts.provider,
-      message: existingError?.message,
-    });
-    return { eventId: null, isDuplicate: false };
+  if (existingError) {
+    throw new Error(`Failed to load existing webhook event: ${existingError.message}`);
+  }
+  if (!existing?.id) {
+    throw new Error("Webhook event claim could not be confirmed after an idempotency conflict.");
   }
 
   if (existing.status === "processed" || existing.status === "ignored" || existing.dead_letter) {
@@ -97,7 +96,11 @@ export async function logWebhookEvent(
     .select("id")
     .maybeSingle();
 
-  if (claimError || !claimed?.id) {
+  if (claimError) {
+    throw new Error(`Failed to claim retryable webhook event: ${claimError.message}`);
+  }
+  if (!claimed?.id) {
+    // Another concurrent request won the compare-and-swap; let that request finish.
     return { eventId: existing.id, isDuplicate: true };
   }
 
@@ -131,16 +134,20 @@ export async function markWebhookFailed(
   error: string,
   orderId?: string | null,
 ): Promise<void> {
-  const { data: existing } = await db
+  const { data: existing, error: lookupError } = await db
     .from("webhook_events")
     .select("attempt_count")
     .eq("id", eventId)
     .maybeSingle();
 
-  const deadLetter = Number(existing?.attempt_count ?? 1) >= WEBHOOK_MAX_ATTEMPTS;
+  if (lookupError || !existing) {
+    throw new Error(`Unable to load webhook retry count: ${lookupError?.message ?? "event not found"}`);
+  }
+
+  const deadLetter = Number(existing.attempt_count ?? 1) >= WEBHOOK_MAX_ATTEMPTS;
   const now = new Date().toISOString();
 
-  await db
+  const { error: updateError } = await db
     .from("webhook_events")
     .update({
       status: deadLetter ? "dead_letter" : "failed",
@@ -151,4 +158,8 @@ export async function markWebhookFailed(
       updated_at: now,
     })
     .eq("id", eventId);
+
+  if (updateError) {
+    throw new Error(`Unable to persist webhook failure state: ${updateError.message}`);
+  }
 }
