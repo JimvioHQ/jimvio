@@ -23,11 +23,16 @@ function formatDelta(current: number, previous: number): string | null {
 }
 
 async function getUserCommunityIds(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: memberships } = await supabase
+  const { data: memberships, error } = await supabase
     .from("community_memberships")
     .select("community_id")
     .eq("user_id", userId)
     .eq("status", "active");
+
+  if (error) {
+    logCommunityFailure("memberships.list", error);
+    throw new Error(publicErrorMessage(error, "Could not load community memberships"));
+  }
 
   return (memberships ?? []).map((m) => m.community_id);
 }
