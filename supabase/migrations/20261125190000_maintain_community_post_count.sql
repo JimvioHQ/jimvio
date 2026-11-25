@@ -1,5 +1,3 @@
-begin;
-
 -- Keep the cached community post count in sync with published posts.
 -- This is an aggregate counter correction only; no post content is modified.
 create or replace function public.sync_community_post_count()
@@ -58,6 +56,8 @@ begin
 end;
 $function$;
 
+revoke all on function public.sync_community_post_count() from public;
+
 drop trigger if exists trg_sync_community_post_count on public.community_posts;
 create trigger trg_sync_community_post_count
 after insert or delete or update of community_id, is_published
@@ -73,5 +73,3 @@ set post_count = coalesce((
   where p.community_id = c.id
     and p.is_published is true
 ), 0);
-
-commit;
