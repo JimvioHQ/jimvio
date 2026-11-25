@@ -3,6 +3,22 @@
 import { useState } from "react";
 import Image from "next/image";
 import { Newspaper } from "lucide-react";
+import { isAllowedImageHost } from "@/lib/media/image-hosts";
+
+function shouldUseImageOptimizer(src: string): boolean {
+  // Local assets are safe to optimize. External editorial images only use the
+  // optimizer when their hostname is explicitly allowlisted; all other HTTPS
+  // sources load directly, avoiding Next's remote-host rejection while
+  // preserving the security boundary that protects the image optimization quota.
+  if (src.startsWith("/")) return true;
+
+  try {
+    const url = new URL(src);
+    return url.protocol === "https:" && isAllowedImageHost(url.hostname);
+  } catch {
+    return false;
+  }
+}
 
 export function StoryImageAsset({
   src,
@@ -41,6 +57,7 @@ export function StoryImageAsset({
       fill
       priority={priority}
       sizes={sizes}
+      unoptimized={!shouldUseImageOptimizer(src)}
       className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
       onError={() => setFailed(true)}
     />
