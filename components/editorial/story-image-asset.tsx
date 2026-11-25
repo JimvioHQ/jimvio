@@ -10,7 +10,7 @@ function shouldUseImageOptimizer(src: string): boolean {
   // optimizer when their hostname is explicitly allowlisted; all other HTTPS
   // sources load directly, avoiding Next's remote-host rejection while
   // preserving the security boundary that protects the image optimization quota.
-  if (src.startsWith("/")) return true;
+  if (src.startsWith("/") && !src.startsWith("//")) return true;
 
   try {
     const url = new URL(src);
