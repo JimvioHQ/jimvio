@@ -306,7 +306,7 @@ const cachedPayload = unstable_cache(
     }
     return payload;
   },
-  ["hub-discover-v2"],
+  ["hub-discover-v3"],
   { revalidate: 30, tags: ["hub-discover"] },
 );
 

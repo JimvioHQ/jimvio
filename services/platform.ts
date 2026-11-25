@@ -194,7 +194,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v9-${limit}`],
+    [`homepage-communities-v10-${limit}`],
     { revalidate: 60 },
   )();
 }

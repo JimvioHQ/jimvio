@@ -117,6 +117,7 @@ export async function GET() {
       full_name: string | null;
       avatar_url: string | null;
       username: string | null;
+      is_verified: boolean;
     };
     has_unseen: boolean;
     stories: Array<{
