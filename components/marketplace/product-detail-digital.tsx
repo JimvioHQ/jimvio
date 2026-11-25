@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 // import React, { useState } from "react";
 // import Image from "next/image";
@@ -481,7 +481,6 @@ import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 //   );
 // }
 
-"use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
