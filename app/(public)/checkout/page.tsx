@@ -41,6 +41,7 @@ type OrderRow = {
   shipping_amount: number | null;
   discount_amount: number | null;
   currency: string | null;
+  integration_source: string | null;
   metadata: unknown;
   shipping_address: unknown;
   vendors: { id: string; business_name: string; business_slug: string } | null;
@@ -53,6 +54,12 @@ const CHECKOUT_ERRORS = {
   NO_ITEMS: "no_items",
   SYNC_FAILED: "sync_failed",
 } as const;
+
+function metaString(meta: unknown, key: string): string | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = (meta as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
 
 function redirectWithError(code: string, detail?: string): never {
   const params = new URLSearchParams({ error: code });
@@ -123,6 +130,7 @@ function normaliseOrder(raw: any): OrderRow {
     shipping_amount: raw.shipping_amount ?? null,
     discount_amount: raw.discount_amount ?? null,
     currency: raw.currency ?? null,
+    integration_source: raw.integration_source ?? null,
     metadata: sanitizeCustomerOrderMetadata(raw.metadata),
     shipping_address: raw.shipping_address ?? null,
     vendors: Array.isArray(raw.vendors) ? raw.vendors[0] ?? null : raw.vendors,
@@ -150,6 +158,8 @@ const ORDER_SELECT = `
 export default async function CheckoutPage(props: {
   searchParams: Promise<{
     order_id?: string;
+    order_ids?: string;
+    orderIds?: string;
     order?: string;
     orderId?: string;
     method?: string;
