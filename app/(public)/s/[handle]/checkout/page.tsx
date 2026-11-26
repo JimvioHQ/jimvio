@@ -184,7 +184,11 @@ export default async function StorefrontCheckoutPage({
     latestPayment?.metadata && typeof latestPayment.metadata === "object" && !Array.isArray(latestPayment.metadata)
       ? latestPayment.metadata as Record<string, unknown>
       : {};
-  const storedProvider = String(latestPayment?.provider ?? rawOrder.payment_provider ?? rawOrder.gateway_used ?? "").toLowerCase();
+  const storedProvider = String(
+    latestPayment?.provider ??
+    (["pending", "processing"].includes(String(rawOrder.payment_status)) ? rawOrder.payment_provider ?? rawOrder.gateway_used : "") ??
+    ""
+  ).toLowerCase();
   const mappedProvider =
     storedProvider === "binance" ? "binancepay" :
     storedProvider === "flutterwave" && latestPaymentMetadata.method === "mobile_money" ? "mobile_money" :
