@@ -1667,7 +1667,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   // If any order in this cart has an active provider transaction, freeze all
   // vendor orders together so the shared checkout amount cannot drift.
   let relatedOrdersQuery = cosTable(admin, "orders")
-    .select("id")
+    .select("id, payment_provider, gateway_used")
     .eq("buyer_id", user.id)
     .filter("metadata->>cart_id", "eq", cartId)
     .eq("status", "pending")
@@ -1693,9 +1693,10 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   if (activePaymentRows?.some((row) => row.status !== "failed")) {
     return { ok: true, changed: false };
   }
+  const currentRelatedOrder = (relatedOrders ?? []).find((row) => row.id === orderId);
   if (
     ["pending", "processing"].includes(order.payment_status as string) &&
-    (order.payment_provider || order.gateway_used) &&
+    (currentRelatedOrder?.payment_provider || currentRelatedOrder?.gateway_used) &&
     !activePaymentRows?.some((row) => row.order_id === orderId)
   ) {
     return { ok: false, error: "The payment provider has not confirmed the previous attempt. Please check Orders before editing this order." };
