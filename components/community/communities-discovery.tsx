@@ -666,7 +666,7 @@ export function CommunitiesDiscovery({
             `role, status,
              communities!inner (
                id, slug, name, tagline, category,
-               avatar_url, cover_image, image_url,
+               avatar_url, cover_image,
                member_count, is_free, monthly_price, currency,
                owner_id, created_at, is_active, is_featured, settings
              )`
@@ -702,7 +702,7 @@ export function CommunitiesDiscovery({
             category: (c.category as string | null) ?? null,
             avatar_url: (c.avatar_url as string | null) ?? null,
             cover_image: (c.cover_image as string | null) ?? null,
-            image_url: (c.image_url as string | null) ?? null,
+            image_url: (c.cover_image as string | null) ?? (c.avatar_url as string | null) ?? null,
             member_count: resolveCommunityMemberCount({
               slug: String(c.slug),
               member_count: Number(c.member_count ?? 0),
