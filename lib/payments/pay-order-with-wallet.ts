@@ -132,6 +132,7 @@ export async function payOrderWithWallet(
   }
 
   const result = reservation as {
+    ok?: boolean;
     already_paid?: boolean;
     reason?: string;
     available_balance?: number;
@@ -145,6 +146,10 @@ export async function payOrderWithWallet(
       code: "INSUFFICIENT_WALLET_BALANCE",
       error: `Insufficient Jimvio Wallet balance. Available: ${Number(result.available_balance ?? 0).toFixed(2)} ${walletCurrency}; required: ${Number(result.required_amount ?? debitAmount).toFixed(2)} ${walletCurrency}.`,
     };
+  }
+
+  if (!result?.ok && !result?.already_paid) {
+    return { ok: false, status: 500, error: "Wallet payment could not be reserved. No order payment was completed." };
   }
 
   if (result?.already_paid) {
