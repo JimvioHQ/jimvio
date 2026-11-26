@@ -243,6 +243,19 @@ export async function payOrdersWithWallet(
     }
   }
 
+  for (const order of unpaidOrders) {
+    if (order.integration_source === "community") {
+      const metadata = order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+        ? order.metadata as Record<string, unknown>
+        : {};
+      const communityId = typeof metadata.community_id === "string" ? metadata.community_id : "";
+      const planType = typeof metadata.plan_type === "string" ? metadata.plan_type : "";
+      if (!communityId || !isAccessPlanKey(planType)) {
+        return { ok: false, status: 409, error: "Community subscription details are incomplete. Please contact support." };
+      }
+    }
+  }
+
   const wallet = await ensureWallet(userId, db);
   const walletCurrency = String(wallet.currency ?? "USD").toUpperCase();
   if (walletCurrency !== "USD" && walletCurrency !== "RWF") {
