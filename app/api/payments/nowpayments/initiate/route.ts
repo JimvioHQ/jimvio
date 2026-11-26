@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const { orderId, orderIds: rawOrderIds, payCurrency } = await req.json()
     const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
 
-    if (orderIds.length === 0 || orderIds.length > 50 || new Set(orderIds).size !== orderIds.length) {
+    if (orderIds.length === 0 || orderIds.length > 50 || new Set(orderIds).size !== orderIds.length || orderIds.join(',').length > 240) {
       return NextResponse.json({ error: 'Provide a valid, unique order list.' }, { status: 400 })
     }
     for (const id of orderIds) {
