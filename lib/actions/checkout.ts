@@ -1233,9 +1233,6 @@ export async function startCheckout(
       return err("The payment provider has not confirmed a previous order attempt. Please check Orders before retrying checkout.");
     }
     const hasAnyActivePayment = (activePaymentRows ?? []).some((row) => row.status !== "failed");
-    const protectedOrderIds = new Set(
-      (activePaymentRows ?? []).filter((row) => row.status !== "failed").map((row) => row.order_id)
-    );
     const ordersSafeToRevalidate = hasAnyActivePayment
       ? []
       : existingOrders.map((order) => order.id);
