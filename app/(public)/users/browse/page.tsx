@@ -45,7 +45,7 @@ type MemberCard = ProfileRow & {
 const PAGE_SIZE = 24;
 
 function safeQuery(value: string): string {
-  return value.trim().slice(0, 80).replace(/[,%()]/g, " ").replace(/\\s+/g, " ");
+  return value.trim().slice(0, 80).replace(/[,%()]/g, " ").replace(/\s+/g, " ");
 }
 
 function pageHref(page: number, query: string): string {
