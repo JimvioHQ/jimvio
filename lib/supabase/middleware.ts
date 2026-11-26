@@ -256,6 +256,7 @@ export async function updateSession(request: NextRequest) {
 
         if (profile2faError || !profile2fa) {
           console.error("[middleware] private profile security lookup failed:", profile2faError ?? "Profile row missing");
+          await supabase.auth.signOut();
           const securityCheckUrl = request.nextUrl.clone();
           securityCheckUrl.pathname = "/login";
           securityCheckUrl.search = "";
