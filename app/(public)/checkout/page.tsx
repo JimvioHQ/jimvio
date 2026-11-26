@@ -280,6 +280,7 @@ export default async function CheckoutPage(props: {
           mode={isCommunity ? "community" : "cart"}
           preferredMethod={preferredMethod}
           resumeProvider={resumeProvider}
+          hasActivePaymentSession={hasActivePaymentSession}
           cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
           changes={!isDirectCheckout ? syncResult?.changes : undefined}
         />
