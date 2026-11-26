@@ -41,8 +41,11 @@ export async function payOrderWithWallet(
     return { ok: true, alreadyPaid: true, redirectUrl };
   }
 
-  if (["cancelled", "refunded"].includes(String(order.status).toLowerCase())) {
-    return { ok: false, status: 409, error: "This order can no longer be paid." };
+  if (
+    ["cancelled", "refunded"].includes(String(order.status).toLowerCase()) ||
+    !["pending", "checkout_direct"].includes(String(order.status))
+  ) {
+    return { ok: false, status: 409, error: "This order can no longer be paid from checkout." };
   }
 
   let communityPayment: { communityId: string; planType: import("@/lib/community/access-pricing").AccessPlanKey } | null = null;
