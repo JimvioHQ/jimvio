@@ -225,8 +225,14 @@ export async function payOrdersWithWallet(
     return { ok: false, status: 404, error: "One or more orders could not be found." };
   }
 
-  const ordersById = new Map(rows.map((order) => [order.id, order]));
-  const orders = uniqueOrderIds.map((id) => ordersById.get(id)).filter((order): order is NonNullable<typeof order> => Boolean(order));
+  const ordersById = new Map<string, (typeof rows)[number]>(
+    rows.map((order) => [order.id, order] as const),
+  );
+  const orderedOrders = uniqueOrderIds.map((id) => ordersById.get(id));
+  if (orderedOrders.some((order) => !order)) {
+    return { ok: false, status: 404, error: "One or more orders could not be found." };
+  }
+  const orders = orderedOrders as Array<(typeof rows)[number]>;
 
   const unpaidOrders = orders.filter((order) => !isOrderPaymentComplete(order.payment_status));
   if (!unpaidOrders.length) {
