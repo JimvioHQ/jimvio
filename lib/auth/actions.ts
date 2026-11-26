@@ -544,11 +544,11 @@ export async function signIn(formData: FormData) {
     const accountStatus = meta.account_status as string | undefined;
     const { data: profileGate } = await supabase
       .from("profiles")
-      .select("is_active, email")
+      .select("is_active")
       .eq("id", userId)
       .maybeSingle();
 
-    if (isAccountAccessBlocked(accountStatus, profileGate?.email ?? email, profileGate?.is_active)) {
+    if (isAccountAccessBlocked(accountStatus, data.user.email ?? email, profileGate?.is_active)) {
       await supabase.auth.signOut();
       return {
         error: accountStatus === "deleted"
@@ -569,11 +569,7 @@ export async function signIn(formData: FormData) {
     // with the session client always failed and silently skipped 2FA.
     const twoFaAdmin = createAdminClient()
     const [profileResult, secretResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("two_factor_enabled")
-        .eq("id", userId)
-        .maybeSingle(),
+      supabase.rpc("get_my_private_profile").maybeSingle(),
       twoFaAdmin
         .from("user_2fa_secrets")
         .select("secret")
@@ -581,7 +577,11 @@ export async function signIn(formData: FormData) {
         .maybeSingle(),
     ])
 
-    if (profileResult.error) console.error("[auth] 2FA profile lookup error:", profileResult.error)
+    if (profileResult.error || !profileResult.data) {
+      console.error("[auth] 2FA profile lookup error:", profileResult.error ?? "Profile row missing")
+      await supabase.auth.signOut()
+      return { error: "Sign in failed. Please try again." }
+    }
     if (secretResult.error) {
       // Fail closed: never let a lookup failure skip the second factor.
       console.error("[auth] 2FA secret lookup error:", secretResult.error)
@@ -1199,13 +1199,23 @@ export async function getProfile() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, email, full_name, avatar_url, two_factor_enabled, user_roles(*), wallets(*)")
-      .eq("id", user.id)
-      .single()
+    const [profileResult, privateProfileResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, user_roles(*), wallets(*)")
+        .eq("id", user.id)
+        .single(),
+      supabase.rpc("get_my_private_profile").maybeSingle(),
+    ])
+    if (profileResult.error || privateProfileResult.error || !profileResult.data || !privateProfileResult.data) {
+      return null
+    }
 
-    return profile
+    return {
+      ...profileResult.data,
+      email: privateProfileResult.data.email ?? user.email ?? null,
+      two_factor_enabled: privateProfileResult.data.two_factor_enabled ?? false,
+    }
   } catch {
     return null
   }
