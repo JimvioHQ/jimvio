@@ -287,6 +287,9 @@ export default async function CheckoutPage(props: {
 
   const rawOrdersById = new Map(rawOrders.map((row) => [row.id, row]));
   const orderedRawOrders = checkoutOrderIds.map((id) => rawOrdersById.get(id)!);
+  if (orderedRawOrders.some((order) => !["pending", "checkout_direct"].includes(order.status))) {
+    redirectWithError(CHECKOUT_ERRORS.ORDER_NOT_FOUND, "One or more orders are no longer available for payment.");
+  }
   const displayOrders = orderedRawOrders.map(normaliseOrder);
   const allItems = displayOrders.flatMap((order) => order.order_items);
   const types = new Set(allItems.map((item) => item.product_type));
