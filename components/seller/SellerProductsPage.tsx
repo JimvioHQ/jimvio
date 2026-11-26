@@ -119,7 +119,7 @@ export function SellerProductsPage() {
       return;
     }
 
-    const vendorLookup = await lookupVendorsByUserId(supabase, user.id, "*");
+    const vendorLookup = await lookupVendorsByUserId(supabase, user.id);
     if (!vendorLookup.ok) {
       const message = vendorLookupToastMessage(vendorLookup);
       console.error("Vendor lookup failed:", vendorLookup.code, vendorLookup.error);
