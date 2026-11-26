@@ -22,7 +22,7 @@ export function CommerceDiscovery({
     { href: `${base}/live`, label: "Upcoming lives", icon: Calendar },
     { href: `${base}?section=spaces`, label: "Popular groups", icon: Users },
     { href: `${base}?section=knowledge`, label: "Trending knowledge", icon: Flame },
-    { href: "/users/browse", label: "Featured creators", icon: Sparkles },
+    { href: "/influencers/browse", label: "Featured creators", icon: Sparkles },
   ] as const;
 
   return (

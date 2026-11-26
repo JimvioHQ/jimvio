@@ -90,7 +90,6 @@ export async function getAffiliateProgramStats() {
     affiliateSkus: affiliateProducts.count ?? 0,
     totalProducts: platform.totalProducts,
     totalVendors: platform.totalVendors,
-    totalUsers: platform.totalUsers,
   };
 }
 

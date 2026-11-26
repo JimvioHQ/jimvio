@@ -15,20 +15,13 @@ async function fetchMarketplaceStats(
 ) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  const [{ data: revenueRaw }, { count: creatorsActive }] = await Promise.all([
+  const [{ data: revenueRaw }] = await Promise.all([
     supabase
       .from("orders")
       .select("total_amount")
       .eq("payment_status", "paid")
       .gte("paid_at", today.toISOString())
       .limit(200),
-    supabase
-      .from("short_videos")
-      .select("creator_id", { count: "exact", head: true })
-      .eq("status", "active")
-      .gte("created_at", weekAgo),
   ]);
 
   const revenueToday = (revenueRaw ?? []).reduce(
@@ -39,7 +32,6 @@ async function fetchMarketplaceStats(
   return {
     viewers_now: 0,
     revenue_today: revenueToday,
-    creators_active: creatorsActive ?? 0,
   };
 }
 

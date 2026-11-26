@@ -203,7 +203,7 @@ export const PAGE_SEO = {
   influencersBrowse: {
     title: "Browse creators",
     description: "Discover creators, influencers, and vendor storefronts on Jimvio.",
-    path: "/users/browse",
+    path: "/influencers/browse",
   },
 } as const;
 

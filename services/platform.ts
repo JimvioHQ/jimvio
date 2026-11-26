@@ -5,8 +5,7 @@ import { loadVerifiedUserIds } from "@/lib/identity/verified-users";
 
 async function fetchPlatformStats() {
   const admin = getAdminDB();
-  const [users, vendors, products, campaigns, communities, earningsRes] = await Promise.all([
-    admin.from("profiles").select("id", { count: "exact", head: true }),
+  const [vendors, products, campaigns, communities, earningsRes] = await Promise.all([
     admin.from("vendors").select("id", { count: "exact", head: true }).eq("is_active", true),
     admin.from("products").select("id", { count: "exact", head: true }).eq("status", "active"),
     admin.from("ugc_campaigns").select("id", { count: "exact", head: true }),
@@ -21,7 +20,6 @@ async function fetchPlatformStats() {
   const totalEarnings = Number(earningsAgg?.[0]?.sum ?? 0);
 
   return {
-    totalUsers: users.count ?? 0,
     totalVendors: vendors.count ?? 0,
     totalProducts: products.count ?? 0,
     totalCampaigns: campaigns.count ?? 0,

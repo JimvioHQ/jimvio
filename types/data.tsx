@@ -23,7 +23,6 @@ export const NAV_LINKS: { id: string; label: string }[] = [
 ];
 
 export const STATS = [
-    { num: "10k", suffix: "+", label: "Active Creators" },
     { num: "$1M", suffix: "+", label: "Paid to Creators" },
     { num: "50", suffix: "+", label: "Countries Served" },
     { num: "99.9", suffix: "%", label: "Platform Uptime" },

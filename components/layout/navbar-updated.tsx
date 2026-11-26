@@ -57,7 +57,7 @@ function useScrollDirection(threshold = 8) {
 
 /* ─────────────────── HELPERS ─────────────────── */
 function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
-    const hide = ["/vendors", "/influencers", "/users/browse", "/influencers/program", "/shorts"];
+    const hide = ["/vendors", "/influencers", "/influencers/program", "/shorts"];
     let out = links.filter((l) => {
         const h = l.href.replace(/\/$/, "") || "/";
         return h !== "/clips" && !hide.includes(h);
