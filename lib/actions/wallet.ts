@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { aggregateWalletEarnings } from "@/lib/actions/wallet-aggregation";
 
 export async function getUserWalletData() {
   const supabase = await createClient();
@@ -55,21 +56,8 @@ export async function getUserWalletData() {
   const recentTransactions = [...(transactions ?? []), ...ugcTransactions]
     .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
 
-  // 4. Aggregate by earning source. UGC is included in creator earnings.
-  const aggregation = {
-    vendor: 0,
-    affiliate: 0,
-    creator: 0,
-    other: 0,
-  };
-
-  recentTransactions.forEach((tx) => {
-    const amount = Number(tx.amount || 0);
-    if (tx.type === "vendor_earning") aggregation.vendor += amount;
-    else if (tx.type === "affiliate_commission" || tx.type === "affiliate_earning") aggregation.affiliate += amount;
-    else if (tx.type === "community_earning" || tx.type === "ugc_earnings") aggregation.creator += amount;
-    else aggregation.other += amount;
-  });
+  // 4. Aggregate by earning source, keeping UGC separate from community bonuses.
+  const aggregation = aggregateWalletEarnings(recentTransactions);
 
   return {
     success: true,
