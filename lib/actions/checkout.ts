@@ -1623,14 +1623,34 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: true, changed: false };
   }
 
-  // Don't rewrite cart items or totals once a provider has an active payment
-  // transaction. The amount shown to the provider must remain immutable.
+  const cartId = (order.metadata as Record<string, unknown>)?.cart_id as
+    | string
+    | undefined;
+  if (!cartId) return { ok: false, error: "Order has no cart reference" };
+
+  // If any order in this cart has an active provider transaction, freeze all
+  // vendor orders together so the shared checkout amount cannot drift.
+  let relatedOrdersQuery = cosTable(admin, "orders")
+    .select("id")
+    .eq("buyer_id", user.id)
+    .filter("metadata->>cart_id", "eq", cartId)
+    .eq("status", "pending")
+    .in("payment_status", ["pending", "failed", "processing"]);
+  if (orderStoreId) {
+    relatedOrdersQuery = relatedOrdersQuery.eq("jimvio_store_id", orderStoreId);
+  } else {
+    relatedOrdersQuery = relatedOrdersQuery.is("jimvio_store_id", null);
+  }
+  const { data: relatedOrders, error: relatedOrdersError } = await relatedOrdersQuery;
+  if (relatedOrdersError) {
+    return { ok: false, error: "Could not verify related checkout orders." };
+  }
+  const relatedOrderIds = (relatedOrders ?? []).map((row) => row.id);
   const { data: activePaymentRows, error: activePaymentError } = await admin
     .from("transactions")
-    .select("id, status")
-    .eq("order_id", orderId)
-    .in("status", ["pending", "processing", "completed", "failed"])
-    .limit(1);
+    .select("id, order_id, status")
+    .in("order_id", relatedOrderIds.length ? relatedOrderIds : [orderId])
+    .in("status", ["pending", "processing", "completed", "failed"]);
   if (activePaymentError) {
     return { ok: false, error: "Could not verify the existing payment session." };
   }
@@ -1640,7 +1660,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   if (
     ["pending", "processing"].includes(order.payment_status as string) &&
     (order.payment_provider || order.gateway_used) &&
-    !activePaymentRows?.length
+    !activePaymentRows?.some((row) => row.order_id === orderId)
   ) {
     return { ok: false, error: "The payment provider has not confirmed the previous attempt. Please check Orders before editing this order." };
   }
@@ -1665,13 +1685,6 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     !["pending", "failed", "processing"].includes(order.payment_status as string)
   ) {
     return { ok: false, error: "Order is no longer editable" };
-  }
-
-  const cartId = (order.metadata as Record<string, unknown>)?.cart_id as
-    | string
-    | undefined;
-  if (!cartId) {
-    return { ok: false, error: "Order has no cart reference" };
   }
 
   // ── Fetch current cart items (only this vendor's items) ─────────────────────
