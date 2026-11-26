@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const migrationPath = path.join(
   root,
-  "supabase/migrations/20261125190000_maintain_community_post_count.sql",
+  "supabase/migrations/20261126001809_maintain_community_post_count.sql",
 );
 assert.ok(fs.existsSync(migrationPath), "Community post counter migration is missing");
 
