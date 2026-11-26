@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
     if (orderIds.length === 0) {
       return NextResponse.json({ received: true });
     }
+    if (orderIds.length > 50 || new Set(orderIds).size !== orderIds.length) {
+      return NextResponse.json({ error: "Invalid invoice order references" }, { status: 400 });
+    }
 
     const paidAtIso = new Date().toISOString();
     const txId = String(payment_id);
@@ -82,6 +85,16 @@ export async function POST(req: NextRequest) {
     }
     const orderById = new Map((bundleOrders ?? []).map((row) => [row.id, row]));
     const isMarketplaceBundle = orderById.size === orderIds.length;
+    // A Marketplace invoice must resolve every order reference before any order
+    // can be finalized. Never fall back to per-order settlement for a partial
+    // bundle, because that would bypass the aggregate invoice amount check.
+    if (orderById.size > 0 && !isMarketplaceBundle) {
+      console.error("[webhooks/nowpayments] partial Marketplace invoice reference set", {
+        orderIds,
+        resolvedOrderCount: orderById.size,
+      });
+      return NextResponse.json({ error: "Could not verify every invoice order" }, { status: 409 });
+    }
     let bundleAmountValid = true;
     if (isComplete && isMarketplaceBundle) {
       const expectedTotalUsd = (bundleOrders ?? []).reduce((sum, row) =>
