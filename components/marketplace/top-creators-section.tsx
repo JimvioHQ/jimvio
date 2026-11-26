@@ -50,7 +50,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
           </p>
         </div>
         <Link
-          href="/users/browse"
+          href="/influencers/browse"
           className="flex items-center gap-1 text-[12px] font-semibold text-[#fd5000] hover:text-orange-700 transition-colors shrink-0 ml-4"
         >
           View all <ChevronRight className="h-3.5 w-3.5" />
