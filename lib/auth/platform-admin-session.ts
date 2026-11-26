@@ -28,7 +28,7 @@ export async function getPlatformAdminSession(): Promise<
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("email, full_name, avatar_url")
+    .select("full_name, avatar_url")
     .eq("id", auth.user.id)
     .maybeSingle();
 
@@ -36,7 +36,7 @@ export async function getPlatformAdminSession(): Promise<
     ok: true,
     user: {
       id: auth.user.id,
-      email: profile?.email ?? auth.user.email ?? "",
+      email: auth.user.email ?? "",
       full_name: profile?.full_name ?? null,
       avatar_url: profile?.avatar_url ?? null,
     },

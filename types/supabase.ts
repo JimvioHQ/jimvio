@@ -12852,6 +12852,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_my_private_profile: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["profiles"]["Row"][]
+      }
+      get_my_vendors: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["vendors"]["Row"][]
+      }
       add_to_cart: {
         Args: {
           p_affiliate_link_id?: string

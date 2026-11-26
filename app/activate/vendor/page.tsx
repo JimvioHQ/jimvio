@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { activateVendorRole } from "@/lib/actions/activate-vendor-role";
-import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
+import { submitVendorApplication } from "@/lib/actions/activate-vendor-role";
+import { lookupVendorsByUserId, vendorLookupToastMessage } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -88,12 +88,13 @@ export default function ActivateVendorPage() {
          const { data: { user } } = await supabase.auth.getUser();
          if (!user) { router.push("/login"); return; }
 
-         const vendorLookup = await lookupVendorsByUserId(
-            supabase,
-            user.id,
-            "id, business_name, business_slug, verification_status, verification_notes, created_at"
-         );
-         const v = vendorLookup.ok ? vendorLookup.vendor : null;
+         const vendorLookup = await lookupVendorsByUserId(supabase, user.id);
+         if (!vendorLookup.ok) {
+             toast.error(vendorLookupToastMessage(vendorLookup));
+             setLoading(false);
+             return;
+          }
+          const v = vendorLookup.vendor;
          setVendor(
             v
                ? {
@@ -108,29 +109,21 @@ export default function ActivateVendorPage() {
          );
 
          if (v) {
-            const { data: full } = await supabase
-               .from("vendors")
-               .select("business_phone, business_address, business_country, business_description, business_email, website, tax_id, business_type, product_categories")
-               .eq("id", v.id)
-               .maybeSingle();
-            if (full) {
-               const f = full as Record<string, string | null>;
-               setForm(prev => ({
-                  ...prev,
-                  business_name: v.business_name ?? "",
-                  business_country: f.business_country ?? "RW",
-                  business_phone: f.business_phone ?? "",
-                  business_address: f.business_address ?? "",
-                  business_email: f.business_email ?? "",
-                  website: f.website ?? "",
-                  tax_id: f.tax_id ?? "",
-                  business_description: f.business_description ?? "",
-                  business_type: f.business_type ?? "",
-                  product_categories: f.product_categories ?? "",
-               }));
-            }
-         }
-         setLoading(false);
+             setForm(prev => ({
+                ...prev,
+                business_name: v.business_name ?? "",
+                business_country: v.business_country ?? "RW",
+                business_phone: v.business_phone ?? "",
+                business_address: v.business_address ?? "",
+                business_email: v.business_email ?? "",
+                website: v.website ?? "",
+                tax_id: v.tax_id ?? "",
+                business_description: v.business_description ?? "",
+                business_type: v.business_type ?? "",
+                product_categories: v.product_categories ?? "",
+             }));
+          }
+          setLoading(false);
       }
       load();
    }, [router]);
@@ -160,42 +153,27 @@ export default function ActivateVendorPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setSubmitting(false); return; }
 
-      let slug = slugify(form.business_name);
-      const { data: existing } = await supabase.from("vendors").select("id").eq("business_slug", slug).neq("user_id", user.id).maybeSingle();
-      if (existing) slug = `${slug}-${Date.now().toString(36)}`;
-
-      const { data: profile } = await supabase.from("profiles").select("email").eq("id", user.id).single();
-      const businessEmail = (form.business_email.trim() || (profile as { email?: string } | null)?.email) ?? null;
       const productCategoriesValue = getProductCategoriesString();
+       const result = await submitVendorApplication({
+          business_name: form.business_name.trim(),
+          business_slug: slugify(form.business_name),
+          business_description: form.business_description.trim() || null,
+          business_email: form.business_email.trim() || user.email || null,
+          business_phone: form.business_phone.trim() || null,
+          business_address: form.business_address.trim() || null,
+          business_country: form.business_country || "RW",
+          website: form.website.trim() || null,
+          tax_id: form.tax_id.trim() || null,
+          business_type: form.business_type.trim() || null,
+          product_categories: productCategoriesValue || null,
+       });
+       setSubmitting(false);
+       if (!result.success) {
+          toast.error(result.error ?? "Vendor application could not be submitted.");
+          return;
+       }
 
-      const payload: Record<string, unknown> = {
-         user_id: user.id,
-         business_name: form.business_name.trim(),
-         business_slug: slug,
-         business_description: form.business_description.trim() || null,
-         business_email: businessEmail,
-         business_phone: form.business_phone.trim() || null,
-         business_address: form.business_address.trim() || null,
-         business_country: form.business_country,
-         website: form.website.trim() || null,
-         tax_id: form.tax_id.trim() || null,
-         verification_status: "pending",
-         payout_method: "mtn", payout_account: null,
-         affiliate_enabled: true, affiliate_commission_rate: 10, is_active: true,
-      };
-      if (form.business_type.trim()) payload.business_type = form.business_type.trim();
-      if (productCategoriesValue) payload.product_categories = productCategoriesValue;
-
-      const { error } = await supabase.from("vendors").insert(payload);
-      setSubmitting(false);
-      if (error) { toast.error(error.message); return; }
-
-      const roleResult = await activateVendorRole();
-      if (!roleResult.success) {
-         toast.error(roleResult.error ?? "Application saved but the vendor role could not be assigned.");
-         return;
-      }
-      await fetchRoles();
+       await fetchRoles();
       toast.success("Application submitted successfully.");
       router.refresh();
       router.push("/ugc/campaign-center");
