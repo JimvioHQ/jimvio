@@ -57,8 +57,14 @@ function pageHref(page: number, query: string): string {
 }
 
 function formatCount(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\\.0$/, "")}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1).replace(/\\.0$/, "")}K`;
+  if (value >= 1_000_000) {
+    const compact = (value / 1_000_000).toFixed(1);
+    return `${compact.endsWith(".0") ? compact.slice(0, -2) : compact}M`;
+  }
+  if (value >= 1_000) {
+    const compact = (value / 1_000).toFixed(1);
+    return `${compact.endsWith(".0") ? compact.slice(0, -2) : compact}K`;
+  }
   return value.toLocaleString("en-US");
 }
 
