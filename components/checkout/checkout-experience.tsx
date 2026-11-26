@@ -146,6 +146,7 @@ export function CheckoutExperience({
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
    const hasStartedPayment = Boolean(resumeProvider || hasActivePaymentSession) || orders.some((order) =>
+      ["pending", "processing"].includes(order.payment_status) &&
       Boolean(order.payment_provider || order.gateway_used)
    );
 
