@@ -293,12 +293,16 @@ export default function DashboardSettingsClient() {
       }
 
       const [profRes, vendRes, affRes, infRes, rolesRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", user.id).single(),
-        supabase.from("vendors").select("*").eq("user_id", user.id).single(),
+        supabase.rpc("get_my_private_profile").maybeSingle(),
+        supabase.rpc("get_my_vendors"),
         supabase.from("affiliates").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("influencers").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("user_roles").select("role, is_active").eq("user_id", user.id),
       ]);
+      const primaryVendor =
+        (vendRes.data ?? []).find((row) => row.is_active !== false) ??
+        vendRes.data?.[0] ??
+        null;
 
       if (profRes.data) {
         setProfile({
@@ -315,23 +319,23 @@ export default function DashboardSettingsClient() {
         });
       }
 
-      if (vendRes.data) {
+      if (primaryVendor) {
         setVendor({
-          id: vendRes.data.id,
-          business_name: vendRes.data.business_name ?? "",
-          business_description: vendRes.data.business_description ?? "",
-          business_logo: vendRes.data.business_logo ?? "",
-          business_banner: vendRes.data.business_banner ?? "",
-          business_email: vendRes.data.business_email ?? "",
-          business_phone: vendRes.data.business_phone ?? "",
-          business_address: vendRes.data.business_address ?? "",
-          business_country: vendRes.data.business_country ?? "RW",
-          tax_id: vendRes.data.tax_id ?? "",
-          website: vendRes.data.website ?? "",
-          payout_method: normalizeVendorPayoutMethod(vendRes.data.payout_method),
-          payout_account: vendRes.data.payout_account ?? "",
-          affiliate_enabled: vendRes.data.affiliate_enabled ?? true,
-          affiliate_commission_rate: String(vendRes.data.affiliate_commission_rate ?? 10),
+          id: primaryVendor.id,
+          business_name: primaryVendor.business_name ?? "",
+          business_description: primaryVendor.business_description ?? "",
+          business_logo: primaryVendor.business_logo ?? "",
+          business_banner: primaryVendor.business_banner ?? "",
+          business_email: primaryVendor.business_email ?? "",
+          business_phone: primaryVendor.business_phone ?? "",
+          business_address: primaryVendor.business_address ?? "",
+          business_country: primaryVendor.business_country ?? "RW",
+          tax_id: primaryVendor.tax_id ?? "",
+          website: primaryVendor.website ?? "",
+          payout_method: normalizeVendorPayoutMethod(primaryVendor.payout_method),
+          payout_account: primaryVendor.payout_account ?? "",
+          affiliate_enabled: primaryVendor.affiliate_enabled ?? true,
+          affiliate_commission_rate: String(primaryVendor.affiliate_commission_rate ?? 10),
         });
       }
 
