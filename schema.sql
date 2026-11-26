@@ -5167,7 +5167,6 @@ CREATE POLICY "authors_manage_own_comments" ON "public"."community_post_comments
 ALTER TABLE "public"."blog_posts" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "blog_posts_select" ON "public"."blog_posts" FOR SELECT USING (true);
 
 
 
@@ -6580,7 +6579,7 @@ CREATE POLICY "wishlists_select" ON "public"."wishlists" FOR SELECT USING (("aut
 
 REVOKE USAGE ON SCHEMA "public" FROM PUBLIC;
 GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT ALL ON SCHEMA "public" TO "authenticated";
+GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
