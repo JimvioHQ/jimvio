@@ -12,7 +12,7 @@ let cachedCtor: PDFDocumentConstructor | null = null;
 /** Load pdfkit's CJS build so standard fonts resolve from node_modules (not a bundled __dirname). */
 function getPdfDocumentConstructor(): PDFDocumentConstructor {
   if (!cachedCtor) {
-    cachedCtor = require("pdfkit/js/pdfkit.js") as PDFDocumentConstructor;
+    cachedCtor = require("pdfkit") as PDFDocumentConstructor;
   }
   return cachedCtor;
 }
