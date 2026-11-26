@@ -31,7 +31,6 @@ const ICONS: Record<MarketplaceBenefitIcon, LucideIcon> = {
 type Stats = {
   viewers_now: number;
   revenue_today: number;
-  creators_active: number;
 };
 
 function BadgeIcon({ icon }: { icon: MarketplaceBenefitIcon }) {
