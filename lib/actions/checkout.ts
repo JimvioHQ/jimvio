@@ -834,7 +834,7 @@ export async function updatePendingOrdersShipping(
     if (provider === "wallet") return true; // Wallet debit reservations must always be reconciled.
     if (provider === "binance") {
       const expiry = Number(metadata.expire_time);
-      return Number.isFinite(expiry) && expiry > now;
+      return Number.isFinite(expiry) && expiry > now && Number.isFinite(createdAt) && createdAt >= oneHourAgo;
     }
     if (provider === "nowpayments") {
       return typeof metadata.invoice_url === "string" && metadata.invoice_url.startsWith("https://");
