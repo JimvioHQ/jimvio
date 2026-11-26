@@ -1232,20 +1232,21 @@ export async function startCheckout(
     if (hasUntrackedProcessingAttempt) {
       return err("The payment provider has not confirmed a previous order attempt. Please check Orders before retrying checkout.");
     }
+    const hasAnyActivePayment = (activePaymentRows ?? []).some((row) => row.status !== "failed");
     const protectedOrderIds = new Set(
       (activePaymentRows ?? []).filter((row) => row.status !== "failed").map((row) => row.order_id)
     );
-    const ordersSafeToRevalidate = existingOrders
-      .filter((order) => !protectedOrderIds.has(order.id))
-      .map((order) => order.id);
+    const ordersSafeToRevalidate = hasAnyActivePayment
+      ? []
+      : existingOrders.map((order) => order.id);
     if (ordersSafeToRevalidate.length) {
       const stockError = await revalidatePendingCjOrders(admin, ordersSafeToRevalidate);
       if (stockError) return err(stockError);
     }
 
-    const failedOrders = existingOrders.filter(
-      (o) => o.payment_status === "failed" && !protectedOrderIds.has(o.id)
-    );
+    const failedOrders = hasAnyActivePayment
+      ? []
+      : existingOrders.filter((o) => o.payment_status === "failed");
 
     if (failedOrders.length > 0) {
       const failedIds = failedOrders.map((o) => o.id);
@@ -1278,9 +1279,9 @@ export async function startCheckout(
 
     // Resume must not freeze a missing affiliate attribution from an earlier attempt.
     try {
-      const attributionRefreshIds = existingOrders
-        .filter((order) => !protectedOrderIds.has(order.id))
-        .map((order) => order.id);
+      const attributionRefreshIds = hasAnyActivePayment
+        ? []
+        : existingOrders.map((order) => order.id);
       if (attributionRefreshIds.length) {
         await refreshPendingOrdersAffiliateAttribution(
           admin,
