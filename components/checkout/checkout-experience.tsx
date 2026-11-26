@@ -273,7 +273,9 @@ export function CheckoutExperience({
    // ── Promo ─────────────────────────────────────────────────────────────────
    const [promoCode, setPromoCode] = useState("");
    const [promoApplying, setPromoApplying] = useState(false);
-   const [discount, setDiscount] = useState(0);
+   const [discount, setDiscount] = useState(() =>
+      orders.reduce((sum, order) => sum + Number(order.discount_amount ?? 0), 0)
+   );
 
    // ── Submission ────────────────────────────────────────────────────────────
    const [submitting, setSubmitting] = useState(false);
@@ -296,7 +298,12 @@ export function CheckoutExperience({
       [isCJOrder, cjSelected]
    );
 
-   const total = subtotal - discount + (shippingCost ?? 0);
+   const existingShippingCost = useMemo(
+      () => orders.reduce((sum, order) => sum + Number(order.shipping_amount ?? 0), 0),
+      [orders]
+   );
+   const displayShippingCost = shippingCost ?? existingShippingCost;
+   const total = subtotal - discount + displayShippingCost;
 
    async function applyPromo() {
       setPromoApplying(true);
@@ -475,7 +482,7 @@ export function CheckoutExperience({
             ...shipping,
             address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
             city: shipping.city || (isAllDigital ? "Online" : ""),
-            shippingAmount: shippingCost ?? 0,
+            shippingAmount: shippingCost ?? undefined,
             discountAmount: discount,
             ...(cjQuoteToken ? { quoteToken: cjQuoteToken } : {}),
             ...(cjSelected?.optionId ? { shippingOptionId: cjSelected.optionId } : {}),
