@@ -979,7 +979,7 @@ export async function updatePendingOrdersShipping(
     console.error("[updatePendingOrdersShipping] Could not load order lines:", cartLineError);
     return err("Could not verify the items in these orders. Please refresh and try again.");
   }
-  const linesByOrder = new Map<string, typeof cartLineRows>();
+  const linesByOrder = new Map<string, NonNullable<typeof cartLineRows>>();
   for (const line of cartLineRows ?? []) {
     const existing = linesByOrder.get(line.order_id) ?? [];
     linesByOrder.set(line.order_id, [...existing, line]);
@@ -990,7 +990,7 @@ export async function updatePendingOrdersShipping(
       .map((line) => line.order_id)
   );
 
-  const allocateAmount = (total: number, targetOrders: typeof existingOrders) => {
+  const allocateAmount = (total: number, targetOrders: NonNullable<typeof existingOrders>) => {
     const allocations = new Map<string, number>();
     if (!targetOrders.length) return allocations;
     const totalCents = Math.round(total * 100);
