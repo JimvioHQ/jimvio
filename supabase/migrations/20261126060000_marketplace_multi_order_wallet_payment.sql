@@ -49,8 +49,25 @@ BEGIN
     INTO v_refs
     FROM pg_catalog.unnest(p_order_ids) AS ids(order_id);
 
-  -- A complete prior reservation is safe to resume; a partial one is never
-  -- expected because all inserts and the wallet debit commit in one transaction.
+  -- Lock orders in deterministic order to avoid deadlocks between overlapping carts.
+  FOR v_order_id IN
+    SELECT ids.order_id
+      FROM pg_catalog.unnest(p_order_ids) AS ids(order_id)
+     ORDER BY ids.order_id
+  LOOP
+    SELECT *
+      INTO v_order
+      FROM public.orders
+     WHERE id = v_order_id
+     FOR UPDATE;
+
+    IF NOT FOUND OR v_order.buyer_id IS DISTINCT FROM p_user_id THEN
+      RAISE EXCEPTION 'order_not_found';
+    END IF;
+  END LOOP;
+
+  -- Re-check idempotency only after acquiring every order lock. A concurrent
+  -- request may have committed its reservation while this request was waiting.
   SELECT pg_catalog.count(*)
     INTO v_existing_count
     FROM public.transactions t
@@ -81,7 +98,7 @@ BEGIN
     );
   END IF;
 
-  -- Lock orders in deterministic order to avoid deadlocks between overlapping carts.
+  -- The order locks now protect this payable-state and active-provider check.
   FOR v_order_id IN
     SELECT ids.order_id
       FROM pg_catalog.unnest(p_order_ids) AS ids(order_id)
@@ -90,12 +107,7 @@ BEGIN
     SELECT *
       INTO v_order
       FROM public.orders
-     WHERE id = v_order_id
-     FOR UPDATE;
-
-    IF NOT FOUND OR v_order.buyer_id IS DISTINCT FROM p_user_id THEN
-      RAISE EXCEPTION 'order_not_found';
-    END IF;
+     WHERE id = v_order_id;
 
     IF v_order.payment_status IN ('paid', 'completed') THEN
       RAISE EXCEPTION 'order_already_paid';
@@ -112,7 +124,7 @@ BEGIN
       SELECT 1
         FROM public.transactions t
        WHERE t.order_id = v_order_id
-         AND t.provider <> 'wallet'
+         AND t.provider IS DISTINCT FROM 'wallet'
          AND t.status IN ('pending', 'processing')
     ) THEN
       RAISE EXCEPTION 'payment_in_progress';
