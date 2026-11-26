@@ -463,7 +463,13 @@ export function CheckoutExperience({
          });
          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
 
-         if (isCJOrder && cjSelected) {
+         // If a prior payment session is still active, continue it instead of
+         // creating a second provider charge or rewriting the order totals.
+         const resumedProvider = save.resumeProvider as MethodId | undefined;
+         const activePayment = resumedProvider ?? payment;
+         if (resumedProvider) setPayment(resumedProvider);
+
+         if (isCJOrder && cjSelected && !resumedProvider) {
             const cjRes = await fetch("/api/cj/set-shipping", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
@@ -486,11 +492,11 @@ export function CheckoutExperience({
          }
 
          console.info("[checkout] payment_initialized", {
-            provider: payment,
+            provider: activePayment,
             orderId: primaryOrderId,
          });
 
-         if (payment === "mobile_money") {
+         if (activePayment === "mobile_money") {
             setMomoError(null);
             if (!momoForm.country) {
                throw new Error("Mobile Money is not available in this country.");
@@ -587,7 +593,7 @@ export function CheckoutExperience({
          }
 
          // Initiate payment — never re-quotes shipping.
-         const res = await fetch(PAYMENT_ENDPOINTS[payment], {
+         const res = await fetch(PAYMENT_ENDPOINTS[activePayment], {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -598,7 +604,7 @@ export function CheckoutExperience({
          const data = await res.json();
          if (!res.ok) {
             console.warn("[checkout] payment_initialization_failed", {
-               provider: payment,
+               provider: activePayment,
                orderId: primaryOrderId,
                status: res.status,
             });
