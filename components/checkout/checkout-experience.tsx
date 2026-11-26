@@ -509,6 +509,47 @@ export function CheckoutExperience({
             orderId: primaryOrderId,
          });
 
+         if (resumedProvider === "mobile_money") {
+            const txRef = save.resumeTxRef;
+            if (!txRef) throw new Error("Your Mobile Money payment is awaiting confirmation. Please check Orders.");
+            const pollUrl = `/api/payments/mobile-money/status?orderId=${primaryOrderId}&txRef=${encodeURIComponent(txRef)}`;
+            setMomoAwaiting(true);
+            toast.message("Resuming your Mobile Money payment. Approve the request on your phone if prompted.");
+            if (momoPollRef.current) clearInterval(momoPollRef.current);
+            momoPollCountRef.current = 0;
+            const MAX_POLLS = 60;
+            await new Promise<void>((resolve, reject) => {
+               momoPollRef.current = setInterval(async () => {
+                  momoPollCountRef.current += 1;
+                  if (momoPollCountRef.current > MAX_POLLS) {
+                     if (momoPollRef.current) clearInterval(momoPollRef.current);
+                     setMomoAwaiting(false);
+                     reject(new Error("Payment confirmation is taking longer than expected. Check Orders before trying again."));
+                     return;
+                  }
+                  try {
+                     const response = await fetch(pollUrl, { cache: "no-store" });
+                     const json = await response.json();
+                     if (json.status === "successful") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        window.location.href = `/checkout/success?order=${primaryOrderId}`;
+                        resolve();
+                        return;
+                     }
+                     if (json.status === "failed" || json.status === "cancelled") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        reject(new Error(json.message || "The Mobile Money payment was not completed."));
+                     }
+                  } catch {
+                     // The signed webhook remains authoritative during transient polling errors.
+                  }
+               }, 5000);
+            });
+            return;
+         }
+
          if (activePayment === "mobile_money") {
             setMomoError(null);
             if (!momoForm.country) {
