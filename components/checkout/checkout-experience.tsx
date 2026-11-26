@@ -89,6 +89,7 @@ const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
    mobile_money: "/api/payments/mobile-money/initiate",
    nowpayments: "/api/payments/nowpayments/initiate",
    binancepay: "/api/payments/binancepay/initiate",
+   wallet: "/api/payments/wallet/order",
 } as const;
 
 // Above the component, alongside hasCJItems / getCJCartItems
