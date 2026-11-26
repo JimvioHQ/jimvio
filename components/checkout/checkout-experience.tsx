@@ -232,7 +232,7 @@ export function CheckoutExperience({
             }
          })
          .catch(() => undefined);
-   }, []);
+   }, [orders.length]);
 
    useEffect(() => {
       return () => {
