@@ -928,19 +928,22 @@ export async function updatePendingOrdersShipping(
     });
   }
 
+  // An order may carry a provider marker even if its transaction insert failed.
+  // Do not change its payable amount until that provider attempt is reconciled.
+  const hasUntrackedProviderAttempt = existingOrders.some((order) =>
+    ["pending", "processing"].includes(order.payment_status ?? "") &&
+    (order.payment_provider || order.gateway_used) &&
+    !(paymentRows ?? []).some((row) => row.order_id === order.id)
+  );
+  if (hasUntrackedProviderAttempt) {
+    return err("The payment provider has not confirmed the previous attempt yet. Please check Orders before trying another payment.");
+  }
+
   // A stale processing flag without an active transaction is recoverable. Reset
   // it only after confirming that there is no pending/processing/completed row.
   const processingOrders = existingOrders.filter((order) => order.payment_status === "processing");
   const processingOrderIds = processingOrders.map((order) => order.id);
   if (processingOrderIds.length) {
-    const hasUntrackedProviderAttempt = existingOrders.some((order) =>
-      ["pending", "processing"].includes(order.payment_status ?? "") &&
-      (order.payment_provider || order.gateway_used) &&
-      !(paymentRows ?? []).some((row) => row.order_id === order.id)
-    );
-    if (hasUntrackedProviderAttempt) {
-      return err("The payment provider has not confirmed the previous attempt yet. Please check Orders before trying another payment.");
-    }
     const { error: resetError } = await admin
       .from("orders")
       .update({ payment_status: "pending" as PaymentStatusValue, updated_at: new Date().toISOString() })
