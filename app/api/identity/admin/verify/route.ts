@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePlatformAdmin } from "@/lib/ops/require-platform-admin";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const guard = await requirePlatformAdmin();
   if ("error" in guard) return guard.error;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const status = req.nextUrl.searchParams.get("status") ?? "pending";
 
   const { data, error } = await supabase
