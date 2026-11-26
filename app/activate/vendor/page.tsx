@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { submitVendorApplication } from "@/lib/actions/activate-vendor-role";
-import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
+import { lookupVendorsByUserId, vendorLookupToastMessage } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -89,7 +89,12 @@ export default function ActivateVendorPage() {
          if (!user) { router.push("/login"); return; }
 
          const vendorLookup = await lookupVendorsByUserId(supabase, user.id);
-         const v = vendorLookup.ok ? vendorLookup.vendor : null;
+         if (!vendorLookup.ok) {
+             toast.error(vendorLookupToastMessage(vendorLookup));
+             setLoading(false);
+             return;
+          }
+          const v = vendorLookup.vendor;
          setVendor(
             v
                ? {
