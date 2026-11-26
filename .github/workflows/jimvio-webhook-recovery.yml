@@ -1,0 +1,36 @@
+name: Jimvio Failed Webhook Recovery
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jimvio-failed-webhook-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate cron secret
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Add the GitHub Actions secret CRON_SECRET with the same value as Vercel Production CRON_SECRET."
+            exit 1
+          fi
+
+      - name: Retry failed webhooks
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --location --fail-with-body --silent --show-error \
+            --max-time 90 --retry 1 --retry-delay 5 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.jimvio.com/api/cron/retry-failed-webhooks"
