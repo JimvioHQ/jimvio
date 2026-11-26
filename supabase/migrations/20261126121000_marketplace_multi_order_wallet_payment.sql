@@ -1,5 +1,6 @@
 -- Atomically reserve a single Jimvio Wallet debit across every unpaid order in a cart.
 -- This prevents partial multi-vendor checkout payments and duplicate debits on retries.
+-- ALLOWLISTED_STORED_FUNCTION_DML
 CREATE OR REPLACE FUNCTION public.reserve_orders_wallet_payment(
   p_order_ids uuid[],
   p_user_id uuid,
