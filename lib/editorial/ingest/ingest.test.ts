@@ -561,18 +561,18 @@ describe("external ingestion", () => {
     assert.equal(allowlist.includes("20261027180000"), true);
     const vercel = JSON.parse(read("vercel.json")) as {
       crons?: Array<{ path: string; schedule: string }>;
+      schedules?: Record<string, { path: string; schedule: string; timezone?: string; requestMethod?: string }>;
     };
-    const mediaIngestCron = vercel.crons?.find(
-      (entry) => entry.path === "/api/cron/media-ingest",
-    );
-    assert.equal(mediaIngestCron?.schedule, "0 10 * * *");
-
-    // This repository is on Vercel Hobby cadence for this job; keep the
-    // schedule assertion aligned with the operational cadence document.
-    const cadence = read("docs/operations/cron-schedule-cadence.md");
-    assert.match(
-      cadence,
-      /\| `\/api\/cron\/media-ingest` \| `17 \* \* \* \*` \| `0 10 \* \* \*` \|/,
+    const mediaIngestSchedule = vercel.schedules?.["media-ingest-six-hourly"];
+    assert.deepEqual(mediaIngestSchedule, {
+      schedule: "0 */6 * * *",
+      timezone: "UTC",
+      path: "/api/cron/media-ingest",
+      requestMethod: "GET",
+    });
+    assert.equal(
+      vercel.crons?.some((entry) => entry.path === "/api/cron/media-ingest"),
+      false,
     );
     const cron = read("app/api/cron/media-ingest/route.ts");
     assert.ok(cron.indexOf("assertCronAuthorized") < cron.indexOf("runIngestCycle"));
