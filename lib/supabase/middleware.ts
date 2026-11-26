@@ -182,7 +182,7 @@ export async function updateSession(request: NextRequest) {
         // client-editable and must NOT be trusted alone.
         const { data: accessProfile } = await supabase
           .from("profiles")
-          .select("is_active, email")
+          .select("is_active")
           .eq("id", user.id)
           .maybeSingle();
         const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -191,7 +191,7 @@ export async function updateSession(request: NextRequest) {
         if (
           isAccountAccessBlocked(
             accountStatus,
-            accessProfile?.email ?? user.email,
+            user.email,
             accessProfile?.is_active,
           )
         ) {
@@ -250,13 +250,20 @@ export async function updateSession(request: NextRequest) {
         !skipTwoFaForRecovery &&
         !verifiedTwoFaMatchesUser(verified, user.id)
       ) {
-        const { data: profile2fa } = await supabase
-          .from("profiles")
-          .select("two_factor_enabled")
-          .eq("id", user.id)
+        const { data: profile2fa, error: profile2faError } = await supabase
+          .rpc("get_my_private_profile")
           .maybeSingle();
 
-        if (profile2fa?.two_factor_enabled) {
+        if (profile2faError || !profile2fa) {
+          console.error("[middleware] private profile security lookup failed:", profile2faError ?? "Profile row missing");
+          const securityCheckUrl = request.nextUrl.clone();
+          securityCheckUrl.pathname = "/login";
+          securityCheckUrl.search = "";
+          securityCheckUrl.searchParams.set("error", "security_check_unavailable");
+          return NextResponse.redirect(securityCheckUrl);
+        }
+
+        if (profile2fa.two_factor_enabled) {
           const challenge = redirectToTwoFa(request, pathname);
           challenge.cookies.set(TWO_FA_PENDING_COOKIE, user.id, twoFaPendingCookieOptions());
           return challenge;
