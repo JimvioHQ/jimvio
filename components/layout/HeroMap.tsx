@@ -15,7 +15,6 @@ type GlobeEvent = {
 };
 
 type GlobeStats = {
-  totalUsers: number;
   totalOrders: number;
   activeCountries: number;
 };
@@ -53,11 +52,7 @@ export function HeroMap() {
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Live Activity</h3>
           <p style={{ margin: 0, color: "var(--color-text-muted)", fontSize: 13 }}>Recent marketplace events</p>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="text-center">
-              <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>Users</div>
-              <div className="font-semibold">{loading ? "—" : stats?.totalUsers ?? "—"}</div>
-            </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <div className="text-center">
               <div className="text-sm" style={{ color: "var(--color-text-muted)" }}>Orders</div>
               <div className="font-semibold">{loading ? "—" : stats?.totalOrders ?? "—"}</div>
