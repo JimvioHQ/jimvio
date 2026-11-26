@@ -89,11 +89,12 @@ export async function getWalletOsEscrowSnapshot(userId: string, db?: ServiceClie
 async function sumTransactions(client: ServiceClient, userId: string, sinceIso: string): Promise<number> {
   const { data } = await client
     .from("transactions")
-    .select("amount, created_at")
+    .select("amount, created_at, direction")
     .eq("user_id", userId)
+    .eq("direction", "credit")
     .gte("created_at", sinceIso);
 
-  return (data ?? []).reduce((sum: number, row: { amount: number | string }) => {
+  return (data ?? []).reduce((sum: number, row: { amount: number | string; direction: string }) => {
     const amount = Number(row.amount ?? 0);
     return amount > 0 ? sum + amount : sum;
   }, 0);
