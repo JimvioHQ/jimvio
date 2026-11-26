@@ -214,21 +214,30 @@ export async function POST(req: NextRequest) {
       .eq("id", orderId);
 
     // ── 3. Check for a reusable pending transaction ───────────────────────
-    const { data: existingTx } = await supabase
+    const { data: existingTxRows, error: existingTxError } = await supabase
       .from("transactions")
       .select("id, provider_transaction_id, created_at, amount")
       .eq("order_id", orderId)
       .eq("provider", "flutterwave")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(100);
+
+    if (existingTxError || (existingTxRows?.length ?? 0) >= 100) {
+      return apiError(503, {
+        code: "INTERNAL_ERROR",
+        reason: "We couldn't safely verify all existing payment attempts. Please contact support.",
+      });
+    }
 
     let txRef: string;
+    let reusableTx: (typeof existingTxRows)[number] | null = null;
 
-    if (existingTx) {
+    // Verify every pending attempt, not only the newest one. Older checkout links
+    // can remain payable; never create a fresh charge while any old reference is
+    // still pending at Flutterwave.
+    for (const existingTx of existingTxRows ?? []) {
       let flwStatus: string;
-
       try {
         const verify = await verifyFlutterwaveTransaction(existingTx.provider_transaction_id);
         flwStatus = verify.data?.status?.toLowerCase() ?? "unknown";
@@ -236,8 +245,6 @@ export async function POST(req: NextRequest) {
         if (err instanceof FlutterwaveAPIError && err.isNotFound) {
           flwStatus = "not_found";
         } else {
-          // A verification outage is not evidence that the old payment session
-          // failed. Keep it pending and fail closed to avoid a second charge.
           console.warn("[flutterwave/initiate] pending verification unavailable", {
             orderId,
             message: err instanceof Error ? err.message.slice(0, 160) : String(err),
@@ -258,33 +265,32 @@ export async function POST(req: NextRequest) {
       }
 
       if (flwStatus === "failed" || flwStatus === "not_found") {
-        // Mark the stale record failed and fall through to create a new one
         await supabase
           .from("transactions")
-          .update({ status: "failed" })
+          .update({ status: "failed", updated_at: new Date().toISOString() })
           .eq("id", existingTx.id);
-
-        txRef = generateTxRef("FLW");
-      } else {
-        // Still pending on Flutterwave's side — reuse the existing tx_ref
-        txRef = existingTx.provider_transaction_id;
-
-        if (Number(existingTx.amount) !== amount) {
-          return apiError(409, {
-            code: "INTERNAL_ERROR",
-            reason: "The existing payment amount differs from this order. Please open Orders or contact support before retrying.",
-          });
-        }
-
-        const result = await buildAndReturnPaymentLink({
-          supabase, req, orderId, txRef, amount, currency, profile, order,
-        });
-        if (result.error) return result.error;
-        return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
+        continue;
       }
-    } else {
-      txRef = generateTxRef("FLW");
+
+      reusableTx ??= existingTx;
     }
+
+    if (reusableTx) {
+      if (Number(reusableTx.amount) !== amount) {
+        return apiError(409, {
+          code: "INTERNAL_ERROR",
+          reason: "The existing payment amount differs from this order. Please open Orders or contact support before retrying.",
+        });
+      }
+      txRef = reusableTx.provider_transaction_id;
+      const result = await buildAndReturnPaymentLink({
+        supabase, req, orderId, txRef, amount, currency, profile, order,
+      });
+      if (result.error) return result.error;
+      return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
+    }
+
+    txRef = generateTxRef("FLW");
 
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: order.buyer_id,
