@@ -536,7 +536,7 @@ function GlobeView({
   // Renamed to `liveGlobeData` for clarity.
   const { data: liveGlobeData } = useSWR<{
     events: any[];
-    stats: { totalUsers: number; totalOrders: number; activeCountries: number };
+    stats: { totalOrders: number; activeCountries: number };
   }>("/api/globe-data", fetcher, {
     revalidateOnFocus: true,
     dedupingInterval: 300_000,
