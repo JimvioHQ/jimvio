@@ -1,7 +1,4 @@
 -- Owner-scoped access to private profile and vendor fields.
--- This is intentionally additive: broad table grants remain unchanged until the
--- follow-up ACL migration is applied after this code reaches Production.
-
 CREATE OR REPLACE FUNCTION public.get_my_private_profile()
 RETURNS SETOF public.profiles
 LANGUAGE sql
@@ -36,6 +33,5 @@ GRANT EXECUTE ON FUNCTION public.get_my_vendors() TO authenticated;
 
 COMMENT ON FUNCTION public.get_my_private_profile() IS
   'Returns the authenticated caller own profile row, including private fields; no user id argument is accepted.';
-
 COMMENT ON FUNCTION public.get_my_vendors() IS
   'Returns only vendor rows owned by the authenticated caller, including private payout and verification fields.';

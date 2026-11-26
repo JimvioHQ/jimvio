@@ -6,8 +6,7 @@ DROP POLICY IF EXISTS "blog_posts_select" ON public.blog_posts;
 -- Keep USAGE and existing table/function grants unchanged.
 REVOKE CREATE ON SCHEMA public FROM authenticated;
 
--- Backfill legacy QuantForg webhook metadata: all processed events have matching
--- published community messages, but the old processor left processing_status at received.
+-- Backfill legacy webhook metadata: processed events were left at received.
 UPDATE public.webhook_events
 SET processing_status = 'processed',
     processed_at = COALESCE(processed_at, updated_at)
