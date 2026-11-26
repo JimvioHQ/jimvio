@@ -155,12 +155,18 @@ export function CheckoutExperience({
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
       const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay", "wallet"];
-      if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
+      if (
+         preferredMethod &&
+         valid.includes(preferredMethod as MethodId) &&
+         (orders.length <= 1 || ["nowpayments", "wallet"].includes(preferredMethod))
+      ) {
          return preferredMethod as MethodId;
       }
-      return defaultPayment(currency);
+      return orders.length > 1 ? "nowpayments" : defaultPayment(currency);
    });
-   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>();
+   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>(
+      () => orders.length > 1 ? ["nowpayments", "wallet"] : undefined
+   );
    const [momoForm, setMomoForm] = useState<MoMoFormState>({
       country: "",
       network: "",
@@ -212,10 +218,17 @@ export function CheckoutExperience({
          .then((r) => r.json())
          .then((data: { enabled?: MethodId[] }) => {
             if (Array.isArray(data.enabled) && data.enabled.length > 0) {
-               setEnabledPaymentMethods(data.enabled);
-               setPayment((current) =>
-                  data.enabled!.includes(current) ? current : data.enabled![0]
-               );
+               // Multi-vendor carts must use a provider that settles every order
+               // in one invoice/debit. Other gateways remain available per order.
+               const available = orders.length > 1
+                  ? data.enabled.filter((method) => method === "nowpayments" || method === "wallet")
+                  : data.enabled;
+               if (available.length > 0) {
+                  setEnabledPaymentMethods(available);
+                  setPayment((current) =>
+                     available.includes(current) ? current : available[0]
+                  );
+               }
             }
          })
          .catch(() => undefined);
