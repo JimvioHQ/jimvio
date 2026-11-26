@@ -4937,6 +4937,16 @@ export type Database = {
         }
         Returns: Json
       }
+      reserve_orders_wallet_payment: {
+        Args: {
+          p_amounts: number[]
+          p_currency: string
+          p_order_ids: string[]
+          p_reference: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       toggle_community_message_reaction: {
