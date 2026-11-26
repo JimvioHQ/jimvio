@@ -754,7 +754,7 @@ export async function updatePendingOrdersShipping(
   // jimvio_store_id is not in generated Database types yet — use cosTable accessor
   const { data: existingOrdersRaw, error: fetchError } = await cosTable(admin, "orders")
     .select(
-      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata, jimvio_store_id, currency"
+      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata, jimvio_store_id, currency, payment_provider, gateway_used"
     )
     .in("id", payload.orderIds);
 
@@ -772,6 +772,8 @@ export async function updatePendingOrdersShipping(
     metadata: unknown;
     jimvio_store_id: string | null;
     currency: string | null;
+    payment_provider: string | null;
+    gateway_used: string | null;
   };
 
   const existingOrders = (existingOrdersRaw ?? []) as ShippingOrderRow[];
@@ -809,7 +811,7 @@ export async function updatePendingOrdersShipping(
     .from("transactions")
     .select("id, order_id, provider, provider_transaction_id, reference, status, created_at, metadata")
     .in("order_id", payload.orderIds)
-    .in("status", ["pending", "processing", "completed"])
+    .in("status", ["pending", "processing", "completed", "failed"])
     .order("created_at", { ascending: false });
   if (paymentRowsError) {
     console.error("[updatePendingOrdersShipping] Payment state lookup failed:", paymentRowsError);
@@ -826,6 +828,7 @@ export async function updatePendingOrdersShipping(
   const now = Date.now();
   const oneHourAgo = now - 60 * 60 * 1000;
   const activeRows = (paymentRows ?? []).filter((row) => {
+    if (row.status === "failed") return false;
     const provider = String(row.provider ?? "").toLowerCase();
     const createdAt = new Date(row.created_at ?? 0).getTime();
     const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
@@ -834,11 +837,10 @@ export async function updatePendingOrdersShipping(
     if (provider === "wallet") return true; // Wallet debit reservations must always be reconciled.
     if (provider === "binance") {
       const expiry = Number(metadata.expire_time);
-      return Number.isFinite(expiry) && expiry > now && Number.isFinite(createdAt) && createdAt >= oneHourAgo;
+      return Number.isFinite(createdAt) && createdAt >= oneHourAgo &&
+        (!Number.isFinite(expiry) || expiry > now);
     }
-    if (provider === "nowpayments") {
-      return typeof metadata.invoice_url === "string" && metadata.invoice_url.startsWith("https://");
-    }
+    if (provider === "nowpayments") return true;
     if (provider === "flutterwave") return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
     if (provider === "mobile_money") return true; // Await provider confirmation; never start a duplicate charge.
     return true; // Unknown active providers fail closed instead of permitting a second charge.
@@ -919,10 +921,16 @@ export async function updatePendingOrdersShipping(
 
   // A stale processing flag without an active transaction is recoverable. Reset
   // it only after confirming that there is no pending/processing/completed row.
-  const processingOrderIds = existingOrders
-    .filter((order) => order.payment_status === "processing")
-    .map((order) => order.id);
+  const processingOrders = existingOrders.filter((order) => order.payment_status === "processing");
+  const processingOrderIds = processingOrders.map((order) => order.id);
   if (processingOrderIds.length) {
+    const hasUntrackedProviderAttempt = processingOrders.some((order) =>
+      (order.payment_provider || order.gateway_used) &&
+      !(paymentRows ?? []).some((row) => row.order_id === order.id)
+    );
+    if (hasUntrackedProviderAttempt) {
+      return err("The payment provider has not confirmed the previous attempt yet. Please check Orders before trying another payment.");
+    }
     const { error: resetError } = await admin
       .from("orders")
       .update({ payment_status: "pending" as PaymentStatusValue, updated_at: new Date().toISOString() })
