@@ -121,6 +121,9 @@ export async function payOrderWithWallet(
     if (/order_not_payable/i.test(message)) {
       return { ok: false, status: 409, error: "This order can no longer be paid." };
     }
+    if (/payment_in_progress/i.test(message)) {
+      return { ok: false, status: 409, error: "Another payment is already in progress for this order. Finish or wait for that payment before choosing Jimvio Wallet." };
+    }
     if (/order_not_found/i.test(message)) {
       return { ok: false, status: 404, error: "Order not found." };
     }
