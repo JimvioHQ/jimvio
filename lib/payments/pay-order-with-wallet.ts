@@ -45,6 +45,19 @@ export async function payOrderWithWallet(
     return { ok: false, status: 409, error: "This order can no longer be paid." };
   }
 
+  let communityPayment: { communityId: string; planType: import("@/lib/community/access-pricing").AccessPlanKey } | null = null;
+  if (order.integration_source === "community") {
+    const metadata = order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+      ? order.metadata as Record<string, unknown>
+      : {};
+    const communityId = typeof metadata.community_id === "string" ? metadata.community_id : "";
+    const planType = typeof metadata.plan_type === "string" ? metadata.plan_type : "";
+    if (!communityId || !isAccessPlanKey(planType)) {
+      return { ok: false, status: 409, error: "Community subscription details are incomplete. Please contact support." };
+    }
+    communityPayment = { communityId, planType };
+  }
+
   const { data: pendingExternalPayment, error: pendingExternalError } = await db
     .from("transactions")
     .select("provider")
@@ -138,20 +151,11 @@ export async function payOrderWithWallet(
     return { ok: true, alreadyPaid: true, redirectUrl };
   }
 
-  if (order.integration_source === "community") {
-    const metadata = order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
-      ? order.metadata as Record<string, unknown>
-      : {};
-    const communityId = typeof metadata.community_id === "string" ? metadata.community_id : "";
-    const planType = typeof metadata.plan_type === "string" ? metadata.plan_type : "";
-    if (!communityId || !isAccessPlanKey(planType)) {
-      return { ok: false, status: 409, error: "Community subscription details are incomplete. Please contact support." };
-    }
-
+  if (communityPayment) {
     await finalizeCommunityPayment(db, {
-      communityId,
+      communityId: communityPayment.communityId,
       userId,
-      planType,
+      planType: communityPayment.planType,
       amount: Number(order.total_amount),
       currency: order.currency ?? "USD",
       paymentProvider: "wallet",
