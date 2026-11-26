@@ -1,0 +1,36 @@
+name: Jimvio Payment Reconciliation
+
+on:
+  schedule:
+    - cron: "5,15,25,35,45,55 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jimvio-payment-reconciliation
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Validate cron secret
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Add the GitHub Actions secret CRON_SECRET with the same value as Vercel Production CRON_SECRET."
+            exit 1
+          fi
+
+      - name: Reconcile pending payments
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl --location --fail-with-body --silent --show-error \
+            --max-time 150 --retry 1 --retry-delay 5 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "https://www.jimvio.com/api/cron/reconcile-payments"
