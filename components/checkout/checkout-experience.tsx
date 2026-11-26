@@ -451,12 +451,12 @@ export function CheckoutExperience({
    // ── Final pay ─────────────────────────────────────────────────────────────
    async function handlePay() {
       if (submitting || payInFlightRef.current) return;
-      if (isCJOrder && !cjSelected) {
+      if (isCJOrder && !cjSelected && !hasStartedPayment) {
          toast.error("Please select a delivery method");
          setStage("delivery");
          return;
       }
-      if (isCJOrder && shippingCost === null) {
+      if (isCJOrder && shippingCost === null && !hasStartedPayment) {
          toast.error("Please select a delivery method");
          setStage("delivery");
          return;
@@ -1019,7 +1019,7 @@ export function CheckoutExperience({
                         items={allItems}
                         subtotal={subtotal}
                         discount={discount}
-                        shipping={shippingCost}
+                        shipping={displayShippingCost}
                         total={total}
                         currency={currency}
                         formatMoney={formatMoney}
