@@ -231,7 +231,7 @@ export async function POST(req: NextRequest) {
     }
 
     let txRef: string;
-    let reusableTx: (typeof existingTxRows)[number] | null = null;
+    let reusableTx: NonNullable<typeof existingTxRows>[number] | null = null;
 
     // Verify every pending attempt, not only the newest one. Older checkout links
     // can remain payable; never create a fresh charge while any old reference is
