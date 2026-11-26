@@ -70,11 +70,7 @@ function redirectWithError(code: string, detail?: string): never {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function metaString(meta: unknown, key: string): string | null {
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
-  const value = (meta as Record<string, unknown>)[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
+
 
 function metaNumber(meta: unknown, key: string): number | null {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
