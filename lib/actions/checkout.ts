@@ -856,9 +856,6 @@ export async function updatePendingOrdersShipping(
     }
 
     const provider = [...providers][0];
-    const firstMetadata = activeRows[0].metadata && typeof activeRows[0].metadata === "object" && !Array.isArray(activeRows[0].metadata)
-      ? activeRows[0].metadata as Record<string, unknown>
-      : {};
     const isMobileMoney = provider === "flutterwave" && activeRows.some((row) => {
       const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
         ? row.metadata as Record<string, unknown>
