@@ -59,6 +59,9 @@ BEGIN
        OR v_existing.order_id IS DISTINCT FROM p_order_id THEN
       RAISE EXCEPTION 'wallet_payment_reference_conflict';
     END IF;
+    IF v_existing.status IN ('refunded', 'cancelled') THEN
+      RAISE EXCEPTION 'order_not_payable';
+    END IF;
     RETURN pg_catalog.jsonb_build_object(
       'ok', true,
       'already_reserved', true,
