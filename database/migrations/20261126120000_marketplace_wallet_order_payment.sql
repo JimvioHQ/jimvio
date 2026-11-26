@@ -42,7 +42,8 @@ BEGIN
   END IF;
 
   IF v_order.status IN ('cancelled', 'refunded')
-     OR v_order.payment_status IN ('refunded', 'cancelled') THEN
+     OR v_order.payment_status IN ('refunded', 'cancelled')
+     OR v_order.status NOT IN ('pending', 'checkout_direct') THEN
     RAISE EXCEPTION 'order_not_payable';
   END IF;
 
