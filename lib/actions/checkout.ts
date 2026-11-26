@@ -717,7 +717,7 @@ async function refreshPendingOrdersAffiliateAttribution(
 
 export async function updatePendingOrdersShipping(
   rawPayload: ShippingPayload
-): Promise<Result<{ resumeProvider?: "flutterwave" | "nowpayments" | "binancepay" | "wallet" }>> {
+): Promise<Result<{ resumeProvider?: "flutterwave" | "nowpayments" | "binancepay" | "mobile_money" | "wallet"; resumeTxRef?: string }>> {
   // ── Auth ───────────────────────────────────────────────────────────────────
   const supabase = await createClient();
   const {
@@ -856,14 +856,24 @@ export async function updatePendingOrdersShipping(
     }
 
     const provider = [...providers][0];
+    const firstMetadata = activeRows[0].metadata && typeof activeRows[0].metadata === "object" && !Array.isArray(activeRows[0].metadata)
+      ? activeRows[0].metadata as Record<string, unknown>
+      : {};
+    const isMobileMoney = provider === "flutterwave" && activeRows.some((row) => {
+      const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? row.metadata as Record<string, unknown>
+        : {};
+      return metadata.method === "mobile_money";
+    });
     const resumeProvider =
+      isMobileMoney ? "mobile_money" :
       provider === "binance" ? "binancepay" :
       provider === "flutterwave" ? "flutterwave" :
       provider === "nowpayments" ? "nowpayments" :
       provider === "wallet" ? "wallet" : null;
 
     if (!resumeProvider) {
-      return err("A Mobile Money payment is still awaiting confirmation. Please complete or check that payment in Orders before starting another.");
+      return err("A payment is still awaiting confirmation. Please complete or check that payment in Orders before starting another.");
     }
 
     if (provider !== "wallet") {
@@ -902,7 +912,12 @@ export async function updatePendingOrdersShipping(
       return err("A payment session is already active for this order. Finish that payment from Orders before changing shipping details or totals.");
     }
 
-    return ok({ resumeProvider });
+    return ok({
+      resumeProvider,
+      ...(isMobileMoney && typeof activeRows[0].provider_transaction_id === "string"
+        ? { resumeTxRef: activeRows[0].provider_transaction_id }
+        : {}),
+    });
   }
 
   // A stale processing flag without an active transaction is recoverable. Reset
