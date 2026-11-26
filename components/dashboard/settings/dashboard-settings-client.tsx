@@ -300,7 +300,7 @@ export default function DashboardSettingsClient() {
         supabase.from("user_roles").select("role, is_active").eq("user_id", user.id),
       ]);
       const primaryVendor =
-        (vendRes.data ?? []).find((row) => row.is_active !== false) ??
+        (vendRes.data ?? []).find((row: { is_active?: boolean | null }) => row.is_active !== false) ??
         vendRes.data?.[0] ??
         null;
 
