@@ -8,6 +8,7 @@ import {
 } from "@/lib/payments/order-payment-utils";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
+import { orderTotalsForUsdGateway } from "@/lib/money";
 import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 import {
   logWebhookEvent,
@@ -71,8 +72,41 @@ export async function POST(req: NextRequest) {
     const txId = String(payment_id);
     let retryableProcessingFailure = false;
 
+    const { data: bundleOrders, error: bundleOrdersError } = await supabase
+      .from("orders")
+      .select("id, buyer_id, payment_status, total_amount, currency")
+      .in("id", orderIds);
+    if (bundleOrdersError) {
+      console.error("[webhooks/nowpayments] could not load invoice orders", bundleOrdersError);
+      return NextResponse.json({ error: "Could not verify invoice orders" }, { status: 500 });
+    }
+    const orderById = new Map((bundleOrders ?? []).map((row) => [row.id, row]));
+    const isMarketplaceBundle = orderById.size === orderIds.length;
+    let bundleAmountValid = true;
+    if (isComplete && isMarketplaceBundle) {
+      const expectedTotalUsd = (bundleOrders ?? []).reduce((sum, row) =>
+        sum + orderTotalsForUsdGateway(Number(row.total_amount ?? 0), row.currency ?? PLATFORM_CURRENCY).amount, 0);
+      const receivedAmount = payload.price_amount != null ? Number(payload.price_amount) : null;
+      const receivedCurrency = (payload.price_currency || "USD").toUpperCase();
+      bundleAmountValid =
+        receivedAmount != null &&
+        Number.isFinite(receivedAmount) &&
+        Number.isFinite(expectedTotalUsd) &&
+        expectedTotalUsd > 0 &&
+        paymentAmountsMatch(receivedAmount, receivedCurrency, expectedTotalUsd, "USD", 0.05);
+      if (!bundleAmountValid) {
+        console.error("[webhooks/nowpayments] invoice bundle amount mismatch", {
+          orderIds,
+          receivedAmount,
+          receivedCurrency,
+          expectedTotalUsd,
+        });
+      }
+    }
+
     for (const oid of orderIds) {
-      const idempotencyKey = `nowp-${txId}-${payment_status}`;
+      // One provider invoice may cover many orders; webhook idempotency is per order.
+      const idempotencyKey = `nowp-${txId}-${payment_status}-${oid}`;
 
       const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
         provider: "nowpayments",
@@ -85,11 +119,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const { data: ord } = await supabase
-        .from("orders")
-        .select("buyer_id, payment_status, total_amount, currency")
-        .eq("id", oid)
-        .maybeSingle();
+      const ord = orderById.get(oid) ?? null;
 
       if (!ord) {
         // Wallet deposit: NOWPayments order_id is wallet_deposits.id
@@ -175,38 +205,32 @@ export async function POST(req: NextRequest) {
           .update({ payment_status: "failed", status: "cancelled", updated_at: paidAtIso })
           .eq("id", oid)
           .not("payment_status", "in", '("paid","completed")');
+        await supabase
+          .from("transactions")
+          .update({ status: "failed", updated_at: paidAtIso })
+          .eq("order_id", oid)
+          .eq("provider", "nowpayments")
+          .in("status", ["pending", "processing"]);
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);
         continue;
       }
 
-      const expectedAmount = Number(ord.total_amount ?? 0);
-      const expectedCurrency = (ord.currency || PLATFORM_CURRENCY).toUpperCase();
-      const receivedAmount =
-        payload.price_amount != null ? Number(payload.price_amount) : null;
-      const receivedCurrency = (payload.price_currency || PLATFORM_CURRENCY).toUpperCase();
-      if (
-        receivedAmount == null ||
-        !Number.isFinite(receivedAmount) ||
-        !Number.isFinite(expectedAmount) ||
-        expectedAmount <= 0 ||
-        !paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency, 0.05)
-      ) {
-        console.error("[webhooks/nowpayments] amount mismatch", {
-          oid,
-          receivedAmount,
-          receivedCurrency,
-          expectedAmount,
-          expectedCurrency,
-        });
-        if (eventId) await markWebhookFailed(supabase, eventId, "amount mismatch");
+      if (isMarketplaceBundle && !bundleAmountValid) {
+        if (eventId) await markWebhookFailed(supabase, eventId, "invoice bundle amount mismatch");
         continue;
       }
 
-      // Bind pending initiate row (invoice ref) to IPN payment_id for finalize lock.
+      const orderLineTotal = orderTotalsForUsdGateway(
+        Number(ord.total_amount ?? 0),
+        ord.currency ?? PLATFORM_CURRENCY,
+      );
+      const providerTxRef = `${txId}-${oid}`;
+
+      // Bind this order's invoice row to a unique per-order provider reference.
       await supabase
         .from("transactions")
         .update({
-          provider_transaction_id: txId,
+          provider_transaction_id: providerTxRef,
           status: "pending",
           updated_at: paidAtIso,
         })
@@ -218,27 +242,30 @@ export async function POST(req: NextRequest) {
       const { data: lockRow } = await supabase
         .from("transactions")
         .select("id")
-        .eq("provider_transaction_id", txId)
+        .eq("order_id", oid)
+        .eq("provider", "nowpayments")
+        .eq("provider_transaction_id", providerTxRef)
+        .limit(1)
         .maybeSingle();
       if (!lockRow) {
         await supabase.from("transactions").insert({
           order_id: oid,
           user_id: ord.buyer_id,
           type: "payment",
-          amount: expectedAmount,
-          currency: expectedCurrency,
+          amount: orderLineTotal.amount,
+          currency: orderLineTotal.currency,
           status: "pending",
           provider: "nowpayments",
-          provider_transaction_id: txId,
+          provider_transaction_id: providerTxRef,
           reference: txId,
           description: `NOWPayments payment ${txId}`,
-          metadata: { purpose: "order_payment", source: "ipn_lock" },
+          metadata: { purpose: "order_payment", source: "ipn_lock", nowpayments_payment_id: txId },
         });
       }
 
       try {
         await finalizeOrderPayment(supabase, oid, {
-          providerTransactionId: txId,
+          providerTransactionId: providerTxRef,
           providerReference: txId,
           paidAtIso,
           notifyUserId: ord?.buyer_id ?? null,
