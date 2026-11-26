@@ -5167,7 +5167,6 @@ CREATE POLICY "authors_manage_own_comments" ON "public"."community_post_comments
 ALTER TABLE "public"."blog_posts" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "blog_posts_select" ON "public"."blog_posts" FOR SELECT USING (true);
 
 
 
