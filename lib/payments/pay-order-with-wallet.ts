@@ -151,7 +151,7 @@ export async function payOrderWithWallet(
   if (verifyError || !isOrderPaymentComplete(updatedOrder?.payment_status)) {
     return {
       ok: false,
-      status: 202,
+      status: 409,
       code: "WALLET_PAYMENT_PROCESSING",
       error: "Your wallet payment is reserved and is being reconciled. Please refresh your orders shortly.",
     };
