@@ -53,7 +53,7 @@ export function destructiveFindings(sql) {
   // treated as migration-time data edits. Unmarked functions and top-level
   // UPDATE/DELETE/TRUNCATE/DROP statements remain blocked.
   const reviewedFunctionSql = String(sql).replace(
-    /--\\s*ALLOWLISTED_STORED_FUNCTION_DML\\s*\\r?\\n(\\bCREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\b[\\s\\S]*?\\bAS\\s+)(\\$[a-zA-Z0-9_]*\\$)[\\s\\S]*?\\3/gi,
+    /--\s*ALLOWLISTED_STORED_FUNCTION_DML\s*\r?\n(\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\b[\s\S]*?\bAS\s+)(\$[a-zA-Z0-9_]*\$)[\s\S]*?\2/gi,
     (_match, prefix, delimiter) => `${prefix}${delimiter}${delimiter}`,
   );
   const body = stripComments(reviewedFunctionSql);
