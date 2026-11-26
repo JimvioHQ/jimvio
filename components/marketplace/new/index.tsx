@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
   Zap, DollarSign, Star, ShieldCheck, BadgeDollarSign,
-  CircleCheck, Truck, Users, Sparkles, TrendingUp,
+  CircleCheck, Truck, Sparkles, TrendingUp,
   Warehouse, MapPin, Flame, ChevronRight, ArrowRight,
 } from "lucide-react";
 import { FlashDealsClient } from "./FlashDealsClient";
@@ -47,7 +47,6 @@ async function fetchMarketplaceData() {
     { data: categoriesRaw },
     { data: revenueRaw },
     { data: viewerCountRaw },
-    { count: creatorsActive },
   ] = await Promise.all([
     supabase
       .from("products")
@@ -100,11 +99,6 @@ async function fetchMarketplaceData() {
       .select("id", { count: "exact", head: true })
       .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()),
 
-    supabase
-      .from("short_videos")
-      .select("creator_id", { count: "exact", head: true })
-      .eq("status", "active")
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
   ]);
 
   const revenueToday = (revenueRaw ?? []).reduce(
@@ -123,7 +117,6 @@ async function fetchMarketplaceData() {
     stats: {
       viewers_now: (viewerCountRaw as { count?: number } | null)?.count ?? 0,
       revenue_today: revenueToday,
-      creators_active: creatorsActive ?? 0,
     },
   };
 }
@@ -140,7 +133,7 @@ const BADGES = [
 function TrustBadgesSection({
   stats,
 }: {
-  stats: { viewers_now: number; revenue_today: number; creators_active: number };
+  stats: { viewers_now: number; revenue_today: number };
 }) {
   return (
     <div
@@ -169,13 +162,6 @@ function TrustBadgesSection({
           <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>
             {fmtPrice(stats.revenue_today)}
           </b>
-        </span>
-      </div>
-      <div className="hidden items-center gap-1.5 border-l pl-3 xl:flex" style={{ borderColor: "var(--color-border)" }}>
-        <Users className="size-4" style={{ color: "var(--color-accent)" }} />
-        <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          <b className="font-bold" style={{ color: "var(--color-text-primary)" }}>{stats.creators_active}</b>{" "}
-          creators active
         </span>
       </div>
     </div>
