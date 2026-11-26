@@ -20,22 +20,25 @@ STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $function$
-  SELECT auth.uid() IS NOT NULL
-    AND (
-      p_host_id = auth.uid()
-      OR p_privacy = 'public'
-      OR (
-        p_community_id IS NOT NULL
-        AND private.is_active_community_member(p_community_id, auth.uid())
-      )
-      OR (
-        p_community_id IS NULL
-        AND EXISTS (
-          SELECT 1
-          FROM public.live_session_participants AS participant
-          WHERE participant.session_id = p_session_id
-            AND participant.user_id = auth.uid()
-            AND participant.status = ANY (ARRAY['joined', 'invited', 'requested']::text[])
+  SELECT
+    p_privacy = 'public'
+    OR (
+      auth.uid() IS NOT NULL
+      AND (
+        p_host_id = auth.uid()
+        OR (
+          p_community_id IS NOT NULL
+          AND private.is_active_community_member(p_community_id, auth.uid())
+        )
+        OR (
+          p_community_id IS NULL
+          AND EXISTS (
+            SELECT 1
+            FROM public.live_session_participants AS participant
+            WHERE participant.session_id = p_session_id
+              AND participant.user_id = auth.uid()
+              AND participant.status = ANY (ARRAY['joined', 'invited', 'requested']::text[])
+          )
         )
       )
     );
@@ -51,20 +54,18 @@ STABLE
 SECURITY DEFINER
 SET search_path TO ''
 AS $function$
-  SELECT auth.uid() IS NOT NULL
-    AND (
-      p_participant_user_id = auth.uid()
-      OR EXISTS (
-        SELECT 1
-        FROM public.live_sessions AS session
-        WHERE session.id = p_session_id
-          AND private.can_read_live_session(
-            session.id,
-            session.host_id,
-            session.community_id,
-            session.privacy
-          )
-      )
+  SELECT
+    (auth.uid() IS NOT NULL AND p_participant_user_id = auth.uid())
+    OR EXISTS (
+      SELECT 1
+      FROM public.live_sessions AS session
+      WHERE session.id = p_session_id
+        AND private.can_read_live_session(
+          session.id,
+          session.host_id,
+          session.community_id,
+          session.privacy
+        )
     );
 $function$;
 
