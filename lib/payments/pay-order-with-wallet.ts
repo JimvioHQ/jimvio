@@ -45,6 +45,30 @@ export async function payOrderWithWallet(
     return { ok: false, status: 409, error: "This order can no longer be paid." };
   }
 
+  const { data: pendingExternalPayment, error: pendingExternalError } = await db
+    .from("transactions")
+    .select("provider")
+    .eq("order_id", orderId)
+    .neq("provider", "wallet")
+    .in("status", ["pending", "processing"])
+    .limit(1)
+    .maybeSingle();
+
+  if (pendingExternalError) {
+    console.error("[wallet-order-payment] pending payment lookup failed", {
+      orderId,
+      code: pendingExternalError.code,
+    });
+    return { ok: false, status: 500, error: "We couldn't verify the order's payment state. Please try again." };
+  }
+  if (pendingExternalPayment) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Another payment is already in progress for this order. Finish or wait for that payment before choosing Jimvio Wallet.",
+    };
+  }
+
   const wallet = await ensureWallet(userId, db);
   const orderCurrency = String(order.currency ?? "USD").toUpperCase();
   if (orderCurrency !== "USD" && orderCurrency !== "RWF") {
