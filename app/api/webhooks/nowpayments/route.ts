@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      if (isOrderPaymentComplete(ord?.payment_status)) {
+      if (isOrderPaymentComplete(ord.payment_status)) {
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);
         continue;
       }
@@ -268,7 +268,7 @@ export async function POST(req: NextRequest) {
           providerTransactionId: providerTxRef,
           providerReference: txId,
           paidAtIso,
-          notifyUserId: ord?.buyer_id ?? null,
+          notifyUserId: ord.buyer_id ?? null,
           nowpaymentsPaymentId: payment_id,
           webhookReference: idempotencyKey,
           paymentProvider: "nowpayments",
