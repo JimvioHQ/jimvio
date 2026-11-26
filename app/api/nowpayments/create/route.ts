@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       .select("id, order_number, total_amount, currency")
       .in("id", orderIds)
       .eq("buyer_id", user.id)
-      .eq("status", "pending");
+      .in("status", ["pending", "checkout_direct"]);
 
     if (ordersError || !orders?.length || orders.length !== orderIds.length) {
       return NextResponse.json({ error: "Invalid or unauthorized orders" }, { status: 403 });
