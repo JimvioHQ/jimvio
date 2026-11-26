@@ -1576,7 +1576,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     .from("orders")
     .select(
       `
-      id, buyer_id, vendor_id, status, payment_status,
+      id, buyer_id, vendor_id, status, payment_status, payment_provider, gateway_used,
       currency, subtotal, total_amount, shipping_amount, metadata,
       order_items (id, product_id, variant_id, quantity, unit_price)
     `
@@ -1618,6 +1618,12 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   }
   if (activePaymentRows?.length) {
     return { ok: true, changed: false };
+  }
+  if (
+    order.payment_status === "processing" &&
+    (order.payment_provider || order.gateway_used)
+  ) {
+    return { ok: false, error: "The payment provider has not confirmed the previous attempt. Please check Orders before editing this order." };
   }
 
   // A stale processing flag without a corresponding transaction can be reset;
