@@ -138,7 +138,6 @@ type DbCategory = {
 type Stats = {
   viewers_now: number;
   revenue_today: number;
-  creators_active: number;
 };
 
 /**
