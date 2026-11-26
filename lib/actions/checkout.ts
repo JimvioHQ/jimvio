@@ -1630,7 +1630,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     .from("orders")
     .select(
       `
-      id, buyer_id, vendor_id, status, payment_status, payment_provider, gateway_used,
+      id, buyer_id, vendor_id, status, payment_status,
       currency, subtotal, total_amount, shipping_amount, metadata,
       order_items (id, product_id, variant_id, quantity, unit_price)
     `
