@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     const lineTotals = orders.map((o) =>
       orderTotalsForUsdGateway(Number(o.total_amount || 0), o.currency)
     )
-    const amount = lineTotals.reduce((sum, line) => sum + Number(line.amount || 0), 0)
+    const amount = Math.round(lineTotals.reduce((sum, line) => sum + Number(line.amount || 0), 0) * 100) / 100
     const currency = 'USD'
 
     const lineItems = orders.flatMap((o) => {
