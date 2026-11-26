@@ -901,12 +901,21 @@ export async function updatePendingOrdersShipping(
       Math.round((Number(a ?? 0) + Number.EPSILON) * 100) ===
       Math.round((Number(b ?? 0) + Number.EPSILON) * 100);
 
-    const unchanged = existingOrders.every((order) =>
-      JSON.stringify(normalizedAddress(order.shipping_address)) ===
-        JSON.stringify(normalizedAddress(shipping_address)) &&
-      (typeof payload.shippingAmount !== "number" || sameMoney(order.shipping_amount, payload.shippingAmount)) &&
-      (typeof payload.discountAmount !== "number" || sameMoney(order.discount_amount, payload.discountAmount))
+    const existingShippingTotal = existingOrders.reduce(
+      (sum, order) => sum + Number(order.shipping_amount ?? 0),
+      0
     );
+    const existingDiscountTotal = existingOrders.reduce(
+      (sum, order) => sum + Number(order.discount_amount ?? 0),
+      0
+    );
+    const unchanged =
+      existingOrders.every((order) =>
+        JSON.stringify(normalizedAddress(order.shipping_address)) ===
+        JSON.stringify(normalizedAddress(shipping_address))
+      ) &&
+      (typeof payload.shippingAmount !== "number" || sameMoney(existingShippingTotal, payload.shippingAmount)) &&
+      (typeof payload.discountAmount !== "number" || sameMoney(existingDiscountTotal, payload.discountAmount));
     if (!unchanged) {
       return err("A payment session is already active for this order. Finish that payment from Orders before changing shipping details or totals.");
     }
