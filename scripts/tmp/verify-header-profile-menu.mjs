@@ -52,7 +52,10 @@ assert(primaryNav.includes('label: "Earnings"'), "primary-nav Earnings");
 assert(primaryNav.includes('label: "Saved Items"'), "primary-nav Saved Items");
 assert(primaryNav.includes('label: "Help Center"'), "primary-nav Help Center");
 assert(!primaryNav.includes('label: "Inbox"'), "primary-nav must not list Inbox");
-assert(!primaryNav.includes('label: "Orders"'), "primary-nav profile tools must not list Orders");
+assert(
+  primaryNav.indexOf('label: "Orders"') > primaryNav.indexOf('label: "Saved Items"'),
+  "primary-nav Orders must appear immediately below Saved Items"
+);
 
 assert(appTopNav.includes("HeaderUtilityActions"), "AppTopNav must use HeaderUtilityActions");
 assert(!appTopNav.includes("ThemeToggle"), "AppTopNav must not render ThemeToggle");
