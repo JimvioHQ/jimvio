@@ -933,7 +933,8 @@ export async function updatePendingOrdersShipping(
   const processingOrders = existingOrders.filter((order) => order.payment_status === "processing");
   const processingOrderIds = processingOrders.map((order) => order.id);
   if (processingOrderIds.length) {
-    const hasUntrackedProviderAttempt = processingOrders.some((order) =>
+    const hasUntrackedProviderAttempt = existingOrders.some((order) =>
+      ["pending", "processing"].includes(order.payment_status ?? "") &&
       (order.payment_provider || order.gateway_used) &&
       !(paymentRows ?? []).some((row) => row.order_id === order.id)
     );
@@ -1224,7 +1225,7 @@ export async function startCheckout(
       return err("Could not verify an existing payment. Please open Orders and try again.");
     }
     const hasUntrackedProcessingAttempt = existingOrders.some((order) =>
-      order.payment_status === "processing" &&
+      ["pending", "processing"].includes(order.payment_status ?? "") &&
       (order.payment_provider || order.gateway_used) &&
       !(activePaymentRows ?? []).some((row) => row.order_id === order.id)
     );
@@ -1639,7 +1640,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: true, changed: false };
   }
   if (
-    order.payment_status === "processing" &&
+    ["pending", "processing"].includes(order.payment_status as string) &&
     (order.payment_provider || order.gateway_used) &&
     !activePaymentRows?.length
   ) {
