@@ -606,7 +606,14 @@ export function CheckoutExperience({
          }
          const redirectUrl = extractRedirectUrl(data);
          if (!redirectUrl) throw new Error("No redirect URL from payment provider");
-         if (!redirectUrl.startsWith("https://")) throw new Error("Invalid payment redirect");
+         if (payment === "wallet") {
+            // Wallet settlement stays on Jimvio; only allow a same-origin path.
+            if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
+               throw new Error("Invalid wallet redirect");
+            }
+         } else if (!redirectUrl.startsWith("https://")) {
+            throw new Error("Invalid payment redirect");
+         }
          window.location.href = redirectUrl;
       } catch (e) {
          const raw = e instanceof Error ? e.message : String(e);
