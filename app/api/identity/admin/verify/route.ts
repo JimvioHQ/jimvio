@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   if ("error" in guard) return guard.error;
   const admin = guard.user;
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const body = await req.json().catch(() => null);
   const id = body?.id as string | undefined;
   const decision = body?.decision as string | undefined;
