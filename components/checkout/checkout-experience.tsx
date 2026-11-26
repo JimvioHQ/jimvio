@@ -89,6 +89,7 @@ const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
    mobile_money: "/api/payments/mobile-money/initiate",
    nowpayments: "/api/payments/nowpayments/initiate",
    binancepay: "/api/payments/binancepay/initiate",
+   wallet: "/api/payments/wallet/order",
 } as const;
 
 // Above the component, alongside hasCJItems / getCJCartItems
@@ -153,7 +154,7 @@ export function CheckoutExperience({
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
-      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay"];
+      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay", "wallet"];
       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
          return preferredMethod as MethodId;
       }
@@ -605,7 +606,14 @@ export function CheckoutExperience({
          }
          const redirectUrl = extractRedirectUrl(data);
          if (!redirectUrl) throw new Error("No redirect URL from payment provider");
-         if (!redirectUrl.startsWith("https://")) throw new Error("Invalid payment redirect");
+         if (payment === "wallet") {
+            // Wallet settlement stays on Jimvio; only allow a same-origin path.
+            if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
+               throw new Error("Invalid wallet redirect");
+            }
+         } else if (!redirectUrl.startsWith("https://")) {
+            throw new Error("Invalid payment redirect");
+         }
          window.location.href = redirectUrl;
       } catch (e) {
          const raw = e instanceof Error ? e.message : String(e);

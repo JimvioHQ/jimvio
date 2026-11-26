@@ -793,8 +793,13 @@ export async function updatePendingOrdersShipping(
     return err("You can't update these orders — they belong to a different account.");
   }
 
+  // Marketplace's direct-checkout flow legitimately creates unpaid orders with
+  // status="checkout_direct". Payment eligibility is determined by payment_status;
+  // the order status must only exclude terminal/cancelled states here.
   const notPending = existingOrders.filter(
-    (o) => o.status !== "pending" || !["pending", "failed"].includes(o.payment_status ?? "")
+    (o) =>
+      !["pending", "checkout_direct"].includes(o.status ?? "") ||
+      !["pending", "failed"].includes(o.payment_status ?? "")
   );
   if (notPending.length) {
     console.warn("[updatePendingOrdersShipping] Not pending:", notPending);
@@ -964,7 +969,7 @@ export async function updatePendingOrdersShipping(
       .update(orderUpdate as OrderUpdate)
       .eq("id", order.id)
       .eq("buyer_id", userId)
-      .eq("status", "pending")
+      .in("status", ["pending", "checkout_direct"])
       .in("payment_status", ["pending", "failed"])
       .select("id");
 

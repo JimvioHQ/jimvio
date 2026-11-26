@@ -6,7 +6,7 @@ import { isRetiredPaymentProvider } from "@/lib/payments/retired-providers";
 export const dynamic = "force-dynamic";
 
 /** Checkout MethodIds — includes derived Mobile Money (Flutterwave direct charge). */
-type CheckoutMethodId = PaymentProviderId | "mobile_money";
+type CheckoutMethodId = PaymentProviderId | "mobile_money" | "wallet";
 
 function envSet(...names: string[]): boolean {
   return names.some((name) => {
@@ -42,7 +42,7 @@ export async function GET() {
 
   // Never advertise methods that cannot initiate — empty credentials must not
   // fall back to admin-enabled-only (that produces "could not start" for every click).
-  const enabled: CheckoutMethodId[] = [...withCredentials];
+  const enabled: CheckoutMethodId[] = [...withCredentials, "wallet"];
 
   // Dedicated Mobile Money method shares Flutterwave credentials + admin toggle.
   if (withCredentials.includes("flutterwave")) {

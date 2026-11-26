@@ -113,6 +113,43 @@ test("destructive SQL inside comments does not block an allowlisted migration", 
   assert.deepEqual(decision.approved, [pendingVersion]);
 });
 
+test("DML inside a stored function body is not treated as migration-time data mutation", () => {
+  const sql = `-- ALLOWLISTED_STORED_FUNCTION_DML
+CREATE OR REPLACE FUNCTION public.reserve_wallet()
+RETURNS void
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+  UPDATE public.wallets SET available_balance = available_balance - 1;
+END;
+$function$;`;
+  const decision = evaluatePending({
+    local: withPending(sql),
+    remote,
+    allowlist: [pendingVersion],
+  });
+  assert.equal(decision.ok, true);
+  assert.deepEqual(decision.approved, [pendingVersion]);
+});
+
+test("unmarked stored function DML remains blocked for human review", () => {
+  const sql = `CREATE OR REPLACE FUNCTION public.unreviewed_wallet_change()
+RETURNS void
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+  UPDATE public.wallets SET available_balance = 0;
+END;
+$function$;`;
+  const decision = evaluatePending({
+    local: withPending(sql),
+    remote,
+    allowlist: [pendingVersion],
+  });
+  assert.equal(decision.ok, false);
+  assert.equal(decision.errors.some((error) => error.code === "destructive"), true);
+});
+
 test("an allowlisted migration older than remote history is rejected", () => {
   const decision = evaluatePending({
     local: withPending(safeSql, "20260901000000", "old_change"),

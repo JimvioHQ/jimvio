@@ -8,6 +8,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   CircleHelp,
+  ClipboardList,
   Clapperboard,
   DollarSign,
   Heart,
@@ -85,6 +86,12 @@ export const PROFILE_TOOL_ITEMS: ProfileMenuItem[] = [
     href: "/saved",
     icon: Heart,
     description: "Products, posts and campaigns",
+  },
+  {
+    label: "Orders",
+    href: "/orders",
+    icon: ClipboardList,
+    description: "View and track all your orders",
   },
 ];
 

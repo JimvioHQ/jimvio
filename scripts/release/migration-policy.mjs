@@ -49,7 +49,14 @@ export function stripComments(sql) {
 }
 
 export function destructiveFindings(sql) {
-  const body = stripComments(sql);
+  // Only explicitly reviewed stored functions may contain DML without being
+  // treated as migration-time data edits. Unmarked functions and top-level
+  // UPDATE/DELETE/TRUNCATE/DROP statements remain blocked.
+  const reviewedFunctionSql = String(sql).replace(
+    /--\s*ALLOWLISTED_STORED_FUNCTION_DML\s*\r?\n(\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\b[\s\S]*?\bAS\s+)(\$[a-zA-Z0-9_]*\$)[\s\S]*?\2/gi,
+    (_match, prefix, delimiter) => `${prefix}${delimiter}${delimiter}`,
+  );
+  const body = stripComments(reviewedFunctionSql);
   return DESTRUCTIVE_PATTERNS.filter((item) => item.pattern.test(body)).map((item) => item.code);
 }
 

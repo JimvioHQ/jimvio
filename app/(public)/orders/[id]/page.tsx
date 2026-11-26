@@ -8,7 +8,7 @@ import {
   Clock, Truck, MapPin, ChevronRight, Receipt, ShieldCheck,
   Download, ExternalLink, AlertTriangle, RefreshCw, Bug,
   MessageSquare, Star, RotateCcw, X, Store, Sparkles,
-  FileText, ChevronDown, Tag, HelpCircle, ArrowRight,
+  FileText, ChevronDown, Tag, HelpCircle, ArrowRight, Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
@@ -140,6 +140,7 @@ function getProviderLabel(provider: string | null | undefined) {
   if (!provider) return "Free";
   const map: Record<string, string> = {
     nowpayments: "Crypto",
+    wallet: "Jimvio Wallet",
     pesapal: "PesaPal (retired)",
     paypal: "PayPal (retired)",
     pawapay: "PawaPay (retired)",
@@ -815,7 +816,7 @@ function StatusTimeline({ history }: { history: NonNullable<Order["order_status_
 function ActionPanel({
   order, isFreeOrder, isDigitalOrder, isPendingPayment, isPaid,
   isRefunded, isCancelled, providerLabel, paying, cancelling,
-  onPay, onCancel, onReorder,
+  onPay, onPayWithWallet, onCancel, onReorder,
 }: {
   order: Order;
   isFreeOrder: boolean;
@@ -828,6 +829,7 @@ function ActionPanel({
   paying: boolean;
   cancelling: boolean;
   onPay: () => void;
+  onPayWithWallet: () => void;
   onCancel: () => void;
   onReorder: () => void;
 }) {
@@ -876,6 +878,14 @@ function ActionPanel({
             ) : (
               <><Lock className="h-3.5 w-3.5" /> Pay now <ArrowRight className="h-3.5 w-3.5" /></>
             )}
+          </button>
+
+          <button
+            onClick={onPayWithWallet}
+            disabled={paying}
+            className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[13px] font-semibold text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-60"
+          >
+            <Wallet className="h-4 w-4" /> Pay with Jimvio Wallet
           </button>
 
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
@@ -1085,10 +1095,11 @@ function DigitalAssetsPanel({ order, celebratory = false }: {
 /* ─── Mobile sticky pay bar ─────────────────────────────────────── */
 
 function MobilePayBar({
-  paying, onPay, total, currency, providerLabel,
+  paying, onPay, onPayWithWallet, total, currency, providerLabel,
 }: {
   paying: boolean;
   onPay: () => void;
+  onPayWithWallet: () => void;
   total: number;
   currency: string;
   providerLabel: string;
@@ -1112,10 +1123,18 @@ function MobilePayBar({
           </p>
         </div>
         <button
+          onClick={onPayWithWallet}
+          disabled={paying}
+          aria-label="Pay with Jimvio Wallet"
+          className="inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold text-[var(--color-text-primary)] disabled:opacity-60"
+        >
+          <Wallet className="h-4 w-4" /> Wallet
+        </button>
+        <button
           onClick={onPay}
           disabled={paying}
           className={cn(
-            "inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-full px-6",
+            "inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-full px-5",
             "text-[13px] font-semibold text-white",
             "transition-all active:scale-[0.97] disabled:opacity-60",
             "shadow-[var(--shadow-sm)]"
@@ -1347,6 +1366,10 @@ export default function PublicOrderDetailPage() {
 
   async function handlePay() {
     if (!order) return;
+    if (latestTransaction?.provider?.toLowerCase() === "wallet") {
+      await handlePayWithWallet();
+      return;
+    }
     setPaying(true);
     try {
       const provider = latestTransaction?.provider?.toLowerCase() || "flutterwave";
@@ -1376,6 +1399,33 @@ export default function PublicOrderDetailPage() {
       else throw new Error("No payment link returned. Please contact support.");
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  async function handlePayWithWallet() {
+    if (!order) return;
+    setPaying(true);
+    try {
+      const res = await fetch("/api/payments/wallet/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);
+      const redirectUrl = data.redirectUrl;
+      if (
+        typeof redirectUrl !== "string" ||
+        !redirectUrl.startsWith("/") ||
+        redirectUrl.startsWith("//")
+      ) {
+        throw new Error("Wallet payment completed, but the order page could not be opened. Please visit your orders.");
+      }
+      window.location.href = redirectUrl;
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "We couldn't complete the wallet payment.");
     } finally {
       setPaying(false);
     }
@@ -1597,6 +1647,7 @@ export default function PublicOrderDetailPage() {
                 paying={paying}
                 cancelling={cancelling}
                 onPay={handlePay}
+                onPayWithWallet={handlePayWithWallet}
                 onCancel={() => setCancelOpen(true)}
                 onReorder={handleReorder}
               />
@@ -1622,6 +1673,7 @@ export default function PublicOrderDetailPage() {
         <MobilePayBar
           paying={paying}
           onPay={handlePay}
+          onPayWithWallet={handlePayWithWallet}
           total={Number(order.total_amount)}
           currency={currency}
           providerLabel={providerLabel}

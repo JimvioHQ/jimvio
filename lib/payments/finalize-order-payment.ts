@@ -733,6 +733,7 @@ function getPaymentProviderLabel(provider: string | null | undefined): string {
     pawapay: "PawaPay (retired)",
     afripay: "AfriPay (retired)",
     flutterwave: "Flutterwave",
+    wallet: "Jimvio Wallet",
     binancepay: "Binance Pay",
     stripe: "Card",
     mtn: "MTN Money",

@@ -1,6 +1,6 @@
 // "use client";
 
-// import React from "react";
+// import React, { useEffect, useState } from "react";
 // import {
 //   CreditCard,
 //   Smartphone,
@@ -388,8 +388,8 @@
 
 "use client";
 
-import React from "react";
-import { Lock, ShieldCheck } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Lock, ShieldCheck, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Logo pills ───────────────────────────────────────────────────────────────
@@ -481,7 +481,8 @@ export type MethodId =
   | "nowpayments"
   | "flutterwave"
   | "mobile_money"
-  | "binancepay";
+  | "binancepay"
+  | "wallet";
 
 interface MethodDef {
   id: MethodId;
@@ -513,6 +514,22 @@ const METHODS: MethodDef[] = [
     logos: CARD_BRANDS.map((brand) => (
       <CardBrandLogo key={brand.src} src={brand.src} name={brand.name} />
     )),
+    feeLabel: "Free",
+  },
+  {
+    id: "wallet",
+    title: "Jimvio Wallet",
+    description: "Pay instantly using your available Jimvio Wallet balance",
+    iconNode: (
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: "linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <Wallet className="h-5 w-5 text-white" />
+      </div>
+    ),
+    logos: [],
     feeLabel: "Free",
   },
   {
@@ -621,6 +638,23 @@ export function PaymentMethodSelector({
   loading = false,
   enabledMethodIds,
 }: PaymentMethodSelectorProps) {
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletBalanceCurrency, setWalletBalanceCurrency] = useState("USD");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/wallet/os/overview", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { overview?: { available?: number; currency?: string } } | null) => {
+        if (!active || !data?.overview) return;
+        const balance = Number(data.overview.available);
+        if (Number.isFinite(balance)) setWalletBalance(balance);
+        if (typeof data.overview.currency === "string") setWalletBalanceCurrency(data.overview.currency);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   const visibleMethods = enabledMethodIds?.length
     ? METHODS.filter((m) => enabledMethodIds.includes(m.id))
     : METHODS;
@@ -692,6 +726,17 @@ export function PaymentMethodSelector({
                   {m.id === "mobile_money" && (
                     <p className="text-[11px] text-[var(--color-text-muted)] mb-1.5">
                       Continue to a secure Mobile Money checkout
+                    </p>
+                  )}
+                  {m.id === "wallet" && (
+                    <p className="text-[11px] font-medium text-[var(--color-text-secondary)] mb-1.5">
+                      {walletBalance === null
+                        ? "Loading available balance…"
+                        : `Available balance: ${new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: walletBalanceCurrency,
+                            maximumFractionDigits: 2,
+                          }).format(walletBalance)}`}
                     </p>
                   )}
 

@@ -112,6 +112,29 @@ export async function POST(
     orderId = order.id;
   }
 
+  if (!orderId) {
+    return NextResponse.json(
+      { error: "Unable to resolve the subscription order. Please try again." },
+      { status: 500 },
+    );
+  }
+
+  if (provider === "wallet") {
+    const { payOrderWithWallet } = await import("@/lib/payments/pay-order-with-wallet");
+    const result = await payOrderWithWallet(user.id, orderId);
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.error, ...(result.code ? { code: result.code } : {}) },
+        { status: result.status },
+      );
+    }
+    return NextResponse.json({
+      success: true,
+      paidWithWallet: true,
+      redirectUrl: `/communities/${slug}`,
+    });
+  }
+
   const base = appBaseUrl();
   if (!base) {
     return NextResponse.json(
