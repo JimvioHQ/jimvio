@@ -1,184 +1,265 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { BadgeCheck, Sparkles } from "lucide-react";
+import { BadgeCheck, BriefcaseBusiness, Building2, Globe2, Search, Users, Video } from "lucide-react";
 import { getAdminDB } from "@/services/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { constructMetadata } from "@/lib/seo";
-import { FoundingBadge } from "@/components/founding/FoundingBadge";
 
 export const revalidate = 300;
 
 export const metadata: Metadata = constructMetadata({
-  title: "Creators on Jimvio",
-  description: "Browse the creators who have joined Jimvio and open their profiles.",
+  title: "People on Jimvio",
+  description: "Discover real people on Jimvio — creators, community builders, affiliates, brands and members. Open their public profiles.",
   path: "/users/browse",
 });
 
-type CreatorRow = {
+type ProfileRow = {
   id: string;
-  user_id: string;
-  display_name: string | null;
-  niche: unknown;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
   bio: string | null;
-  profile_image: string | null;
-  total_followers: number | null;
+  website: string | null;
+  country: string | null;
+  language: string | null;
   is_verified: boolean | null;
+  created_at: string | null;
+  follower_count: number | null;
 };
 
-function normalizeNiche(value: unknown): string | null {
-  if (typeof value === "string") return value.trim() || null;
-  if (Array.isArray(value)) {
-    const labels = value
-      .map((item) => (typeof item === "string" ? item.trim() : ""))
-      .filter(Boolean);
-    return labels.length ? [...new Set(labels)].join(" · ") : null;
-  }
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    for (const key of ["label", "name", "value"]) {
-      if (typeof record[key] === "string" && record[key].trim()) return record[key].trim();
-    }
-  }
-  return null;
+type IdentityRow = {
+  user_id: string;
+  headline: string | null;
+  skills: string[] | null;
+  specialties: string[] | null;
+  industries: string[] | null;
+  privacy_visibility: string | null;
+};
+
+type MemberCard = ProfileRow & {
+  headline: string | null;
+  specialties: string[];
+  roles: string[];
+};
+
+const PAGE_SIZE = 24;
+
+function safeQuery(value: string): string {
+  return value.trim().slice(0, 80).replace(/[,%()]/g, " ").replace(/\s+/g, " ");
 }
 
-function formatFollowers(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}K`;
-  return n.toLocaleString("en-US");
+function pageHref(page: number, query: string): string {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (page > 1) params.set("page", String(page));
+  const suffix = params.toString();
+  return suffix ? `/users/browse?${suffix}` : "/users/browse";
 }
 
-export default async function InfluencersBrowsePage({
+function formatCount(value: number): string {
+  if (value >= 1_000_000) {
+    const compact = (value / 1_000_000).toFixed(1);
+    return `${compact.endsWith(".0") ? compact.slice(0, -2) : compact}M`;
+  }
+  if (value >= 1_000) {
+    const compact = (value / 1_000).toFixed(1);
+    return `${compact.endsWith(".0") ? compact.slice(0, -2) : compact}K`;
+  }
+  return value.toLocaleString("en-US");
+}
+
+function formatJoinedAt(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `Joined ${new Intl.DateTimeFormat("en", { month: "short", year: "numeric" }).format(date)}`;
+}
+
+function roleLabel(role: string): string {
+  if (role === "creator") return "Creator";
+  if (role === "community") return "Community builder";
+  if (role === "brand") return "Brand";
+  if (role === "affiliate") return "Affiliate";
+  return "Member";
+}
+
+export default async function UsersBrowsePage({
   searchParams,
 }: {
-  searchParams: Promise<{ niche?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const { niche: nicheParam } = await searchParams;
+  const params = await searchParams;
+  const queryText = safeQuery(params.q ?? "");
+  const requestedPage = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const admin = getAdminDB();
-  const { data } = await admin
-    .from("influencers")
-    .select("id, user_id, display_name, niche, bio, profile_image, total_followers, is_verified")
-    .eq("is_active", true)
-    .order("is_verified", { ascending: false })
-    .order("total_followers", { ascending: false })
-    .limit(120);
 
-  const all = ((data ?? []) as CreatorRow[])
-    .map((c) => ({ ...c, niche: normalizeNiche(c.niche) }))
-    .filter((c) => c.display_name?.trim());
-  const { data: seats } = await (admin as unknown as {
-    from: (t: string) => { select: (c: string) => Promise<{ data: { user_id: string; seat_number: number }[] | null }> };
-  })
-    .from("founding_creators")
-    .select("user_id, seat_number");
-  const seatByUser = new Map((seats ?? []).map((r) => [r.user_id, r.seat_number]));
-  // Niche chips come from real profiles only.
-  const niches = [...new Set(all.map((c) => c.niche?.trim()).filter(Boolean) as string[])].sort();
-  const activeNiche = nicheParam && niches.includes(nicheParam) ? nicheParam : null;
-  const creators = activeNiche ? all.filter((c) => c.niche?.trim() === activeNiche) : all;
+  let query = admin
+    .from("profiles")
+    .select("id, username, full_name, avatar_url, bio, website, country, language, is_verified, created_at, follower_count", { count: "exact" })
+    .or("is_active.is.null,is_active.eq.true")
+    .not("email", "ilike", "%@removed.jimvio")
+    .not("email", "ilike", "editorial+%@jimvio.com")
+    .order("created_at", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: true });
+
+  if (queryText) {
+    const term = `%${queryText}%`;
+    query = query.or(`full_name.ilike.${term},username.ilike.${term},bio.ilike.${term},country.ilike.${term}`);
+  }
+
+  const from = (requestedPage - 1) * PAGE_SIZE;
+  const { data, error, count } = await query.range(from, from + PAGE_SIZE - 1);
+  const profiles = (data ?? []) as ProfileRow[];
+  const userIds = profiles.map((profile) => profile.id);
+
+  const [identityResult, influencerResult, vendorResult, affiliateResult, communityResult] = userIds.length
+    ? await Promise.all([
+        admin.from("jip_identity").select("user_id, headline, skills, specialties, industries, privacy_visibility").in("user_id", userIds),
+        admin.from("influencers").select("user_id").eq("is_active", true).in("user_id", userIds),
+        admin.from("vendors").select("user_id").eq("is_active", true).in("user_id", userIds),
+        admin.from("affiliates").select("user_id").eq("is_active", true).in("user_id", userIds),
+        admin.from("communities").select("owner_id").in("owner_id", userIds),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
+
+  const identities = new Map<string, IdentityRow>(
+    ((identityResult.data ?? []) as IdentityRow[]).map((row) => [row.user_id, row]),
+  );
+  const creators = new Set((influencerResult.data ?? []).map((row: { user_id: string }) => row.user_id));
+  const brands = new Set((vendorResult.data ?? []).map((row: { user_id: string }) => row.user_id));
+  const affiliates = new Set((affiliateResult.data ?? []).map((row: { user_id: string }) => row.user_id));
+  const communityBuilders = new Set((communityResult.data ?? []).map((row: { owner_id: string }) => row.owner_id));
+
+  const loadError = error ?? identityResult.error ?? influencerResult.error ?? vendorResult.error ?? affiliateResult.error ?? communityResult.error;
+
+  const members: MemberCard[] = profiles
+    .filter((profile) => {
+      const visibility = identities.get(profile.id)?.privacy_visibility ?? "public";
+      return visibility === "public";
+    })
+    .map((profile) => {
+      const identity = identities.get(profile.id);
+      const roles: string[] = [];
+      if (creators.has(profile.id)) roles.push("creator");
+      if (communityBuilders.has(profile.id)) roles.push("community");
+      if (brands.has(profile.id)) roles.push("brand");
+      if (affiliates.has(profile.id)) roles.push("affiliate");
+      if (!roles.length) roles.push("member");
+      const specialties = [...(identity?.specialties ?? []), ...(identity?.skills ?? []), ...(identity?.industries ?? [])]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .filter((value, index, values) => values.indexOf(value) === index)
+        .slice(0, 3);
+      return { ...profile, headline: identity?.headline ?? null, specialties, roles };
+    });
+
+  const total = count ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, pageCount);
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg,#fff)]">
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="mx-auto max-w-[1200px] px-4 pb-10 pt-28 sm:px-6">
+    <main className="min-h-screen bg-[var(--color-bg,#fff)]">
+      <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="mx-auto max-w-[1200px] px-4 pb-9 pt-28 sm:px-6">
           <p className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#fd5000]">
-            <Sparkles className="h-3 w-3" /> Creators
+            <Users className="h-3.5 w-3.5" /> Jimvio community
           </p>
           <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-4xl">
-            Creators on Jimvio
+            People on Jimvio
           </h1>
-          <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-            Real people who joined Jimvio to create content, run communities and work with brands. Follower
-            counts come from each creator&apos;s own profile.
+          <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+            Real people who joined Jimvio to create content, run communities and work with brands.
+            Discover every public member profile — not only people registered as creators.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link
-              href="/founding-creators"
-              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-[13px] font-semibold text-amber-800 hover:bg-amber-100"
-            >
-              Founding Creators
-            </Link>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-text-primary)]">
+              <Users className="h-4 w-4 text-[var(--color-text-muted)]" />
+              {total.toLocaleString("en-US")} {total === 1 ? "member" : "members"}
+            </span>
+            <span className="text-[12px] text-[var(--color-text-muted)]">Creators · Community builders · Affiliates · Brands · Members</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6">
-        {niches.length > 0 ? (
-          <nav aria-label="Filter by niche" className="mb-8 flex gap-2 overflow-x-auto pb-1">
-            <Link
-              href="/users/browse"
-              className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold ${
-                !activeNiche
-                  ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-                  : "border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-              }`}
-            >
-              All
-            </Link>
-            {niches.map((n) => (
-              <Link
-                key={n}
-                href={`/users/browse?niche=${encodeURIComponent(n)}`}
-                className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold ${
-                  activeNiche === n
-                    ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-                    : "border border-[var(--color-border)] text-[var(--color-text-secondary)]"
-                }`}
-              >
-                {n}
-              </Link>
-            ))}
-          </nav>
-        ) : null}
+      <section className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6">
+        <form action="/users/browse" method="get" className="mb-7 flex max-w-2xl gap-2">
+          <label htmlFor="member-search" className="sr-only">Search people</label>
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <input
+              id="member-search"
+              name="q"
+              type="search"
+              defaultValue={params.q ?? ""}
+              maxLength={80}
+              placeholder="Search by name, username, bio or country"
+              className="h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] pl-10 pr-4 text-sm text-[var(--color-text-primary)] outline-none focus:border-[#fd5000]"
+            />
+          </div>
+          <button type="submit" className="inline-flex h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-sm font-semibold text-white transition hover:bg-[#e44800]">
+            Search
+          </button>
+        </form>
 
-        {creators.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center">
+            <p className="text-lg font-bold text-red-800">People could not be loaded</p>
+            <p className="mt-2 text-sm text-red-700">Please refresh the page and try again.</p>
+          </div>
+        ) : members.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-6 py-16 text-center">
-            <p className="text-lg font-bold text-[var(--color-text-primary)]">No creators here yet</p>
-            <p className="mx-auto mt-2 max-w-md text-[14px] text-[var(--color-text-secondary)]">
-              Be one of the first creators on Jimvio — set up your profile and start working with brands.
-            </p>
-
+            <p className="text-lg font-bold text-[var(--color-text-primary)]">No matching people found</p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-secondary)]">Try another name or clear your search to discover more Jimvio members.</p>
+            {queryText ? <Link href="/users/browse" className="mt-5 inline-flex text-sm font-semibold text-[#fd5000]">Clear search</Link> : null}
           </div>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {creators.map((c) => {
-              const followers = Number(c.total_followers ?? 0);
+            {members.map((member) => {
+              const displayName = member.full_name?.trim() || (member.username ? `@${member.username}` : "Jimvio member");
+              const profileHref = member.username
+                ? `/u/${encodeURIComponent(member.username)}`
+                : `/members/${member.id}`;
+              const joined = formatJoinedAt(member.created_at);
+              const followers = Number(member.follower_count ?? 0);
               return (
-                <li key={c.id}>
+                <li key={member.id}>
                   <Link
-                    href={`/influencers/u/${c.user_id}`}
-                    className="flex h-full flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition hover:border-[#fd5000]/40 hover:shadow-sm"
+                    href={profileHref}
+                    className="group flex h-full min-h-[218px] flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 transition hover:border-[#fd5000]/45 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]"
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-14 w-14">
-                        <AvatarImage src={c.profile_image ?? undefined} alt="" />
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-14 w-14 shrink-0">
+                        <AvatarImage src={member.avatar_url ?? undefined} alt={displayName} />
                         <AvatarFallback className="bg-[#fd5000]/10 text-lg font-bold text-[#fd5000]">
-                          {c.display_name?.trim().charAt(0).toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="flex items-center gap-1 truncate text-[15px] font-bold text-[var(--color-text-primary)]">
-                          <span className="truncate">{c.display_name}</span>
-                          {c.is_verified ? (
-                            <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" aria-label="Verified creator" />
-                          ) : null}
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1 text-[15px] font-bold text-[var(--color-text-primary)]">
+                          <span className="truncate">{displayName}</span>
+                          {member.is_verified ? <BadgeCheck className="h-4 w-4 shrink-0 text-blue-500" aria-label="Verified" /> : null}
                         </p>
-                        {c.niche ? (
-                          <p className="truncate text-[12px] text-[var(--color-text-muted)]">{c.niche}</p>
-                        ) : null}
-                        {seatByUser.get(c.user_id) ? (
-                          <FoundingBadge seat={seatByUser.get(c.user_id)!} compact className="mt-1" />
-                        ) : null}
+                        {member.username ? <p className="truncate text-[12px] text-[var(--color-text-muted)]">@{member.username}</p> : null}
+                        {member.country ? <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]"><Globe2 className="h-3 w-3" />{member.country}</p> : null}
                       </div>
                     </div>
-                    {c.bio ? (
-                      <p className="mt-3 line-clamp-2 text-[13px] text-[var(--color-text-secondary)]">{c.bio}</p>
-                    ) : null}
-                    <div className="mt-auto flex items-center justify-between pt-4 text-[12px]">
-                      <span className="text-[var(--color-text-muted)]">
-                        {followers > 0 ? `${formatFollowers(followers)} followers` : "New creator"}
-                      </span>
-                      <span className="font-semibold text-[#fd5000]">View profile →</span>
+
+                    {member.headline ? <p className="mt-4 line-clamp-2 text-[13px] font-semibold text-[var(--color-text-primary)]">{member.headline}</p> : null}
+                    {member.bio ? <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">{member.bio}</p> : null}
+
+                    <div className="mt-4 flex flex-wrap gap-1.5">
+                      {member.roles.map((role) => (
+                        <span key={role} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-bg)] px-2.5 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)]">
+                          {role === "creator" ? <Video className="h-3 w-3" /> : role === "brand" ? <Building2 className="h-3 w-3" /> : role === "community" ? <Users className="h-3 w-3" /> : role === "affiliate" ? <BriefcaseBusiness className="h-3 w-3" /> : null}
+                          {roleLabel(role)}
+                        </span>
+                      ))}
+                      {member.specialties.map((specialty) => <span key={specialty} className="rounded-full border border-[var(--color-border)] px-2.5 py-1 text-[10px] text-[var(--color-text-muted)]">{specialty}</span>)}
+                    </div>
+
+                    <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-[11px]">
+                      <span className="text-[var(--color-text-muted)]">{followers > 0 ? `${formatCount(followers)} followers` : joined ?? "Jimvio member"}</span>
+                      <span className="shrink-0 font-semibold text-[#fd5000] group-hover:underline">View profile →</span>
                     </div>
                   </Link>
                 </li>
@@ -186,7 +267,15 @@ export default async function InfluencersBrowsePage({
             })}
           </ul>
         )}
-      </div>
-    </div>
+
+        {pageCount > 1 ? (
+          <nav aria-label="People pages" className="mt-9 flex items-center justify-center gap-2">
+            {currentPage > 1 ? <Link href={pageHref(currentPage - 1, queryText)} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]">Previous</Link> : null}
+            <span className="px-3 text-sm text-[var(--color-text-muted)]">Page {currentPage} of {pageCount}</span>
+            {currentPage < pageCount ? <Link href={pageHref(currentPage + 1, queryText)} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)]">Next</Link> : null}
+          </nav>
+        ) : null}
+      </section>
+    </main>
   );
 }
