@@ -153,7 +153,7 @@ export function CheckoutExperience({
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
-      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay"];
+      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay", "wallet"];
       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
          return preferredMethod as MethodId;
       }
