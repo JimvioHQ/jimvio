@@ -612,7 +612,7 @@ export function CheckoutExperience({
          }
          const redirectUrl = extractRedirectUrl(data);
          if (!redirectUrl) throw new Error("No redirect URL from payment provider");
-         if (payment === "wallet") {
+         if (activePayment === "wallet") {
             // Wallet settlement stays on Jimvio; only allow a same-origin path.
             if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
                throw new Error("Invalid wallet redirect");
