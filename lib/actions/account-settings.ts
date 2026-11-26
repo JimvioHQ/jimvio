@@ -86,8 +86,8 @@ export async function exportUserData(): Promise<ActionResult<{ json: string }>> 
 
   const [profileRes, vendorRes, affiliateRes, influencerRes, rolesRes, ordersRes] =
     await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
-      supabase.from("vendors").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.rpc("get_my_private_profile").maybeSingle(),
+      supabase.rpc("get_my_vendors"),
       supabase.from("affiliates").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("influencers").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("user_roles").select("role, is_active").eq("user_id", user.id),
@@ -110,7 +110,7 @@ export async function exportUserData(): Promise<ActionResult<{ json: string }>> 
       preferred_currency: user.user_metadata?.preferred_currency ?? null,
     },
     profile: profileRes.data,
-    vendor: vendorRes.data,
+    vendor: vendorRes.data?.find((row) => row.is_active !== false) ?? vendorRes.data?.[0] ?? null,
     affiliate: affiliateRes.data,
     influencer: influencerRes.data,
     roles: rolesRes.data ?? [],
@@ -127,13 +127,12 @@ export async function deactivateAccount(): Promise<ActionResult<{ message: strin
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
-  const { error: profileError } = await supabase
+  const admin = createAdminClient();
+  const { error: profileError } = await admin
     .from("profiles")
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", user.id);
   if (profileError) return { success: false, error: profileError.message };
-
-  const admin = createAdminClient();
   await admin
     .from("user_roles")
     .update({ is_active: false })
