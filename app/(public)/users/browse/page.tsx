@@ -130,6 +130,8 @@ export default async function UsersBrowsePage({
   const affiliates = new Set((affiliateResult.data ?? []).map((row: { user_id: string }) => row.user_id));
   const communityBuilders = new Set((communityResult.data ?? []).map((row: { owner_id: string }) => row.owner_id));
 
+  const loadError = error ?? identityResult.error ?? influencerResult.error ?? vendorResult.error ?? affiliateResult.error ?? communityResult.error;
+
   const members: MemberCard[] = profiles
     .filter((profile) => {
       const visibility = identities.get(profile.id)?.privacy_visibility ?? "public";
@@ -143,7 +145,7 @@ export default async function UsersBrowsePage({
       if (brands.has(profile.id)) roles.push("brand");
       if (affiliates.has(profile.id)) roles.push("affiliate");
       if (!roles.length) roles.push("member");
-      const specialties = [...(identity?.specialties ?? []), ...(identity?.skills ?? [])]
+      const specialties = [...(identity?.specialties ?? []), ...(identity?.skills ?? []), ...(identity?.industries ?? [])]
         .map((value) => value.trim())
         .filter(Boolean)
         .filter((value, index, values) => values.indexOf(value) === index)
@@ -199,7 +201,7 @@ export default async function UsersBrowsePage({
           </button>
         </form>
 
-        {error ? (
+        {loadError ? (
           <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center">
             <p className="text-lg font-bold text-red-800">People could not be loaded</p>
             <p className="mt-2 text-sm text-red-700">Please refresh the page and try again.</p>
