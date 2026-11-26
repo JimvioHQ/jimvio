@@ -115,6 +115,7 @@ interface CheckoutExperienceProps {
    orders: CartOrder[];
    profile: { full_name: string | null; email: string | null; phone: string | null } | null;
    preferredMethod?: string | null;
+   resumeProvider?: MethodId | null;
    mode?: "cart" | "community";
    cartWasUpdated?: boolean;
    changes?: CheckoutSyncChanges;
@@ -133,7 +134,7 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 };
 
 export function CheckoutExperience({
-   orders, profile, preferredMethod, mode = "cart",
+   orders, profile, preferredMethod, resumeProvider, mode = "cart",
    brandSurface = "platform",
    storeName = null,
 }: CheckoutExperienceProps) {
@@ -143,18 +144,25 @@ export function CheckoutExperience({
    const isCommunity = mode === "community";
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
+   const hasStartedPayment = Boolean(resumeProvider) || orders.some((order) =>
+      order.payment_status === "processing" || Boolean(order.payment_provider || order.gateway_used)
+   );
 
    const currency = orders[0]?.currency ?? PLATFORM_CURRENCY;
    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
    const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
 
    const [stage, setStage] = useState<Stage>(
-      isAllDigital || isCommunity ? "payment" : "shipping"
+      isAllDigital || isCommunity || hasStartedPayment ? "payment" : "shipping"
    );
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
       const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay", "wallet"];
+      if (resumeProvider && valid.includes(resumeProvider)) {
+         // Mobile Money resumes through its existing Flutterwave authorization.
+         return resumeProvider === "mobile_money" ? "flutterwave" : resumeProvider;
+      }
       if (
          preferredMethod &&
          valid.includes(preferredMethod as MethodId) &&
