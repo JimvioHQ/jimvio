@@ -55,7 +55,7 @@ export function destructiveFindings(sql) {
   // CREATE FUNCTION bodies so atomic, guarded RPC implementations can be
   // reviewed and allowlisted without being mistaken for migration-time data edits.
   const body = stripComments(sql).replace(
-    /(\\bCREATE\\s+(?:OR\\s+REPLACE\\s+)?FUNCTION\\b[\\s\\S]*?\\bAS\\s+)(\\$[a-zA-Z0-9_]*\\$)[\\s\\S]*?\\2/gi,
+    /(\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\b[\s\S]*?\bAS\s+)(\$[a-zA-Z0-9_]*\$)[\s\S]*?\2/gi,
     (_match, prefix, delimiter) => `${prefix}${delimiter}${delimiter}`,
   );
   return DESTRUCTIVE_PATTERNS.filter((item) => item.pattern.test(body)).map((item) => item.code);
