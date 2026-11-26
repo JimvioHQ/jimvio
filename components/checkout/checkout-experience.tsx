@@ -482,7 +482,7 @@ export function CheckoutExperience({
             ...shipping,
             address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
             city: shipping.city || (isAllDigital ? "Online" : ""),
-            shippingAmount: shippingCost ?? undefined,
+            shippingAmount: isCJOrder && cjSelected ? shippingCost ?? undefined : undefined,
             discountAmount: discount,
             ...(cjQuoteToken ? { quoteToken: cjQuoteToken } : {}),
             ...(cjSelected?.optionId ? { shippingOptionId: cjSelected.optionId } : {}),
