@@ -886,6 +886,11 @@ export function CheckoutExperience({
                            transition={{ duration: 0.28, ease: "easeOut" }}
                            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:p-5 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-7"
                         >
+                           {orders.length > 1 && (
+                              <p className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+                                 This cart contains orders from multiple sellers. Jimvio Wallet or Cryptocurrency will settle every order together; other payment methods remain available when paying one order at a time from Orders.
+                              </p>
+                           )}
                            <PaymentMethodSelector
                               selected={payment === "mobile_money" ? null : payment}
                               onSelect={(m) => {
