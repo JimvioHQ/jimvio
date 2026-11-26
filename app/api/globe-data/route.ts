@@ -90,7 +90,6 @@ export interface GlobeEvent {
 }
 
 export interface GlobeStats {
-  totalUsers: number;
   totalOrders: number;
   activeCountries: number;
 }
@@ -299,7 +298,6 @@ export async function GET() {
 
     // Stats
     const stats: GlobeStats = {
-      totalUsers: profiles.length,
       totalOrders: (ordersRes.data ?? []).length,
       activeCountries: activeCountriesSet.size,
     };
