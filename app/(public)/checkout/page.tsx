@@ -216,7 +216,11 @@ export default async function CheckoutPage(props: {
     latestPayment?.metadata && typeof latestPayment.metadata === "object" && !Array.isArray(latestPayment.metadata)
       ? latestPayment.metadata as Record<string, unknown>
       : {};
-  const storedProvider = String(latestPayment?.provider ?? order.payment_provider ?? order.gateway_used ?? "").toLowerCase();
+  const storedProvider = String(
+    latestPayment?.provider ??
+    (["pending", "processing"].includes(order.payment_status) ? order.payment_provider ?? order.gateway_used : "") ??
+    ""
+  ).toLowerCase();
   const mappedProvider =
     storedProvider === "binance" ? "binancepay" :
     storedProvider === "flutterwave" && latestPaymentMetadata.method === "mobile_money" ? "mobile_money" :
