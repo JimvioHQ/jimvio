@@ -969,7 +969,7 @@ export async function updatePendingOrdersShipping(
       .update(orderUpdate as OrderUpdate)
       .eq("id", order.id)
       .eq("buyer_id", userId)
-      .eq("status", "pending")
+      .in("status", ["pending", "checkout_direct"])
       .in("payment_status", ["pending", "failed"])
       .select("id");
 
