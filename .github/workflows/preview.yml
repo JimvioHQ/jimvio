@@ -71,7 +71,10 @@ jobs:
           fi
           echo "vercel_cli=true" >> "$GITHUB_OUTPUT"
           npx vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
-          npx vercel build --token="$VERCEL_TOKEN"
+          # Keep the public URL identical to the value configured for both
+          # Preview and Production. NEXT_PUBLIC_* values are inlined at build
+          # time, so never substitute a fake URL into the deployed client bundle.
+          NEXT_PUBLIC_SUPABASE_URL="https://vsfhwfimudpdipdkxbww.supabase.co" npx vercel build --token="$VERCEL_TOKEN"
           URL=$(npx vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Preview URL: $URL" >> "$GITHUB_STEP_SUMMARY"

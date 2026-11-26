@@ -121,16 +121,26 @@ export function useChatRoom({
     useEffect(() => { threadOpenRef.current = threadOpen; }, [threadOpen]);
 
     const loadThread = useCallback(async (rootId: string) => {
-        const sb = createClient();
-        const { data } = await sb
-            .from("community_messages")
-            .select(
-                "*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)"
-            )
-            .eq("thread_id", rootId)
-            .eq("is_deleted", false)
-            .order("created_at", { ascending: true });
-        setThreadReplies((data as Msg[]) ?? []);
+        try {
+            const sb = createClient();
+            const { data, error } = await sb
+                .from("community_messages")
+                .select(
+                    "*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)"
+                )
+                .eq("thread_id", rootId)
+                .eq("is_deleted", false)
+                .order("created_at", { ascending: true });
+            if (error) {
+                console.error("[CommunityChat] thread load failed:", error.message);
+                toast.error("Could not load thread replies. Please try again.");
+                return;
+            }
+            setThreadReplies((data as Msg[]) ?? []);
+        } catch (error) {
+            console.error("[CommunityChat] thread load failed:", error);
+            toast.error("Could not load thread replies. Please try again.");
+        }
     }, []);
 
     const openThread = useCallback(

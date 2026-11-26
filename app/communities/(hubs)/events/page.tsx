@@ -25,6 +25,20 @@ type HubEvent = {
   timezone?: string;
 };
 
+function formatEventDateTime(value: string, timezone?: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+      ...(timezone ? { timeZone: timezone } : {}),
+    }).format(date);
+  } catch {
+    return date.toLocaleString();
+  }
+}
+
 const FILTERS = [
   ["upcoming", "Upcoming"],
   ["past", "Past"],
@@ -167,7 +181,7 @@ function EventsPage() {
                     </div>
                     <h2 className="text-[15px] font-bold">{event.title}</h2>
                     <p className="text-[12px] text-[var(--color-text-muted)]">
-                      {new Date(event.start_date).toLocaleString()} · {event.format || "online"}
+                      {formatEventDateTime(event.start_date, event.timezone)} · {event.format || "online"}
                       {event.community_name ? ` · ${event.community_name}` : ""}
                     </p>
                   </div>

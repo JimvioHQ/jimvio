@@ -56,6 +56,10 @@ describe("mission rules", () => {
       true,
     );
     assert.equal(
+      matchesMissionListFilter({ filter: "in_progress", participantStatus: "rejected" }),
+      false,
+    );
+    assert.equal(
       matchesMissionListFilter({ filter: "completed", participantStatus: "approved" }),
       true,
     );

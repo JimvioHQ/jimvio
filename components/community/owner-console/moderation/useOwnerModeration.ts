@@ -24,6 +24,25 @@ const EMPTY_OVERVIEW: OwnerModerationOverview = {
   avgResponseHours: null,
 };
 
+async function requestModerationJson(
+  url: string,
+  fallbackMessage: string,
+  init?: RequestInit,
+): Promise<any | null> {
+  try {
+    const res = await fetch(url, init);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.error || fallbackMessage);
+      return null;
+    }
+    return data;
+  } catch {
+    toast.error(fallbackMessage);
+    return null;
+  }
+}
+
 export function useOwnerModeration(communityId: string | null) {
   const [overview, setOverview] =
     useState<OwnerModerationOverview>(EMPTY_OVERVIEW);
@@ -92,30 +111,30 @@ export function useOwnerModeration(communityId: string | null) {
 
   const loadAppeals = useCallback(async () => {
     if (!communityId) return;
-    const res = await fetch(
-      `/api/c/owner/moderation/appeals?communityId=${encodeURIComponent(communityId)}`
+    const data = await requestModerationJson(
+      `/api/c/owner/moderation/appeals?communityId=${encodeURIComponent(communityId)}`,
+      "Failed to load appeals",
     );
-    const data = await res.json();
-    if (res.ok) setAppeals(data.appeals ?? []);
+    if (data) setAppeals(data.appeals ?? []);
   }, [communityId]);
 
   const loadRules = useCallback(async () => {
     if (!communityId) return;
-    const res = await fetch(
-      `/api/c/owner/moderation/rules?communityId=${encodeURIComponent(communityId)}`
+    const data = await requestModerationJson(
+      `/api/c/owner/moderation/rules?communityId=${encodeURIComponent(communityId)}`,
+      "Failed to load auto-moderation rules",
     );
-    const data = await res.json();
-    if (res.ok) setRules(data.rules ?? []);
+    if (data) setRules(data.rules ?? []);
   }, [communityId]);
 
   const loadMembers = useCallback(
     async (kind: "muted" | "suspended" | "banned") => {
       if (!communityId) return;
-      const res = await fetch(
-        `/api/c/owner/moderation/members?communityId=${encodeURIComponent(communityId)}&kind=${kind}`
+      const data = await requestModerationJson(
+        `/api/c/owner/moderation/members?communityId=${encodeURIComponent(communityId)}&kind=${kind}`,
+        `Failed to load ${kind} members`,
       );
-      const data = await res.json();
-      if (res.ok) setMembers(data.members ?? []);
+      if (data) setMembers(data.members ?? []);
     },
     [communityId]
   );
@@ -125,20 +144,22 @@ export function useOwnerModeration(communityId: string | null) {
       if (!communityId) return;
       const params = new URLSearchParams({ communityId, limit: "100" });
       if (q) params.set("q", q);
-      const res = await fetch(`/api/c/owner/moderation/audit?${params}`);
-      const data = await res.json();
-      if (res.ok) setAudit(data.entries ?? []);
+      const data = await requestModerationJson(
+        `/api/c/owner/moderation/audit?${params}`,
+        "Failed to load moderation audit log",
+      );
+      if (data) setAudit(data.entries ?? []);
     },
     [communityId]
   );
 
   const loadAnalytics = useCallback(async () => {
     if (!communityId) return;
-    const res = await fetch(
-      `/api/c/owner/moderation/analytics?communityId=${encodeURIComponent(communityId)}`
+    const data = await requestModerationJson(
+      `/api/c/owner/moderation/analytics?communityId=${encodeURIComponent(communityId)}`,
+      "Failed to load moderation analytics",
     );
-    const data = await res.json();
-    if (res.ok) setAnalytics(data.analytics ?? null);
+    if (data) setAnalytics(data.analytics ?? null);
   }, [communityId]);
 
   useEffect(() => {
@@ -177,14 +198,11 @@ export function useOwnerModeration(communityId: string | null) {
   const openReport = useCallback(
     async (report: OwnerReportListItem) => {
       if (!communityId) return;
-      const res = await fetch(
-        `/api/c/owner/moderation/reports/${encodeURIComponent(report.id)}?communityId=${encodeURIComponent(communityId)}`
+      const data = await requestModerationJson(
+        `/api/c/owner/moderation/reports/${encodeURIComponent(report.id)}?communityId=${encodeURIComponent(communityId)}`,
+        "Failed to load report",
       );
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Failed to load report");
-        return;
-      }
+      if (!data) return;
       setSelectedReport(data.report ?? report);
       setReportHistory(
         (data.history ?? []).map(
@@ -223,19 +241,16 @@ export function useOwnerModeration(communityId: string | null) {
       extra: Record<string, unknown> = {}
     ) => {
       if (!communityId) return;
-      const res = await fetch(
+      const data = await requestModerationJson(
         `/api/c/owner/moderation/reports/${encodeURIComponent(reportId)}`,
+        "Moderation action failed",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ communityId, action, ...extra }),
-        }
+        },
       );
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Action failed");
-        return;
-      }
+      if (!data) return;
       toast.success(`Action: ${action.replace(/_/g, " ")}`);
       await loadQueue();
       if (selectedReport?.id === reportId) {
@@ -252,20 +267,16 @@ export function useOwnerModeration(communityId: string | null) {
       if (!communityId) return;
       const reportIds = ids ?? selectedIds;
       if (reportIds.length === 0) return;
-      const res = await fetch("/api/c/owner/moderation/bulk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          communityId,
-          reportIds,
-          action,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Bulk action failed");
-        return;
-      }
+      const data = await requestModerationJson(
+        "/api/c/owner/moderation/bulk",
+        "Bulk moderation action failed",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ communityId, reportIds, action }),
+        },
+      );
+      if (!data) return;
       if (action === "export") {
         const blob = new Blob([JSON.stringify(data.export ?? [], null, 2)], {
           type: "application/json",
@@ -294,16 +305,16 @@ export function useOwnerModeration(communityId: string | null) {
 
   const seedRules = useCallback(async () => {
     if (!communityId) return;
-    const res = await fetch("/api/c/owner/moderation/rules", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ communityId, seedDefaults: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      toast.error(data.error || "Failed to seed rules");
-      return;
-    }
+    const data = await requestModerationJson(
+      "/api/c/owner/moderation/rules",
+      "Failed to prepare auto-moderation rules",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ communityId, seedDefaults: true }),
+      },
+    );
+    if (!data) return;
     setRules(data.rules ?? []);
     toast.success("Auto-moderation rules ready");
   }, [communityId]);
@@ -311,16 +322,16 @@ export function useOwnerModeration(communityId: string | null) {
   const toggleRule = useCallback(
     async (ruleId: string, enabled: boolean) => {
       if (!communityId) return;
-      const res = await fetch("/api/c/owner/moderation/rules", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ communityId, ruleId, enabled }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Update failed");
-        return;
-      }
+      const data = await requestModerationJson(
+        "/api/c/owner/moderation/rules",
+        "Failed to update auto-moderation rule",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ communityId, ruleId, enabled }),
+        },
+      );
+      if (!data) return;
       setRules((prev) =>
         prev.map((r) => (r.id === ruleId ? (data.rule as OwnerAutoModRule) : r))
       );
@@ -331,21 +342,21 @@ export function useOwnerModeration(communityId: string | null) {
   const updateAppeal = useCallback(
     async (appealId: string, status: string, reviewerNote?: string) => {
       if (!communityId) return;
-      const res = await fetch("/api/c/owner/moderation/appeals", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          communityId,
-          appealId,
-          status,
-          reviewerNote: reviewerNote ?? null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Appeal update failed");
-        return;
-      }
+      const data = await requestModerationJson(
+        "/api/c/owner/moderation/appeals",
+        "Failed to update appeal",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            communityId,
+            appealId,
+            status,
+            reviewerNote: reviewerNote ?? null,
+          }),
+        },
+      );
+      if (!data) return;
       toast.success(`Appeal ${status.replace(/_/g, " ")}`);
       await loadAppeals();
     },

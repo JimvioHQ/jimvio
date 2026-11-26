@@ -41,25 +41,33 @@ export async function resolveModerationContext(
   communityId: string,
   required: PermissionCapability = "moderation.view"
 ): Promise<ModerationContext | { error: string; status: number }> {
-  const { data: community } = await supabase
+  const { data: community, error: communityError } = await supabase
     .from("communities")
     .select("id, name, slug, owner_id, is_active")
     .eq("id", communityId)
     .maybeSingle();
 
+  if (communityError) {
+    console.error("[CommunityModeration] community access lookup failed", communityError.message);
+    return { error: "Unable to verify community access", status: 500 };
+  }
   if (!community || community.is_active === false) {
     return { error: "Community not found", status: 404 };
   }
 
   let membership: MembershipLite | null = null;
   if (community.owner_id !== userId) {
-    const { data: row } = await supabase
+    const { data: row, error: membershipError } = await supabase
       .from("community_memberships")
       .select("role, status, plan_type")
       .eq("community_id", communityId)
       .eq("user_id", userId)
       .eq("status", "active")
       .maybeSingle();
+    if (membershipError) {
+      console.error("[CommunityModeration] membership access lookup failed", membershipError.message);
+      return { error: "Unable to verify community access", status: 500 };
+    }
     if (row) {
       membership = {
         role: String(row.role),

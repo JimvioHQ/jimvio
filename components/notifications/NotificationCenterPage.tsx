@@ -28,6 +28,7 @@ import {
     type NotificationUiCategory,
 } from "@/lib/notifications/ui-utils";
 import { subscribeUserNotifications } from "@/lib/notifications/realtime";
+import { toast } from "sonner";
 
 const VALID_CATEGORIES = new Set<NotificationUiCategory>([
     "order", "shipping", "message", "payment", "community", "system",
@@ -222,24 +223,27 @@ export function NotificationCenterPage() {
 
     const loadNotifications = useCallback(async (opts?: { cursor?: string | null; append?: boolean; q?: string }) => {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            setNotifications([]);
-            setLoading(false);
-            return;
-        }
-
-        setUserId(user.id);
         if (opts?.append) setLoadingMore(true);
         else setLoading(true);
 
-        const params = new URLSearchParams();
-        params.set("limit", "30");
-        if (opts?.cursor) params.set("cursor", opts.cursor);
-        const q = opts?.q ?? search;
-        if (q.trim()) params.set("q", q.trim());
-
         try {
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError) throw userError;
+            if (!user) {
+                setUserId(null);
+                setNotifications([]);
+                setNextCursor(null);
+                setHasMore(false);
+                return;
+            }
+
+            setUserId(user.id);
+            const params = new URLSearchParams();
+            params.set("limit", "30");
+            if (opts?.cursor) params.set("cursor", opts.cursor);
+            const q = opts?.q ?? search;
+            if (q.trim()) params.set("q", q.trim());
+
             const res = await fetch(`/api/notifications?${params.toString()}`);
             if (res.ok) {
                 const json = await res.json();
@@ -248,24 +252,25 @@ export function NotificationCenterPage() {
                 setNextCursor(json.nextCursor ?? null);
                 setHasMore(Boolean(json.hasMore));
             } else {
-                // Fallback to direct client query
+                // Preserve the existing direct-query fallback, but do not mask its errors.
                 const { data, error } = await supabase
                     .from("notifications")
                     .select("id, user_id, type, title, message, data, is_read, read_at, action_url, created_at")
                     .eq("user_id", user.id)
                     .order("created_at", { ascending: false })
                     .limit(100);
-                if (error) console.error("[NotificationsPage] load failed:", error.message);
+                if (error) throw error;
                 setNotifications(data ?? []);
                 setHasMore(false);
                 setNextCursor(null);
             }
         } catch (err) {
             console.error("[NotificationsPage] load error:", err);
+            toast.error("Could not load notifications. Please try again.");
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
         }
-
-        setLoading(false);
-        setLoadingMore(false);
     }, [search]);
 
     useEffect(() => {

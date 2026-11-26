@@ -80,61 +80,107 @@ export async function listMissions(input: {
     .eq("status", "active");
   const communityIds = (memberships ?? []).map((row) => row.community_id);
 
-  let query = admin().from("community_tasks").select("*, communities(name, slug)", { count: "exact" });
+  const buildQuery = () => {
+    let query = admin().from("community_tasks").select("*, communities(name, slug)", { count: "exact" });
+    if (input.manage && input.communityId) {
+      query = query.eq("community_id", input.communityId);
+    } else if (input.filter === "organized") {
+      query = query.eq("creator_id", input.userId);
+    } else {
+      query = query.eq("status", "published");
+    }
+
+    if (input.category) query = query.ilike("category", input.category.slice(0, 40));
+    if (input.q) {
+      const q = input.q.replace(/[%_,]/g, "").slice(0, 80);
+      if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    }
+    return query;
+  };
+
   if (input.manage && input.communityId) {
     const gate = await access(input.userId, input.communityId);
     if (!gate.canManage) throw new Error("Not authorized to manage missions");
-    query = query.eq("community_id", input.communityId);
-  } else if (input.filter === "organized") {
-    query = query.eq("creator_id", input.userId);
-  } else {
-    query = query.eq("status", "published");
   }
 
-  if (input.category) query = query.ilike("category", input.category.slice(0, 40));
-  if (input.q) {
-    const q = input.q.replace(/[%_,]/g, "").slice(0, 80);
-    if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
-  }
-  const { data, error } = await query.order("due_date", { ascending: true, nullsFirst: false }).range(offset, offset + limit - 1);
-  if (error) {
-    logCommunityFailure("missions.list", error);
-    throw new Error(publicErrorMessage(error, "Could not load missions"));
-  }
+  // Filter after fetching each database page, continuing until the requested
+  // page is full. This avoids silently dropping matches that occur after the
+  // first 12 rows (for example, a user's in-progress submissions).
+  const selected: Array<{ task: any; participantStatus: string }> = [];
+  let scanOffset = offset;
+  let totalCount = 0;
+  let hasMore = true;
 
-  const visible = (data ?? []).filter((task: any) => {
-    if (input.manage || input.filter === "organized" || task.creator_id === input.userId) return true;
-    if (task.visibility === "public" && task.status === "published") return true;
-    return communityIds.includes(task.community_id) && task.status === "published";
-  });
+  while (selected.length < limit && hasMore) {
+    const { data, error, count } = await buildQuery()
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .range(scanOffset, scanOffset + limit - 1);
+    if (error) {
+      logCommunityFailure("missions.list", error);
+      throw new Error(publicErrorMessage(error, "Could not load missions"));
+    }
 
-  const ids = visible.map((task: any) => task.id);
-  const progress = new Map<string, string>();
-  if (ids.length) {
-    const { data: rows } = await admin()
-      .from("task_completions")
-      .select("task_id, status")
-      .eq("user_id", input.userId)
-      .in("task_id", ids);
-    for (const row of rows ?? []) progress.set(row.task_id, row.status);
+    const page = data ?? [];
+    totalCount = count ?? totalCount;
+    scanOffset += page.length;
+    hasMore = totalCount > 0 ? scanOffset < totalCount : page.length === limit;
+
+    const visible = page.filter((task: any) => {
+      if (input.manage || input.filter === "organized" || task.creator_id === input.userId) return true;
+      if (task.visibility === "public" && task.status === "published") return true;
+      return communityIds.includes(task.community_id) && task.status === "published";
+    });
+
+    const ids = visible.map((task: any) => task.id);
+    const progress = new Map<string, string>();
+    if (ids.length) {
+      const { data: rows, error: progressError } = await admin()
+        .from("task_completions")
+        .select("task_id, status")
+        .eq("user_id", input.userId)
+        .in("task_id", ids);
+      if (progressError) {
+        logCommunityFailure("missions.progress", progressError);
+        throw new Error(publicErrorMessage(progressError, "Could not load mission progress"));
+      }
+      for (const row of rows ?? []) progress.set(row.task_id, row.status);
+    }
+
+    const visibleIds = new Set(visible.map((task: any) => task.id));
+    let consumedFromPage = 0;
+    for (const task of page) {
+      consumedFromPage += 1;
+      if (!visibleIds.has(task.id)) continue;
+      const participantStatus = progress.get(task.id) ?? "not_started";
+      if (
+        matchesMissionListFilter({
+          filter: input.filter,
+          status: task.status,
+          participantStatus,
+        })
+      ) {
+        selected.push({ task, participantStatus });
+        if (selected.length >= limit) {
+          // Resume immediately after the last row consumed, not after the
+          // entire fetched page, so no matching rows are skipped.
+          scanOffset = scanOffset - page.length + consumedFromPage;
+          hasMore = scanOffset < totalCount;
+          break;
+        }
+      }
+    }
+
+    if (page.length === 0) hasMore = false;
   }
-
-  const filtered = visible.filter((task: any) =>
-    matchesMissionListFilter({
-      filter: input.filter,
-      status: task.status,
-      participantStatus: progress.get(task.id),
-    })
-  );
 
   return {
-    missions: filtered.map((task: any) =>
+    missions: selected.map(({ task, participantStatus }) =>
       shape(task, {
-        participant_status: progress.get(task.id) ?? "not_started",
-        is_completed: ["approved", "completed"].includes(progress.get(task.id) ?? ""),
+        participant_status: participantStatus,
+        is_completed: ["approved", "completed"].includes(participantStatus),
       }),
     ),
-    nextCursor: filtered.length === limit ? offset + limit : null,
+    nextCursor: hasMore ? scanOffset : null,
   };
 }
 

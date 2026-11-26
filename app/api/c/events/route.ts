@@ -34,21 +34,24 @@ export async function GET(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const communitySlug = req.nextUrl.searchParams.get("community")?.trim() || "";
   const communityId = req.nextUrl.searchParams.get("communityId")?.trim() || "";
   const manage = req.nextUrl.searchParams.get("manage") === "1";
   const discover = req.nextUrl.searchParams.get("discover") === "1";
+  const filter = req.nextUrl.searchParams.get("filter") ?? undefined;
+
+  // Public discovery exposes only published public events. Personal and
+  // management views remain authenticated.
+  if (!user && (!discover || filter === "organized" || filter === "registered" || manage)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   if (discover) {
     try {
       const result = await listDiscoverableEvents({
-        userId: user.id,
+        userId: user?.id ?? "",
         q: req.nextUrl.searchParams.get("q") ?? undefined,
-        filter: req.nextUrl.searchParams.get("filter") ?? undefined,
+        filter,
         kind: req.nextUrl.searchParams.get("kind") ?? undefined,
         cursor: Number(req.nextUrl.searchParams.get("cursor") ?? 0),
         communitySlug,
@@ -61,6 +64,10 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
     }
+  }
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   if (manage && communityId) {

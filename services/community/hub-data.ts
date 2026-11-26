@@ -23,11 +23,16 @@ function formatDelta(current: number, previous: number): string | null {
 }
 
 async function getUserCommunityIds(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data: memberships } = await supabase
+  const { data: memberships, error } = await supabase
     .from("community_memberships")
     .select("community_id")
     .eq("user_id", userId)
     .eq("status", "active");
+
+  if (error) {
+    logCommunityFailure("memberships.list", error);
+    throw new Error(publicErrorMessage(error, "Could not load community memberships"));
+  }
 
   return (memberships ?? []).map((m) => m.community_id);
 }
@@ -154,6 +159,7 @@ export type HubCourseItem = {
   language?: string | null;
   total_duration?: number | null;
   thumbnail_url?: string | null;
+  published_at?: string | null;
 };
 
 export type HubLiveRoom = {
@@ -1189,7 +1195,7 @@ export async function getHubCourses(
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(supabase, userId);
   const select =
-    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
+    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1229,6 +1235,15 @@ export async function getHubCourses(
       .limit(40)
   );
   const [memberRes, publicRes] = await Promise.all([memberPromise, publicPromise]);
+  if (memberRes.error) {
+    logCommunityFailure("courses.member-list", memberRes.error);
+    throw new Error(publicErrorMessage(memberRes.error, "Could not load courses"));
+  }
+  if (publicRes.error) {
+    logCommunityFailure("courses.public-list", publicRes.error);
+    throw new Error(publicErrorMessage(publicRes.error, "Could not load courses"));
+  }
+
   const merged = new Map<string, Record<string, unknown>>();
   for (const row of [...(memberRes.data ?? []), ...(publicRes.data ?? [])]) {
     merged.set(String(row.id), row);
@@ -1243,6 +1258,7 @@ export async function getHubCourses(
     category?: string | null;
     tags?: string[] | null;
     total_lessons: number | null;
+    published_at?: string | null;
     room_id: string;
     creator_id: string;
     communities: { name: string; slug: string } | null;
@@ -1255,25 +1271,37 @@ export async function getHubCourses(
     const lessonQ = opts.lessonQ.trim();
     const ids = filtered.map((c) => c.id);
     if (ids.length === 0) return [];
-    const { data: lessons } = await supabase
+    const { data: lessons, error: lessonsError } = await supabase
       .from("course_lessons")
       .select("course_id, title")
       .in("course_id", ids)
       .ilike("title", `%${lessonQ}%`)
       .limit(100);
+    if (lessonsError) {
+      logCommunityFailure("courses.lesson-search", lessonsError);
+      throw new Error(publicErrorMessage(lessonsError, "Could not search course lessons"));
+    }
     const hit = new Set((lessons ?? []).map((l) => l.course_id));
     filtered = filtered.filter((c) => hit.has(c.id));
   }
 
   const courseIds = filtered.map((c) => c.id);
-  const { data: progressRows } =
+  const progressResult =
     courseIds.length > 0
       ? await supabase
           .from("lesson_progress")
           .select("course_id, is_completed")
           .eq("user_id", userId)
           .in("course_id", courseIds)
-      : { data: [] as { course_id: string; is_completed: boolean | null }[] };
+      : {
+          data: [] as { course_id: string; is_completed: boolean | null }[],
+          error: null,
+        };
+  if (progressResult.error) {
+    logCommunityFailure("courses.progress", progressResult.error);
+    throw new Error(publicErrorMessage(progressResult.error, "Could not load course progress"));
+  }
+  const progressRows = progressResult.data ?? [];
 
   const progressByCourse = new Map<string, { completed: number; total: number }>();
   for (const row of progressRows ?? []) {
@@ -1306,6 +1334,7 @@ export async function getHubCourses(
       language?: string | null;
       total_duration?: number | null;
       thumbnail_url?: string | null;
+      published_at?: string | null;
     };
 
     return {
@@ -1328,6 +1357,7 @@ export async function getHubCourses(
       language: extra.language ?? "en",
       total_duration: extra.total_duration ?? null,
       thumbnail_url: extra.thumbnail_url ?? null,
+      published_at: extra.published_at ?? null,
     };
   });
 }

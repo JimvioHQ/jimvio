@@ -58,7 +58,6 @@ export const COMMUNITY_PUBLIC_SUBROUTES = new Set([
   "leaderboard",
   "subscribe",
   "feed",
-  "spaces",
 ]);
 
 /**
