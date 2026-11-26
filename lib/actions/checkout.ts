@@ -970,19 +970,89 @@ export async function updatePendingOrdersShipping(
     source: referralCode ? "cookie" : "none",
   });
 
+  // ── Allocate cart-level shipping and discounts to each vendor order ────────
+  const { data: cartLineRows, error: cartLineError } = await admin
+    .from("order_items")
+    .select("order_id, product_source, product_type")
+    .in("order_id", payload.orderIds);
+  if (cartLineError) {
+    console.error("[updatePendingOrdersShipping] Could not load order lines:", cartLineError);
+    return err("Could not verify the items in these orders. Please refresh and try again.");
+  }
+  const linesByOrder = new Map<string, typeof cartLineRows>();
+  for (const line of cartLineRows ?? []) {
+    const existing = linesByOrder.get(line.order_id) ?? [];
+    linesByOrder.set(line.order_id, [...existing, line]);
+  }
+  const supplierOrderIds = new Set(
+    (cartLineRows ?? [])
+      .filter((line) => line.product_source === "cj")
+      .map((line) => line.order_id)
+  );
+
+  const allocateAmount = (total: number, targetOrders: typeof existingOrders) => {
+    const allocations = new Map<string, number>();
+    if (!targetOrders.length) return allocations;
+    const totalCents = Math.round(total * 100);
+    const weights = targetOrders.map((order) => Math.max(0, Number(order.subtotal ?? order.total_amount ?? 0)));
+    const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+    let allocatedCents = 0;
+    targetOrders.forEach((order, index) => {
+      const cents = index === targetOrders.length - 1
+        ? totalCents - allocatedCents
+        : weightTotal > 0
+          ? Math.round(totalCents * (weights[index] / weightTotal))
+          : Math.round(totalCents / targetOrders.length);
+      allocatedCents += cents;
+      allocations.set(order.id, cents / 100);
+    });
+    return allocations;
+  };
+
+  const shippingTargets = supplierOrderIds.size
+    ? existingOrders.filter((order) => supplierOrderIds.has(order.id))
+    : existingOrders;
+  const shippingAllocations = typeof payload.shippingAmount === "number"
+    ? allocateAmount(payload.shippingAmount, shippingTargets)
+    : new Map<string, number>();
+  const discountAllocations = typeof payload.discountAmount === "number"
+    ? allocateAmount(payload.discountAmount, existingOrders)
+    : new Map<string, number>();
+
+  let trustedSupplierRate: ReturnType<typeof resolveTrustedRateFromQuoteToken> = null;
+  if (supplierOrderIds.size) {
+    if (typeof payload.shippingAmount !== "number") {
+      return err("Select a delivery method before paying.");
+    }
+    trustedSupplierRate = resolveTrustedRateFromQuoteToken({
+      token: payload.quoteToken,
+      selection: {
+        optionId: payload.shippingOptionId,
+        name: payload.shippingOptionName || "",
+        priceUSD: payload.shippingAmount,
+      },
+      products: [],
+      destCountryCode: payload.countryCode,
+      orderIds: payload.orderIds,
+    });
+    if (
+      !trustedSupplierRate ||
+      !Number.isFinite(Number(trustedSupplierRate.priceUSD)) ||
+      Math.round(Number(trustedSupplierRate.priceUSD) * 100) !== Math.round(payload.shippingAmount * 100)
+    ) {
+      return err("Your delivery quote has expired. Please select a delivery method again.");
+    }
+  }
+
   // ── Persist per-order with recomputed payable total ─────────────────────────
   const updatedIds: string[] = [];
 
   for (const order of existingOrders) {
     const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
     let shippingAmount =
-      typeof payload.shippingAmount === "number"
-        ? payload.shippingAmount
-        : Number(order.shipping_amount ?? 0);
+      shippingAllocations.get(order.id) ?? Number(order.shipping_amount ?? 0);
     let discountAmount =
-      typeof payload.discountAmount === "number"
-        ? payload.discountAmount
-        : Number(order.discount_amount ?? 0);
+      discountAllocations.get(order.id) ?? Number(order.discount_amount ?? 0);
     let taxAmount = Number(order.tax_amount ?? 0);
 
     const existingMeta =
@@ -995,11 +1065,7 @@ export async function updatePendingOrdersShipping(
     // Jimvio Store checkouts: server-authoritative discount + tax + shipping quotes
     if (order.jimvio_store_id) {
       try {
-        const { data: lineRows } = await admin
-          .from("order_items")
-          .select("product_source, product_type")
-          .eq("order_id", order.id);
-        const lines = lineRows ?? [];
+        const lines = linesByOrder.get(order.id) ?? [];
         const supplier = lines.some((line) => line.product_source === "cj");
         const needsShipping = lines.some(
           (line) => (line.product_type || "physical") !== "digital"
@@ -1009,31 +1075,15 @@ export async function updatePendingOrdersShipping(
           : needsShipping
             ? "merchant"
             : "digital";
-        let verifiedSupplierShipping: number | null = null;
-        if (fulfillment === "supplier") {
-          const trusted = resolveTrustedRateFromQuoteToken({
-            token: payload.quoteToken,
-            selection: {
-              optionId: payload.shippingOptionId,
-              name: payload.shippingOptionName || "",
-              priceUSD: payload.shippingAmount,
-            },
-            products: [],
-            destCountryCode: payload.countryCode,
-            orderIds: [order.id],
-          });
-          verifiedSupplierShipping =
-            trusted && Number.isFinite(Number(trusted.priceUSD))
-              ? Number(trusted.priceUSD)
-              : null;
-        }
+        const verifiedSupplierShipping =
+          fulfillment === "supplier" ? shippingAmount : null;
         const storeTotals = await resolveJimvioStoreCheckoutTotals(admin, {
           storeId: order.jimvio_store_id as string,
           subtotal,
           countryCode: payload.countryCode,
           proposedShippingAmount:
             typeof payload.shippingAmount === "number"
-              ? payload.shippingAmount
+              ? shippingAllocations.get(order.id) ?? 0
               : undefined,
           discountCode: payload.discountCode ?? null,
           fulfillment,
@@ -1063,27 +1113,10 @@ export async function updatePendingOrdersShipping(
         return err(message);
       }
     } else {
-      const { data: lineRows } = await admin
-        .from("order_items")
-        .select("product_source")
-        .eq("order_id", order.id);
-      const supplier = (lineRows ?? []).some((line) => line.product_source === "cj");
+      const supplier = supplierOrderIds.has(order.id);
       if (supplier) {
-        const trusted = resolveTrustedRateFromQuoteToken({
-          token: payload.quoteToken,
-          selection: {
-            optionId: payload.shippingOptionId,
-            name: payload.shippingOptionName || "",
-            priceUSD: payload.shippingAmount,
-          },
-          products: [],
-          destCountryCode: payload.countryCode,
-          orderIds: [order.id],
-        });
-        if (!trusted || !Number.isFinite(Number(trusted.priceUSD))) {
-          return err("Select a delivery method before paying.");
-        }
-        shippingAmount = Number(trusted.priceUSD);
+        if (!trustedSupplierRate) return err("Select a delivery method before paying.");
+        shippingAmount = shippingAllocations.get(order.id) ?? 0;
       }
       const taxEstimate = estimateOrderTax({
         subtotal,
