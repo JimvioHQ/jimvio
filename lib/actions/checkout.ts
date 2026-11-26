@@ -816,7 +816,9 @@ export async function updatePendingOrdersShipping(
     return err("We couldn't verify your existing payment attempt. Please open Orders and try again.");
   }
 
-  const completedPaymentRows = (paymentRows ?? []).filter((row) => row.status === "completed");
+  const completedPaymentRows = (paymentRows ?? []).filter(
+    (row) => row.status === "completed" && String(row.provider ?? "").toLowerCase() !== "wallet"
+  );
   if (completedPaymentRows.length) {
     return err("A payment was already received and is being confirmed. Please check Orders before trying again.");
   }
@@ -838,8 +840,8 @@ export async function updatePendingOrdersShipping(
       return typeof metadata.invoice_url === "string" && metadata.invoice_url.startsWith("https://");
     }
     if (provider === "flutterwave") return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
-    if (provider === "mobile_money") return Number.isFinite(createdAt) && createdAt >= now - 10 * 60 * 1000;
-    return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
+    if (provider === "mobile_money") return true; // Await provider confirmation; never start a duplicate charge.
+    return true; // Unknown active providers fail closed instead of permitting a second charge.
   });
 
   if (activeRows.length) {
