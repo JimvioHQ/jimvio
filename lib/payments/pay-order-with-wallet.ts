@@ -47,6 +47,9 @@ export async function payOrderWithWallet(
 
   const wallet = await ensureWallet(userId, db);
   const orderCurrency = String(order.currency ?? "USD").toUpperCase();
+  if (orderCurrency !== "USD" && orderCurrency !== "RWF") {
+    return { ok: false, status: 409, error: "Jimvio Wallet checkout currently supports USD and RWF orders only." };
+  }
   const orderUsd = orderTotalsForUsdGateway(Number(order.total_amount), orderCurrency).amount;
   if (!Number.isFinite(orderUsd) || orderUsd <= 0) {
     return { ok: false, status: 400, error: "The order total is invalid." };
