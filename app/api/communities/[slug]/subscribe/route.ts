@@ -112,6 +112,13 @@ export async function POST(
     orderId = order.id;
   }
 
+  if (!orderId) {
+    return NextResponse.json(
+      { error: "Unable to resolve the subscription order. Please try again." },
+      { status: 500 },
+    );
+  }
+
   if (provider === "wallet") {
     const { payOrderWithWallet } = await import("@/lib/payments/pay-order-with-wallet");
     const result = await payOrderWithWallet(user.id, orderId);
