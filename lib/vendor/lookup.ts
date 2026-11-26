@@ -1,5 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PostgrestError } from "@supabase/supabase-js";
+import type { SupabaseClient, PostgrestError } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
 export type VendorRow = Database["public"]["Tables"]["vendors"]["Row"];
@@ -13,9 +12,7 @@ export type VendorLookupSuccess<T extends Partial<VendorRow>> = {
   ok: true;
   vendor: T | null;
   vendors: T[];
-  /** Set when no vendor rows matched (not a query error). */
   notFound?: boolean;
-  /** True when multiple vendor rows exist for the same user. */
   multipleMatches?: boolean;
 };
 
@@ -30,7 +27,6 @@ export type VendorLookupResult<T extends Partial<VendorRow>> =
   | VendorLookupSuccess<T>
   | VendorLookupError;
 
-/** Serialize Postgrest errors for logs and toasts (avoids empty `{}` in console). */
 export function formatSupabaseError(error: PostgrestError | null | undefined): string {
   if (!error) return "Unknown database error";
   const parts: string[] = [];
@@ -41,7 +37,6 @@ export function formatSupabaseError(error: PostgrestError | null | undefined): s
   return parts.join(" — ") || "Unknown database error";
 }
 
-/** Prefer active vendors; otherwise most recently created. */
 export function pickPrimaryVendor<T extends { is_active?: boolean | null; created_at?: string | null }>(
   vendors: T[]
 ): T | null {
@@ -80,20 +75,23 @@ export function vendorLookupToastMessage(result: VendorLookupError): string {
 }
 
 /**
- * Load all vendor rows for a user (array query — never fails on duplicate rows).
- * Use instead of `.maybeSingle()` / `.single()` on `vendors` filtered by `user_id`.
+ * Load vendor rows through the owner-scoped RPC. The caller cannot supply a
+ * different user id to read another vendor's private payout or verification data.
  */
-export async function lookupVendorsByUserId<T extends string = "*">(
+export async function lookupVendorsByUserId(
   supabase: SupabaseClient<Database>,
-  userId: string,
-  select: T = "*" as T
-): Promise<VendorLookupResult<Pick<VendorRow, T extends keyof VendorRow ? T : keyof VendorRow>>> {
-  const { data, error } = await supabase
-    .from("vendors")
-    .select(select)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+  userId: string
+): Promise<VendorLookupResult<VendorRow>> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user || authData.user.id !== userId) {
+    return {
+      ok: false,
+      error: authError?.message ?? "The current user could not be verified.",
+      reason: "permission_denied",
+    };
+  }
 
+  const { data, error } = await supabase.rpc("get_my_vendors");
   if (error) {
     return {
       ok: false,
@@ -103,16 +101,10 @@ export async function lookupVendorsByUserId<T extends string = "*">(
     };
   }
 
-  const vendors = (data ?? []) as Pick<VendorRow, T extends keyof VendorRow ? T : keyof VendorRow>[];
+  const vendors = (data ?? []) as VendorRow[];
   const vendor = pickPrimaryVendor(vendors);
-
   if (!vendor) {
-    return {
-      ok: true,
-      vendor: null,
-      vendors: [],
-      notFound: true,
-    };
+    return { ok: true, vendor: null, vendors: [], notFound: true };
   }
 
   return {
