@@ -1204,13 +1204,28 @@ export async function startCheckout(
   }
 
   if (existingOrders && existingOrders.length > 0) {
-    const stockError = await revalidatePendingCjOrders(
-      admin,
-      existingOrders.map((order) => order.id),
-    );
-    if (stockError) return err(stockError);
+    const existingOrderIds = existingOrders.map((order) => order.id);
+    const { data: activePaymentRows, error: activePaymentError } = await admin
+      .from("transactions")
+      .select("order_id, status")
+      .in("order_id", existingOrderIds)
+      .in("status", ["pending", "processing", "completed"]);
+    if (activePaymentError) {
+      console.error("[startCheckout] Could not verify active payment sessions:", activePaymentError);
+      return err("Could not verify an existing payment. Please open Orders and try again.");
+    }
+    const protectedOrderIds = new Set((activePaymentRows ?? []).map((row) => row.order_id));
+    const ordersSafeToRevalidate = existingOrders
+      .filter((order) => !protectedOrderIds.has(order.id))
+      .map((order) => order.id);
+    if (ordersSafeToRevalidate.length) {
+      const stockError = await revalidatePendingCjOrders(admin, ordersSafeToRevalidate);
+      if (stockError) return err(stockError);
+    }
 
-    const failedOrders = existingOrders.filter((o) => o.payment_status === "failed");
+    const failedOrders = existingOrders.filter(
+      (o) => o.payment_status === "failed" && !protectedOrderIds.has(o.id)
+    );
 
     if (failedOrders.length > 0) {
       const failedIds = failedOrders.map((o) => o.id);
@@ -1243,12 +1258,17 @@ export async function startCheckout(
 
     // Resume must not freeze a missing affiliate attribution from an earlier attempt.
     try {
-      await refreshPendingOrdersAffiliateAttribution(
-        admin,
-        existingOrders.map((o) => o.id),
-        userId,
-        cartId
-      );
+      const attributionRefreshIds = existingOrders
+        .filter((order) => !protectedOrderIds.has(order.id))
+        .map((order) => order.id);
+      if (attributionRefreshIds.length) {
+        await refreshPendingOrdersAffiliateAttribution(
+          admin,
+          attributionRefreshIds,
+          userId,
+          cartId
+        );
+      }
     } catch (refreshErr) {
       console.warn("[startCheckout] attribution refresh skipped:", refreshErr);
     }
@@ -1585,7 +1605,22 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: true, changed: false };
   }
 
-  // Don't sync orders that are already in flight or completed
+  // Don't rewrite cart items or totals once a provider has an active payment
+  // transaction. The amount shown to the provider must remain immutable.
+  const { data: activePaymentRows, error: activePaymentError } = await admin
+    .from("transactions")
+    .select("id")
+    .eq("order_id", orderId)
+    .in("status", ["pending", "processing", "completed"])
+    .limit(1);
+  if (activePaymentError) {
+    return { ok: false, error: "Could not verify the existing payment session." };
+  }
+  if (activePaymentRows?.length) {
+    return { ok: true, changed: false };
+  }
+
+  // Don't sync orders that are already in flight or completed.
   if (
     order.status !== "pending" ||
     !["pending", "failed"].includes(order.payment_status as string)
