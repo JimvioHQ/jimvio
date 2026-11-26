@@ -7102,3 +7102,19 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 
 
 
+
+
+-- Hide raw supplier source identifiers and internal publication flags from browser roles.
+REVOKE SELECT (
+  source,
+  cj_last_synced_at,
+  published_by_admin_override,
+  auto_unpublished,
+  auto_unpublished_at
+) ON TABLE public.products FROM anon, authenticated;
+
+REVOKE SELECT (
+  source,
+  cj_pid,
+  cj_vid
+) ON TABLE public.product_variants FROM anon, authenticated;
