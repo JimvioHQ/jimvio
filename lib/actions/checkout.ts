@@ -1620,10 +1620,24 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: true, changed: false };
   }
 
+  // A stale processing flag without a corresponding transaction can be reset;
+  // active provider sessions were returned above and remain immutable.
+  if (order.status === "pending" && order.payment_status === "processing") {
+    const { error: resetError } = await admin
+      .from("orders")
+      .update({ payment_status: "pending", updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .eq("buyer_id", user.id)
+      .eq("payment_status", "processing");
+    if (resetError) {
+      return { ok: false, error: "Could not safely resume the previous payment attempt." };
+    }
+  }
+
   // Don't sync orders that are already in flight or completed.
   if (
     order.status !== "pending" ||
-    !["pending", "failed"].includes(order.payment_status as string)
+    !["pending", "failed", "processing"].includes(order.payment_status as string)
   ) {
     return { ok: false, error: "Order is no longer editable" };
   }
