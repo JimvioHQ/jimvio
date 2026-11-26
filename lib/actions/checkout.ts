@@ -1186,7 +1186,7 @@ export async function startCheckout(
 
   // ── Resume existing pending/failed orders for this cart ───────────────────
   let existingQuery = cosTable(admin, "orders")
-    .select("id, payment_status, jimvio_store_id")
+    .select("id, payment_status, jimvio_store_id, payment_provider, gateway_used")
     .eq("buyer_id", userId)
     .eq("status", "pending")
     .in("payment_status", ["pending", "failed", "processing"])
@@ -1209,12 +1209,22 @@ export async function startCheckout(
       .from("transactions")
       .select("order_id, status")
       .in("order_id", existingOrderIds)
-      .in("status", ["pending", "processing", "completed"]);
+      .in("status", ["pending", "processing", "completed", "failed"]);
     if (activePaymentError) {
       console.error("[startCheckout] Could not verify active payment sessions:", activePaymentError);
       return err("Could not verify an existing payment. Please open Orders and try again.");
     }
-    const protectedOrderIds = new Set((activePaymentRows ?? []).map((row) => row.order_id));
+    const hasUntrackedProcessingAttempt = existingOrders.some((order) =>
+      order.payment_status === "processing" &&
+      (order.payment_provider || order.gateway_used) &&
+      !(activePaymentRows ?? []).some((row) => row.order_id === order.id)
+    );
+    if (hasUntrackedProcessingAttempt) {
+      return err("The payment provider has not confirmed a previous order attempt. Please check Orders before retrying checkout.");
+    }
+    const protectedOrderIds = new Set(
+      (activePaymentRows ?? []).filter((row) => row.status !== "failed").map((row) => row.order_id)
+    );
     const ordersSafeToRevalidate = existingOrders
       .filter((order) => !protectedOrderIds.has(order.id))
       .map((order) => order.id);
@@ -1609,19 +1619,20 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   // transaction. The amount shown to the provider must remain immutable.
   const { data: activePaymentRows, error: activePaymentError } = await admin
     .from("transactions")
-    .select("id")
+    .select("id, status")
     .eq("order_id", orderId)
-    .in("status", ["pending", "processing", "completed"])
+    .in("status", ["pending", "processing", "completed", "failed"])
     .limit(1);
   if (activePaymentError) {
     return { ok: false, error: "Could not verify the existing payment session." };
   }
-  if (activePaymentRows?.length) {
+  if (activePaymentRows?.some((row) => row.status !== "failed")) {
     return { ok: true, changed: false };
   }
   if (
     order.payment_status === "processing" &&
-    (order.payment_provider || order.gateway_used)
+    (order.payment_provider || order.gateway_used) &&
+    !activePaymentRows?.length
   ) {
     return { ok: false, error: "The payment provider has not confirmed the previous attempt. Please check Orders before editing this order." };
   }
