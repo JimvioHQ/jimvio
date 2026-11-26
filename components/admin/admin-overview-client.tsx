@@ -3,7 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import {
-    UsersRound,
     Store,
     Boxes,
     ClipboardList,
@@ -241,12 +240,6 @@ export function AdminOverviewClient({ data }: { data: AdminDashboardData }) {
                     value={data.orders30d.toLocaleString()}
                     sublabel="All sources"
                     icon={ClipboardList}
-                />
-                <Tile
-                    label="Users"
-                    value={data.totalUsers.toLocaleString()}
-                    sublabel={`+${data.newUsers7d} this week`}
-                    icon={UsersRound}
                 />
                 <Tile
                     label="Vendors"

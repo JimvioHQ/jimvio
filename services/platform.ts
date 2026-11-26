@@ -34,8 +34,7 @@ export const getPlatformStats = unstable_cache(fetchPlatformStats, ["platform-st
 
 export async function getAdminOverviewStats() {
   const admin = getAdminDB();
-  const [userCount, vendorCount, orderCount, revenue, productCount] = await Promise.all([
-    admin.from("profiles").select("id", { count: "exact", head: true }),
+  const [vendorCount, orderCount, revenue, productCount] = await Promise.all([
     admin.from("vendors").select("id", { count: "exact", head: true }),
     admin.from("orders").select("id", { count: "exact", head: true }),
     admin.from("orders").select("total_amount").in("payment_status", ["paid", "completed"]),
@@ -46,7 +45,6 @@ export async function getAdminOverviewStats() {
     revenue.data?.reduce((sum: number, o: { total_amount?: number | string }) => sum + Number(o.total_amount), 0) ?? 0;
 
   return {
-    totalUsers: userCount.count ?? 0,
     totalVendors: vendorCount.count ?? 0,
     totalOrders: orderCount.count ?? 0,
     totalRevenue,

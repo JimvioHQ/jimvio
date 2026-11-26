@@ -47,8 +47,6 @@ export type DashboardChartPoint = {
 
 export type AdminDashboardData = {
     generatedAt: string;
-    totalUsers: number;
-    newUsers7d: number;
     totalVendors: number;
     verifiedVendors: number;
     totalProducts: number;
@@ -301,8 +299,6 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     const stalePaymentCutoff = new Date(nowMs - 24 * 86400000).toISOString();
 
     const [
-        usersRes,
-        newUsers7dRes,
         vendorsRes,
         verifiedVendorsRes,
         productsRes,
@@ -327,8 +323,6 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         fulfillmentCountsRes,
         sourceCountsRes,
     ] = await Promise.all([
-        admin.from("profiles").select("id", { count: "exact", head: true }),
-        admin.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", new Date(nowMs - 7 * 86400000).toISOString()),
         admin.from("vendors").select("id", { count: "exact", head: true }),
         admin.from("vendors").select("id", { count: "exact", head: true }).eq("verification_status", "verified"),
         admin.from("products").select("id", { count: "exact", head: true }).is("deleted_at", null),
@@ -478,8 +472,6 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
     return {
         generatedAt: new Date().toISOString(),
-        totalUsers: usersRes.count ?? 0,
-        newUsers7d: newUsers7dRes.count ?? 0,
         totalVendors: vendorsRes.count ?? 0,
         verifiedVendors: verifiedVendorsRes.count ?? 0,
         totalProducts: productsRes.count ?? 0,

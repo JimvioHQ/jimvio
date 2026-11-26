@@ -9,7 +9,7 @@ export async function GET() {
   const auth = await requirePlatformAdmin();
   if ("error" in auth) return auth.error;
   const [campaigns, invites, stats] = await Promise.all([listCampaigns(), listInvites(), getGrowthStats()]);
-  return NextResponse.json({ campaigns, invites, stats });
+  return NextResponse.json({ campaigns, invites, stats: { affiliateClicks7d: stats.affiliateClicks7d } });
 }
 
 export async function POST(request: NextRequest) {
