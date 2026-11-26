@@ -472,7 +472,7 @@ export function CheckoutExperience({
          setStage("delivery");
          return;
       }
-      if (isCJOrder && !cjQuoteToken) {
+      if (isCJOrder && !cjQuoteToken && !hasStartedPayment) {
          toast.error("Please refresh shipping options before paying.");
          setStage("delivery");
          return;
@@ -753,7 +753,7 @@ export function CheckoutExperience({
    }
 
    const payDisabled =
-      (isCJOrder && (shippingCost === null || !cjSelected)) ||
+      (isCJOrder && !hasStartedPayment && (shippingCost === null || !cjSelected)) ||
       stage === "mobile_money" ||
       (stage === "payment" && payment === "mobile_money");
 
