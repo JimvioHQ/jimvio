@@ -1,6 +1,7 @@
 -- Atomic reservation for Marketplace orders paid from Jimvio Wallet.
 -- Service-role only. The wallet debit and transaction reservation commit together,
 -- so retries cannot debit twice even if order finalization needs to be retried.
+-- ALLOWLISTED_STORED_FUNCTION_DML
 CREATE OR REPLACE FUNCTION public.reserve_order_wallet_payment(
   p_order_id uuid,
   p_user_id uuid,
