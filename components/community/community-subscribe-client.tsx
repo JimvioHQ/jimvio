@@ -103,7 +103,8 @@ export function CommunitySubscribeClient({
   const [payment, setPayment] = useState<CommunityPaymentMethod | null>(
     initialProvider === "nowpayments" ||
       initialProvider === "flutterwave" ||
-      initialProvider === "binancepay"
+      initialProvider === "binancepay" ||
+      initialProvider === "wallet"
       ? (initialProvider as CommunityPaymentMethod)
       : "flutterwave",
   );
@@ -155,6 +156,10 @@ export function CommunitySubscribeClient({
       if (!res.ok) {
         if (res.status === 401) { router.push(loginNext); return; }
         throw new Error(data.error || "Subscription failed");
+      }
+      if (data.paidWithWallet && data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
       }
       if (data.redirectUrl || data.invoiceUrl) {
         window.open(data.redirectUrl || data.invoiceUrl, "_blank");
@@ -377,7 +382,7 @@ export function CommunitySubscribeClient({
                       orderCurrency={currency}
                       orderTotal={amount}
                       showSummary={false}
-                      enabledMethodIds={["flutterwave", "nowpayments", "binancepay"]}
+                      enabledMethodIds={["flutterwave", "nowpayments", "binancepay", "wallet"]}
                     />
                   </div>
                 )}
