@@ -66,12 +66,16 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/media-ingest",
-      "schedule": "0 10 * * *"
-    },
-    {
       "path": "/api/cron/cj-strategy-import",
       "schedule": "0 11 * * *"
     }
-  ]
+  ],
+  "schedules": {
+    "media-ingest-six-hourly": {
+      "schedule": "0 */6 * * *",
+      "timezone": "UTC",
+      "path": "/api/cron/media-ingest",
+      "requestMethod": "GET"
+    }
+  }
 }
