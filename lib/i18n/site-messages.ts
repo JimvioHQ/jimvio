@@ -32,6 +32,7 @@ export const SITE_MESSAGES: Record<string, Row> = {
   Messages: { rw: "Ubutumwa", fr: "Messages", sw: "Ujumbe" },
   "My Products": { rw: "Ibicuruzwa byanjye", fr: "Mes produits", sw: "Bidhaa zangu" },
   "Saved Items": { rw: "Ibyo nabitse", fr: "Favoris", sw: "Vilivyohifadhiwa" },
+  Orders: { rw: "Ibyatumijwe", fr: "Commandes", sw: "Oda" },
   "Help Center": { rw: "Ubufasha", fr: "Centre d'aide", sw: "Kituo cha msaada" },
   // Footer columns
   "Earn & Grow": { rw: "Inyungu no gukura", fr: "Gagner et grandir", sw: "Pata kipato na ukue" },
