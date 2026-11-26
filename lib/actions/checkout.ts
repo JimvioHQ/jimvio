@@ -717,7 +717,7 @@ async function refreshPendingOrdersAffiliateAttribution(
 
 export async function updatePendingOrdersShipping(
   rawPayload: ShippingPayload
-): Promise<Result> {
+): Promise<Result<{ resumeProvider?: "flutterwave" | "nowpayments" | "binancepay" | "wallet" }>> {
   // ── Auth ───────────────────────────────────────────────────────────────────
   const supabase = await createClient();
   const {
@@ -796,10 +796,134 @@ export async function updatePendingOrdersShipping(
   // Marketplace's direct-checkout flow legitimately creates unpaid orders with
   // status="checkout_direct". Payment eligibility is determined by payment_status;
   // the order status must only exclude terminal/cancelled states here.
+  const invalidOrderStatus = existingOrders.filter(
+    (o) => !["pending", "checkout_direct"].includes(o.status ?? "")
+  );
+  if (invalidOrderStatus.length) {
+    return err("One or more orders are no longer available for checkout. Please open Orders to review their status.");
+  }
+
+  // A previous payment attempt may still have a valid provider session. Never
+  // rewrite shipping/totals once a provider has been given the order amount.
+  const { data: paymentRows, error: paymentRowsError } = await admin
+    .from("transactions")
+    .select("id, order_id, provider, provider_transaction_id, reference, status, created_at, metadata")
+    .in("order_id", payload.orderIds)
+    .in("status", ["pending", "processing", "completed"])
+    .order("created_at", { ascending: false });
+  if (paymentRowsError) {
+    console.error("[updatePendingOrdersShipping] Payment state lookup failed:", paymentRowsError);
+    return err("We couldn't verify your existing payment attempt. Please open Orders and try again.");
+  }
+
+  const completedPaymentRows = (paymentRows ?? []).filter((row) => row.status === "completed");
+  if (completedPaymentRows.length) {
+    return err("A payment was already received and is being confirmed. Please check Orders before trying again.");
+  }
+
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  const activeRows = (paymentRows ?? []).filter((row) => {
+    const provider = String(row.provider ?? "").toLowerCase();
+    const createdAt = new Date(row.created_at ?? 0).getTime();
+    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? row.metadata as Record<string, unknown>
+      : {};
+    if (provider === "wallet") return true; // Wallet debit reservations must always be reconciled.
+    if (provider === "binance") {
+      const expiry = Number(metadata.expire_time);
+      return Number.isFinite(expiry) && expiry > now;
+    }
+    if (provider === "nowpayments") {
+      return typeof metadata.invoice_url === "string" && metadata.invoice_url.startsWith("https://");
+    }
+    if (provider === "flutterwave") return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
+    if (provider === "mobile_money") return Number.isFinite(createdAt) && createdAt >= now - 10 * 60 * 1000;
+    return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
+  });
+
+  if (activeRows.length) {
+    const activeOrderIds = new Set(activeRows.map((row) => row.order_id));
+    if (existingOrders.some((order) => !activeOrderIds.has(order.id))) {
+      return err("A payment was started for only part of this cart. Please open Orders and finish or resolve that payment before retrying the cart.");
+    }
+
+    const providers = new Set(activeRows.map((row) => String(row.provider ?? "").toLowerCase()));
+    if (providers.size !== 1) {
+      return err("More than one payment attempt is active for this cart. Please open Orders and resolve the existing payment before starting another.");
+    }
+
+    const provider = [...providers][0];
+    const resumeProvider =
+      provider === "binance" ? "binancepay" :
+      provider === "flutterwave" ? "flutterwave" :
+      provider === "nowpayments" ? "nowpayments" :
+      provider === "wallet" ? "wallet" : null;
+
+    if (!resumeProvider) {
+      return err("A Mobile Money payment is still awaiting confirmation. Please complete or check that payment in Orders before starting another.");
+    }
+
+    if (provider !== "wallet") {
+      const sessionKeys = new Set(activeRows.map((row) => {
+        const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+          ? row.metadata as Record<string, unknown>
+          : {};
+        return provider === "nowpayments"
+          ? String(metadata.invoice_id ?? row.reference ?? "")
+          : provider === "binance"
+            ? String(metadata.prepay_id ?? row.provider_transaction_id ?? "")
+            : String(row.provider_transaction_id ?? "");
+      }));
+      if (sessionKeys.size !== 1 || sessionKeys.has("")) {
+        return err("The existing payment session is incomplete. Please open Orders and contact support before retrying payment.");
+      }
+    }
+
+    const addressKeys = ["firstName", "lastName", "email", "phone", "address1", "address2", "city", "country", "country_code", "zip"];
+    const normalizedAddress = (value: unknown) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const record = value as Record<string, unknown>;
+      return addressKeys.map((key) => String(record[key] ?? "").trim());
+    };
+    const sameMoney = (a: unknown, b: unknown) =>
+      Math.round((Number(a ?? 0) + Number.EPSILON) * 100) ===
+      Math.round((Number(b ?? 0) + Number.EPSILON) * 100);
+
+    const unchanged = existingOrders.every((order) =>
+      JSON.stringify(normalizedAddress(order.shipping_address)) ===
+        JSON.stringify(normalizedAddress(shipping_address)) &&
+      (typeof payload.shippingAmount !== "number" || sameMoney(order.shipping_amount, payload.shippingAmount)) &&
+      (typeof payload.discountAmount !== "number" || sameMoney(order.discount_amount, payload.discountAmount))
+    );
+    if (!unchanged) {
+      return err("A payment session is already active for this order. Finish that payment from Orders before changing shipping details or totals.");
+    }
+
+    return ok({ resumeProvider });
+  }
+
+  // A stale processing flag without an active transaction is recoverable. Reset
+  // it only after confirming that there is no pending/processing/completed row.
+  const processingOrderIds = existingOrders
+    .filter((order) => order.payment_status === "processing")
+    .map((order) => order.id);
+  if (processingOrderIds.length) {
+    const { error: resetError } = await admin
+      .from("orders")
+      .update({ payment_status: "pending" as PaymentStatusValue, updated_at: new Date().toISOString() })
+      .in("id", processingOrderIds)
+      .eq("buyer_id", userId)
+      .in("status", ["pending", "checkout_direct"])
+      .eq("payment_status", "processing");
+    if (resetError) {
+      console.error("[updatePendingOrdersShipping] Stale processing reset failed:", resetError);
+      return err("We couldn't safely resume this order. Please open Orders and try again.");
+    }
+  }
+
   const notPending = existingOrders.filter(
-    (o) =>
-      !["pending", "checkout_direct"].includes(o.status ?? "") ||
-      !["pending", "failed"].includes(o.payment_status ?? "")
+    (o) => !["pending", "failed", "processing"].includes(o.payment_status ?? "")
   );
   if (notPending.length) {
     console.warn("[updatePendingOrdersShipping] Not pending:", notPending);
@@ -1043,7 +1167,7 @@ export async function startCheckout(
     .select("id, payment_status, jimvio_store_id")
     .eq("buyer_id", userId)
     .eq("status", "pending")
-    .in("payment_status", ["pending", "failed"])
+    .in("payment_status", ["pending", "failed", "processing"])
     .filter("metadata->>cart_id", "eq", cartId);
   if (scopedStoreId) {
     existingQuery = existingQuery.eq("jimvio_store_id", scopedStoreId);
