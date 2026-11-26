@@ -170,7 +170,9 @@ export function CheckoutExperience({
       if (
          preferredMethod &&
          valid.includes(preferredMethod as MethodId) &&
-         (orders.length <= 1 || ["nowpayments", "wallet"].includes(preferredMethod))
+         (orders.length <= 1 ||
+            (["nowpayments", "wallet"].includes(preferredMethod) &&
+             (preferredMethod !== "nowpayments" || supportsMultiOrderNowPayments)))
       ) {
          return preferredMethod as MethodId;
       }
