@@ -44,7 +44,6 @@ export type SystemAnalysisData = {
     paidUnfulfilledOrders: number;
     cjOrdersActive: number;
     cjOrdersWithoutTracking: number;
-    newUsers7d: number;
     orders30d: number;
     revenue30d: number;
     revenue30dDisplay: string;
@@ -247,7 +246,6 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
         paidUnfulfilledRes,
         cjActiveRes,
         cjNoTrackingRes,
-        newUsers7dRes,
         orders30dRes,
         revenue30dRes,
         recentFailedWebhooksRes,
@@ -293,7 +291,6 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
             .not("cj_order_id", "is", null)
             .in("status", ["shipped", "processing", "confirmed"])
             .is("tracking_number", null),
-        admin.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since7d),
         admin.from("orders").select("id", { count: "exact", head: true }).gte("created_at", since30d),
         admin
             .from("orders")
@@ -369,7 +366,6 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
         paidUnfulfilledOrders: paidUnfulfilledRes.count ?? 0,
         cjOrdersActive: cjActiveRes.count ?? 0,
         cjOrdersWithoutTracking: cjNoTrackingRes.count ?? 0,
-        newUsers7d: newUsers7dRes.count ?? 0,
         orders30d: orders30dRes.count ?? 0,
         revenue30d,
         revenue30dDisplay,
