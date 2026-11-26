@@ -126,7 +126,7 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
   {
     name: "arXiv Computers and Society",
     kind: "educational",
-    locator: "https://export.arxiv.org/rss/cs.CY",
+    locator: "https://rss.arxiv.org/rss/cs.CY",
     categories: ["technology"],
     language: "en",
     region: "global",
@@ -136,7 +136,7 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     enabled: false,
     alwaysReview: true,
     termsNote:
-      "Checked 2026-10-27: export.arxiv.org returned RSS. Terms allow descriptive metadata, including title and abstract, under CC0. Full text is not copied or hosted. Paper claims stay in review.",
+      "Checked 2026-11-25 against arXiv\u2019s current RSS documentation: use https://rss.arxiv.org/rss/cs.CY. Terms allow descriptive metadata, including title and abstract, under CC0. Full text is not copied or hosted. Paper claims stay in review.",
     rateNote: "arXiv terms require at most one request every three seconds on one connection. This source polls every 360 minutes.",
     accessMethod: "rss",
     verifiedAt: CHECKED,
