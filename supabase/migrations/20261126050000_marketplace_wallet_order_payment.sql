@@ -103,9 +103,11 @@ BEGIN
     provider, provider_transaction_id, reference, description, metadata,
     created_at, updated_at
   ) VALUES (
-    p_user_id, p_order_id, 'marketplace_order', 'debit', p_amount,
-    pg_catalog.upper(p_currency), 'pending', 'wallet', p_reference,
-    p_reference, 'Marketplace order paid with Jimvio Wallet',
+    p_user_id, p_order_id,
+    CASE WHEN v_order.integration_source = 'community' THEN 'community_subscription' ELSE 'marketplace_order' END,
+    'debit', p_amount, pg_catalog.upper(p_currency), 'pending', 'wallet', p_reference,
+    p_reference,
+    CASE WHEN v_order.integration_source = 'community' THEN 'Community subscription paid with Jimvio Wallet' ELSE 'Marketplace order paid with Jimvio Wallet' END,
     pg_catalog.jsonb_build_object('payment_method', 'wallet', 'order_id', p_order_id),
     v_now, v_now
   )
