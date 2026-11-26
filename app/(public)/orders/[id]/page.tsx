@@ -146,6 +146,7 @@ function getProviderLabel(provider: string | null | undefined) {
     pawapay: "PawaPay (retired)",
     flutterwave: "Flutterwave",
     binancepay: "Binance Pay",
+    binance: "Binance Pay",
     afripay: "AfriPay (retired)",
     stripe: "Card",
     mtn: "MTN Money",
