@@ -171,7 +171,28 @@ function MaliciousLinkReport({ report, checker, onRunAnother }: { report: ScanRe
   const certificate = checker.findings.find((finding) => /certificate/i.test(finding.title));
   const pageFetchFailed = checker.findings.some((finding) => finding.title === "Could not open the page");
   const pageContentFindings = checker.findings.filter((finding) => /page content|content analysis|http headers/i.test(finding.source));
-  const threatLabel = checker.status === "known_threat" ? "Known threat" : "High risk";
+  const threatDetected = checker.status === "known_threat" || checker.status === "high_risk";
+  const threatLabel =
+    checker.status === "known_threat" ? "Known threat" :
+    checker.status === "high_risk" ? "High risk" :
+    checker.status === "suspicious" ? "Suspicious signals" :
+    checker.status === "low_risk" ? "Likely low risk" :
+    checker.status === "unavailable" ? "Unavailable" : "Not enough evidence";
+  const bannerTone = threatDetected
+    ? "border-rose-100 bg-[linear-gradient(120deg,#fff7f7,#fff0f1)]"
+    : checker.status === "suspicious" ? "border-amber-100 bg-amber-50"
+    : checker.status === "low_risk" ? "border-emerald-100 bg-emerald-50"
+    : "border-slate-200 bg-slate-50";
+  const bannerIconTone = threatDetected
+    ? "bg-rose-100 text-rose-600"
+    : checker.status === "suspicious" ? "bg-amber-100 text-amber-700"
+    : checker.status === "low_risk" ? "bg-emerald-100 text-emerald-700"
+    : "bg-slate-100 text-slate-600";
+  const bannerTitle =
+    checker.status === "known_threat" ? "Malicious Link Detected" :
+    checker.status === "high_risk" ? "High-risk Link Detected" :
+    checker.status === "suspicious" ? "Suspicious Link Signals" :
+    checker.status === "low_risk" ? "No Known Threat Detected" : "Not Enough Evidence";
   const statusFor = (state: "detected" | "clean" | "review" | "available" | "unavailable") => ({
     detected: { label: "Detected", cls: "bg-rose-50 text-rose-700" },
     clean: { label: "No issue found", cls: "bg-emerald-50 text-emerald-700" },
@@ -199,18 +220,18 @@ function MaliciousLinkReport({ report, checker, onRunAnother }: { report: ScanRe
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldAlert className="h-7 w-7" /></span>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Scam &amp; Malicious Link Detection</h2><span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">Detected</span></div>
+            <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Scam &amp; Malicious Link Detection</h2><span className={cn("rounded-full px-3 py-1 text-xs font-extrabold", threatDetected ? "bg-rose-100 text-rose-700" : checker.status === "suspicious" ? "bg-amber-100 text-amber-800" : checker.status === "low_risk" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-700")}>{threatDetected ? "Detected" : checker.status === "suspicious" ? "Review" : checker.status === "low_risk" ? "No known threat" : "Inconclusive"}</span></div>
             <p className="mt-1 text-xs text-slate-500 sm:text-sm">Security, reputation and risk analysis based on evidence available for this scan.</p>
           </div>
         </div>
         {onRunAnother ? <button type="button" onClick={onRunAnother} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"><RotateCcw className="h-4 w-4" /> New check</button> : null}
       </div>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(260px,0.8fr)]">
-        <div className="rounded-[24px] border border-rose-100 bg-[linear-gradient(120deg,#fff7f7,#fff0f1)] p-5 sm:p-6">
-          <div className="flex items-start gap-4"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-rose-100 text-rose-600"><AlertTriangle className="h-8 w-8" /></span><div className="min-w-0"><h3 className="text-2xl font-black tracking-tight text-red-600 sm:text-3xl">Malicious Link Detected</h3><p className="mt-2 text-sm leading-6 text-slate-800">{checker.summary} Avoid opening this link or sharing sensitive information.</p></div></div>
+        <div className={cn("rounded-[24px] border p-5 sm:p-6", bannerTone)}>
+          <div className="flex items-start gap-4"><span className={cn("grid h-14 w-14 shrink-0 place-items-center rounded-full", bannerIconTone)}><AlertTriangle className="h-8 w-8" /></span><div className="min-w-0"><h3 className={cn("text-2xl font-black tracking-tight sm:text-3xl", threatDetected ? "text-red-600" : checker.status === "suspicious" ? "text-amber-800" : checker.status === "low_risk" ? "text-emerald-800" : "text-slate-800")}>{bannerTitle}</h3><p className="mt-2 text-sm leading-6 text-slate-800">{checker.summary}</p></div></div>
           <div className="mt-5 flex min-w-0 items-center gap-3 rounded-2xl border border-rose-100 bg-white px-4 py-3"><Link2 className="h-5 w-5 shrink-0 text-slate-500" /><span className="min-w-0 flex-1 break-all text-sm font-bold text-slate-900">{url}</span>{url ? <button type="button" onClick={() => { void navigator.clipboard?.writeText(url); }} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Copy submitted link"><Link2 className="h-4 w-4" /></button> : null}</div>
         </div>
-        <div className="flex flex-col justify-center rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.025)]"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Overall risk assessment</p><div className="mt-3 flex items-center gap-3"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldX className="h-8 w-8" /></span><div><p className="text-xl font-black text-slate-950">{threatLabel}</p><span className="mt-1 inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-extrabold text-rose-700">{checker.status === "known_threat" ? "Confirmed source match" : "Strong warning signals"}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">No numeric score is shown because this scan does not calculate a calibrated risk score.</p></div>
+        <div className="flex flex-col justify-center rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.025)]"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Overall risk assessment</p><div className="mt-3 flex items-center gap-3"><span className={cn("grid h-14 w-14 shrink-0 place-items-center rounded-2xl", bannerIconTone)}><ShieldX className="h-8 w-8" /></span><div><p className="text-xl font-black text-slate-950">{threatLabel}</p><span className={cn("mt-1 inline-flex rounded-full px-3 py-1 text-xs font-extrabold", threatDetected ? "bg-rose-50 text-rose-700" : checker.status === "suspicious" ? "bg-amber-50 text-amber-800" : checker.status === "low_risk" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600")}>{checker.status === "known_threat" ? "Confirmed source match" : checker.status === "high_risk" ? "Strong warning signals" : checker.status === "suspicious" ? "Warnings need review" : checker.status === "low_risk" ? "No strong warnings found" : "Evidence is incomplete"}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">No numeric score is shown because this scan does not calculate a calibrated risk score.</p></div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
@@ -281,8 +302,8 @@ export function LegacyReportView({ report, onRunAnother }: { report: ScanReport;
   })();
   const thumbnail = videoId && /^[A-Za-z0-9_-]{6,20}$/.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 
-  if (submittedUrl && (report.overall.level === "known_threat" || report.overall.level === "high_risk") && report.checkers.some((checker) => checker.id === "links" && (checker.status === "known_threat" || checker.status === "high_risk"))) {
-    const linkChecker = report.checkers.find((checker) => checker.id === "links")!;
+  const linkChecker = report.checkers.find((checker) => checker.id === "links");
+  if (submittedUrl && linkChecker && linkChecker.status !== "not_applicable") {
     return <MaliciousLinkReport report={report} checker={linkChecker} onRunAnother={onRunAnother} />;
   }
 
