@@ -292,11 +292,14 @@ export default async function CheckoutPage(props: {
   }
   const displayOrders = orderedRawOrders.map(normaliseOrder);
   const allItems = displayOrders.flatMap((order) => order.order_items);
-  const types = new Set(allItems.map((item) => item.product_type));
-  if (types.has("digital") && types.has("physical")) {
+  const hasMixedOrder = displayOrders.some((order) => {
+    const orderTypes = new Set(order.order_items.map((item) => item.product_type));
+    return orderTypes.has("digital") && orderTypes.has("physical");
+  });
+  if (hasMixedOrder) {
     redirectWithError(
       CHECKOUT_ERRORS.MIXED_PRODUCTS,
-      "Your cart contains both digital and physical items. Please check them out separately."
+      "One of these orders mixes digital and physical items. Please separate those items before checkout."
     );
   }
   if (!allItems.length || displayOrders.some((order) => !order.order_items.length)) {
