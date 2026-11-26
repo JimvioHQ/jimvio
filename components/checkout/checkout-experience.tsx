@@ -116,6 +116,7 @@ interface CheckoutExperienceProps {
    profile: { full_name: string | null; email: string | null; phone: string | null } | null;
    preferredMethod?: string | null;
    resumeProvider?: MethodId | null;
+   hasActivePaymentSession?: boolean;
    mode?: "cart" | "community";
    cartWasUpdated?: boolean;
    changes?: CheckoutSyncChanges;
@@ -134,7 +135,7 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 };
 
 export function CheckoutExperience({
-   orders, profile, preferredMethod, resumeProvider, mode = "cart",
+   orders, profile, preferredMethod, resumeProvider, hasActivePaymentSession = false, mode = "cart",
    brandSurface = "platform",
    storeName = null,
 }: CheckoutExperienceProps) {
@@ -144,8 +145,8 @@ export function CheckoutExperience({
    const isCommunity = mode === "community";
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
-   const hasStartedPayment = Boolean(resumeProvider) || orders.some((order) =>
-      order.payment_status === "processing" || Boolean(order.payment_provider || order.gateway_used)
+   const hasStartedPayment = Boolean(resumeProvider || hasActivePaymentSession) || orders.some((order) =>
+      Boolean(order.payment_provider || order.gateway_used)
    );
 
    const currency = orders[0]?.currency ?? PLATFORM_CURRENCY;
