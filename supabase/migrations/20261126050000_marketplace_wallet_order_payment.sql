@@ -67,6 +67,16 @@ BEGIN
     );
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+      FROM public.transactions t
+     WHERE t.order_id = p_order_id
+       AND t.provider IS DISTINCT FROM 'wallet'
+       AND t.status IN ('pending', 'processing')
+  ) THEN
+    RAISE EXCEPTION 'payment_in_progress';
+  END IF;
+
   SELECT *
     INTO v_wallet
     FROM public.wallets
