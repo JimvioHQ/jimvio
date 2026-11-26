@@ -221,10 +221,12 @@ export default async function CheckoutPage(props: {
 
   const initialOrdersById = new Map(initialRawOrders.map((row) => [row.id, row]));
   const initialOrders = requestedOrderIds.map((id) => initialOrdersById.get(id)!);
-  const cartIds = new Set(
-    initialOrders.map((row) => metaString(row.metadata, "cart_id")).filter(Boolean)
-  );
-  if (cartIds.size > 1) {
+  const cartIdValues = initialOrders.map((row) => metaString(row.metadata, "cart_id"));
+  const cartIds = new Set(cartIdValues.filter(Boolean));
+  if (
+    cartIds.size > 1 ||
+    (requestedOrderIds.length > 1 && (cartIdValues.some((id) => !id) || cartIds.size !== 1))
+  ) {
     redirectWithError(CHECKOUT_ERRORS.ORDER_NOT_FOUND, "These orders do not belong to the same checkout cart.");
   }
 
@@ -240,7 +242,7 @@ export default async function CheckoutPage(props: {
 
   // Do not sync or rewrite any order if any order in this cart already has an
   // active payment session. The provider's amount and all order lines stay fixed.
-  let { data: initialPaymentRows, error: initialPaymentError } = await admin
+  const { data: initialPaymentRows, error: initialPaymentError } = await admin
     .from("transactions")
     .select("order_id, status")
     .in("order_id", checkoutOrderIds)
@@ -343,7 +345,7 @@ export default async function CheckoutPage(props: {
     redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, "Could not verify the current payment session.");
   }
 
-  const latestPaymentByOrder = new Map<string, (typeof latestPaymentRows)[number]>();
+  const latestPaymentByOrder = new Map<string, NonNullable<typeof latestPaymentRows>[number]>();
   for (const row of latestPaymentRows ?? []) {
     if (!latestPaymentByOrder.has(row.order_id)) latestPaymentByOrder.set(row.order_id, row);
   }
