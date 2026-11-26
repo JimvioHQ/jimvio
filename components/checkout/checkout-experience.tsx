@@ -920,7 +920,9 @@ export function CheckoutExperience({
                            )}
                            {orders.length > 1 && (
                               <p className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
-                                 This cart contains orders from multiple sellers. Jimvio Wallet or Cryptocurrency will settle every order together; other payment methods remain available when paying one order at a time from Orders.
+                                 {supportsMultiOrderNowPayments
+                                    ? "This cart contains orders from multiple sellers. Jimvio Wallet or Cryptocurrency will settle every order together; other payment methods remain available when paying one order at a time from Orders."
+                                    : "This cart contains many seller orders. Jimvio Wallet will settle every order together; other payment methods remain available when paying one order at a time from Orders."}
                               </p>
                            )}
                            <PaymentMethodSelector
