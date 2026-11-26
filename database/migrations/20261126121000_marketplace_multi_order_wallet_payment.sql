@@ -1,4 +1,4 @@
--- Atomically reserve a single Jimvio Wallet debit across every order in a cart.
+-- Atomically reserve a single Jimvio Wallet debit across every unpaid order in a cart.
 -- This prevents partial multi-vendor checkout payments and duplicate debits on retries.
 CREATE OR REPLACE FUNCTION public.reserve_orders_wallet_payment(
   p_order_ids uuid[],
@@ -16,11 +16,12 @@ DECLARE
   v_order_id uuid;
   v_order public.orders%ROWTYPE;
   v_wallet public.wallets%ROWTYPE;
+  v_existing public.transactions%ROWTYPE;
   v_balance numeric(18,2);
-  v_total numeric(18,2);
-  v_refs text[];
-  v_existing_count integer;
+  v_total numeric(18,2) := 0;
+  v_existing_count integer := 0;
   v_index integer;
+  v_has_existing boolean;
 BEGIN
   IF p_user_id IS NULL
      OR p_order_ids IS NULL
@@ -45,10 +46,6 @@ BEGIN
     RAISE EXCEPTION 'invalid_wallet_orders_payment_arguments';
   END IF;
 
-  SELECT pg_catalog.array_agg(p_reference || '-' || ids.order_id::text ORDER BY ids.order_id)
-    INTO v_refs
-    FROM pg_catalog.unnest(p_order_ids) AS ids(order_id);
-
   -- Lock orders in deterministic order to avoid deadlocks between overlapping carts.
   FOR v_order_id IN
     SELECT ids.order_id
@@ -66,64 +63,57 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Re-check idempotency only after acquiring every order lock. A concurrent
-  -- request may have committed its reservation while this request was waiting.
-  SELECT pg_catalog.count(*)
-    INTO v_existing_count
-    FROM public.transactions t
-   WHERE t.provider = 'wallet'
-     AND t.reference = ANY(v_refs);
-
-  IF v_existing_count > 0 THEN
-    IF v_existing_count <> pg_catalog.cardinality(p_order_ids)
-       OR EXISTS (
-         SELECT 1
-           FROM public.transactions t
-          WHERE t.provider = 'wallet'
-            AND t.reference = ANY(v_refs)
-            AND (
-              t.user_id IS DISTINCT FROM p_user_id
-              OR t.order_id IS NULL
-              OR NOT (t.order_id = ANY(p_order_ids))
-            )
-       )
-    THEN
-      RAISE EXCEPTION 'wallet_orders_payment_reference_conflict';
-    END IF;
-
-    RETURN pg_catalog.jsonb_build_object(
-      'ok', true,
-      'already_reserved', true,
-      'currency', pg_catalog.upper(p_currency)
-    );
-  END IF;
-
-  -- The order locks now protect this payable-state and active-provider check.
-  FOR v_order_id IN
-    SELECT ids.order_id
-      FROM pg_catalog.unnest(p_order_ids) AS ids(order_id)
-     ORDER BY ids.order_id
+  -- Reuse any existing per-order reservation and debit only missing orders.
+  -- This also makes retries safe when a single order was reserved separately
+  -- before the buyer returns to finish a multi-vendor cart.
+  FOR v_index IN 1..pg_catalog.cardinality(p_order_ids)
   LOOP
     SELECT *
       INTO v_order
       FROM public.orders
-     WHERE id = v_order_id;
+     WHERE id = p_order_ids[v_index];
 
-    IF v_order.payment_status IN ('paid', 'completed') THEN
-      RAISE EXCEPTION 'order_already_paid';
+    SELECT *
+      INTO v_existing
+      FROM public.transactions
+     WHERE provider = 'wallet'
+       AND reference = p_reference || '-' || p_order_ids[v_index]::text
+     FOR UPDATE;
+
+    v_has_existing := FOUND;
+
+    IF v_has_existing THEN
+      v_existing_count := v_existing_count + 1;
+      IF v_existing.user_id IS DISTINCT FROM p_user_id
+         OR v_existing.order_id IS DISTINCT FROM p_order_ids[v_index]
+         OR v_existing.amount IS DISTINCT FROM p_amounts[v_index]
+         OR pg_catalog.upper(COALESCE(v_existing.currency, 'USD')) <> pg_catalog.upper(p_currency)
+         OR v_existing.status IN ('refunded', 'cancelled')
+      THEN
+        RAISE EXCEPTION 'wallet_orders_payment_reference_conflict';
+      END IF;
+    ELSE
+      v_total := v_total + p_amounts[v_index];
     END IF;
 
     IF v_order.status IN ('cancelled', 'refunded')
        OR v_order.payment_status IN ('refunded', 'cancelled')
-       OR v_order.status NOT IN ('pending', 'checkout_direct')
     THEN
+      RAISE EXCEPTION 'order_not_payable';
+    END IF;
+
+    IF NOT v_has_existing AND v_order.payment_status IN ('paid', 'completed') THEN
+      RAISE EXCEPTION 'order_already_paid';
+    END IF;
+
+    IF NOT v_has_existing AND v_order.status NOT IN ('pending', 'checkout_direct') THEN
       RAISE EXCEPTION 'order_not_payable';
     END IF;
 
     IF EXISTS (
       SELECT 1
         FROM public.transactions t
-       WHERE t.order_id = v_order_id
+       WHERE t.order_id = p_order_ids[v_index]
          AND t.provider IS DISTINCT FROM 'wallet'
          AND t.status IN ('pending', 'processing')
     ) THEN
@@ -145,10 +135,6 @@ BEGIN
     RAISE EXCEPTION 'wallet_currency_mismatch';
   END IF;
 
-  SELECT pg_catalog.round(pg_catalog.sum(amount.value), 2)
-    INTO v_total
-    FROM pg_catalog.unnest(p_amounts) AS amount(value);
-
   IF COALESCE(v_wallet.available_balance, 0) < v_total THEN
     RETURN pg_catalog.jsonb_build_object(
       'ok', false,
@@ -161,53 +147,64 @@ BEGIN
 
   v_balance := COALESCE(v_wallet.available_balance, 0) - v_total;
 
-  UPDATE public.wallets
-     SET available_balance = v_balance,
-         updated_at = pg_catalog.now()
-   WHERE id = v_wallet.id;
+  IF v_total > 0 THEN
+    UPDATE public.wallets
+       SET available_balance = v_balance,
+           updated_at = pg_catalog.now()
+     WHERE id = v_wallet.id;
+  END IF;
 
   FOR v_index IN 1..pg_catalog.cardinality(p_order_ids)
   LOOP
     SELECT *
-      INTO v_order
-      FROM public.orders
-     WHERE id = p_order_ids[v_index];
+      INTO v_existing
+      FROM public.transactions
+     WHERE provider = 'wallet'
+       AND reference = p_reference || '-' || p_order_ids[v_index]::text
+     FOR UPDATE;
 
-    INSERT INTO public.transactions (
-      user_id, order_id, type, direction, amount, currency, status,
-      provider, provider_transaction_id, reference, description, metadata,
-      created_at, updated_at
-    ) VALUES (
-      p_user_id,
-      v_order.id,
-      CASE
-        WHEN v_order.integration_source = 'community' THEN 'community_subscription'
-        ELSE 'marketplace_order'
-      END,
-      'debit',
-      p_amounts[v_index],
-      pg_catalog.upper(p_currency),
-      'pending',
-      'wallet',
-      p_reference || '-' || v_order.id::text,
-      p_reference || '-' || v_order.id::text,
-      CASE
-        WHEN v_order.integration_source = 'community' THEN 'Community subscription paid with Jimvio Wallet'
-        ELSE 'Marketplace order paid with Jimvio Wallet'
-      END,
-      pg_catalog.jsonb_build_object(
-        'payment_method', 'wallet',
-        'order_id', v_order.id,
-        'cart_payment_reference', p_reference
-      ),
-      pg_catalog.now(),
-      pg_catalog.now()
-    );
+    IF NOT FOUND THEN
+      SELECT *
+        INTO v_order
+        FROM public.orders
+       WHERE id = p_order_ids[v_index];
+
+      INSERT INTO public.transactions (
+        user_id, order_id, type, direction, amount, currency, status,
+        provider, provider_transaction_id, reference, description, metadata,
+        created_at, updated_at
+      ) VALUES (
+        p_user_id,
+        v_order.id,
+        CASE
+          WHEN v_order.integration_source = 'community' THEN 'community_subscription'
+          ELSE 'marketplace_order'
+        END,
+        'debit',
+        p_amounts[v_index],
+        pg_catalog.upper(p_currency),
+        'pending',
+        'wallet',
+        p_reference || '-' || v_order.id::text,
+        p_reference || '-' || v_order.id::text,
+        CASE
+          WHEN v_order.integration_source = 'community' THEN 'Community subscription paid with Jimvio Wallet'
+          ELSE 'Marketplace order paid with Jimvio Wallet'
+        END,
+        pg_catalog.jsonb_build_object(
+          'payment_method', 'wallet',
+          'order_id', v_order.id,
+          'cart_payment_reference', p_reference
+        ),
+        pg_catalog.now(),
+        pg_catalog.now()
+      );
+    END IF;
   END LOOP;
 
   RETURN pg_catalog.jsonb_build_object(
     'ok', true,
-    'already_reserved', false,
+    'already_reserved', v_existing_count = pg_catalog.cardinality(p_order_ids),
     'balance_after', v_balance,
     'required_amount', v_total,
     'currency', pg_catalog.upper(p_currency)
