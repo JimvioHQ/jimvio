@@ -195,8 +195,7 @@ export function SystemAnalysisClient({ data }: { data: SystemAnalysisData }) {
                     label="Revenue (30d)"
                     value={data.revenue30dDisplay}
                 />
-                <MetricTile label="New users (7d)" value={String(data.newUsers7d)} />
-                <MetricTile
+                    <MetricTile
                     label="Webhook success (24h)"
                     value={`${data.webhooks24h.successRate.toFixed(1)}%`}
                     sub={`${data.webhooks24h.completed}/${data.webhooks24h.total} completed`}
@@ -355,7 +354,6 @@ export function SystemAnalysisClient({ data }: { data: SystemAnalysisData }) {
             </div>
 
             <div className="rounded-lg border border-[var(--color-border)]/60 px-4 py-3 flex flex-wrap items-center gap-4 text-[11px] text-[var(--color-text-muted)]">
-                <span>{data.overview.totalUsers.toLocaleString()} users</span>
                 <span>{data.overview.totalVendors.toLocaleString()} vendors</span>
                 <span>{data.overview.totalOrders.toLocaleString()} orders (all time)</span>
                 <span>{formatAdminMoney(data.overview.totalRevenue)} lifetime revenue</span>
