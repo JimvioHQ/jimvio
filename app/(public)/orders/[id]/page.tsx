@@ -140,6 +140,7 @@ function getProviderLabel(provider: string | null | undefined) {
   if (!provider) return "Free";
   const map: Record<string, string> = {
     nowpayments: "Crypto",
+    wallet: "Jimvio Wallet",
     pesapal: "PesaPal (retired)",
     paypal: "PayPal (retired)",
     pawapay: "PawaPay (retired)",
