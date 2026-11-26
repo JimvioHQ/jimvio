@@ -167,101 +167,155 @@ export default async function CheckoutPage(props: {
   }>;
 }) {
   const searchParams = await props.searchParams;
-  const orderId =
+  const primaryOrderId =
     searchParams.orderId ?? searchParams.order_id ?? searchParams.order ?? null;
+  const orderIdsParam = searchParams.order_ids ?? searchParams.orderIds ?? "";
+  const requestedOrderIds = orderIdsParam
+    ? orderIdsParam.split(",").map((value) => value.trim()).filter(Boolean)
+    : primaryOrderId ? [primaryOrderId] : [];
+  if (primaryOrderId && !requestedOrderIds.includes(primaryOrderId)) {
+    requestedOrderIds.unshift(primaryOrderId);
+  }
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (
+    requestedOrderIds.length === 0 ||
+    requestedOrderIds.length > 50 ||
+    new Set(requestedOrderIds).size !== requestedOrderIds.length ||
+    requestedOrderIds.some((id) => !UUID_PATTERN.test(id))
+  ) {
+    redirect("/cart");
+  }
+
   const preferredMethod = searchParams.method ?? null;
   const isDirectCheckout = searchParams.direct === "1";
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    const next = orderId ? `/checkout?order_id=${orderId}` : "/checkout";
+    const next = `/checkout?order_id=${requestedOrderIds[0]}&order_ids=${encodeURIComponent(requestedOrderIds.join(","))}`;
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  // ── No order ID → user came here directly, send back to cart ───────────────
-  if (!orderId) {
-    redirect("/cart");
-  }
+  const admin = createAdminClient();
+  const fetchOrders = async (ids: string[]) =>
+    admin
+      .from("orders")
+      .select(ORDER_SELECT)
+      .eq("buyer_id", user.id)
+      .in("id", ids)
+      .in("payment_status", ["pending", "failed", "processing"]);
 
-  // ── Sync the order to current cart state (cart checkout only) ───────────────
-  // Buy Now uses a standalone checkout session and must not be synced to cart.
-  let syncResult: Awaited<ReturnType<typeof syncOrderWithCart>> | null = null;
-  if (!isDirectCheckout) {
-    syncResult = await syncOrderWithCart(orderId);
-
-    if (!syncResult.ok) {
-      redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, syncResult.error);
-    }
-  }
-
-  const { data: rawOrder, error: orderError } = await createAdminClient()
-    .from("orders")
-    .select(ORDER_SELECT)
-    .eq("id", orderId)
-    .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed", "processing"])
-    .single();
-
-  if (orderError || !rawOrder) {
+  // Confirm every requested order belongs to this buyer before syncing or reading
+  // payment metadata. A combined checkout can never mix another user's orders.
+  const { data: initialRawOrders, error: initialOrdersError } = await fetchOrders(requestedOrderIds);
+  if (initialOrdersError || !initialRawOrders || initialRawOrders.length !== requestedOrderIds.length) {
     redirectWithError(
       CHECKOUT_ERRORS.ORDER_NOT_FOUND,
-      `Order ${orderId} not found or already paid`
+      "One or more orders could not be found or are no longer payable."
     );
   }
 
-  const isCommunity = rawOrder.integration_source === "community";
-  const order = normaliseOrder(rawOrder);
-  const { data: latestPayment } = await createAdminClient()
+  const initialOrdersById = new Map(initialRawOrders.map((row) => [row.id, row]));
+  const initialOrders = requestedOrderIds.map((id) => initialOrdersById.get(id)!);
+  const cartIds = new Set(
+    initialOrders.map((row) => metaString(row.metadata, "cart_id")).filter(Boolean)
+  );
+  if (cartIds.size > 1) {
+    redirectWithError(CHECKOUT_ERRORS.ORDER_NOT_FOUND, "These orders do not belong to the same checkout cart.");
+  }
+
+  let checkoutOrderIds = [...requestedOrderIds];
+  let cartWasUpdated = false;
+  const aggregateChanges = {
+    itemsAdded: 0,
+    itemsRemoved: 0,
+    itemsUpdated: 0,
+    priceChanged: false,
+    shippingReset: false,
+  };
+
+  // Do not sync or rewrite any order if any order in this cart already has an
+  // active payment session. The provider's amount and all order lines stay fixed.
+  let { data: initialPaymentRows, error: initialPaymentError } = await admin
     .from("transactions")
-    .select("provider, provider_transaction_id, status, metadata, created_at")
-    .eq("order_id", order.id)
-    .in("status", ["pending", "processing", "completed"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const latestPaymentMetadata =
-    latestPayment?.metadata && typeof latestPayment.metadata === "object" && !Array.isArray(latestPayment.metadata)
-      ? latestPayment.metadata as Record<string, unknown>
-      : {};
-  const storedProvider = String(
-    latestPayment?.provider ??
-    (["pending", "processing"].includes(order.payment_status) ? order.payment_provider ?? order.gateway_used : "") ??
-    ""
-  ).toLowerCase();
-  const mappedProvider =
-    storedProvider === "binance" ? "binancepay" :
-    storedProvider === "flutterwave" && latestPaymentMetadata.method === "mobile_money" ? "mobile_money" :
-    storedProvider;
-  const resumeProvider = (
-    ["nowpayments", "flutterwave", "binancepay", "mobile_money", "wallet"].includes(mappedProvider)
-      ? mappedProvider
-      : null
-  ) as "nowpayments" | "flutterwave" | "binancepay" | "mobile_money" | "wallet" | null;
-  const hasActivePaymentSession = Boolean(latestPayment);
-  const types = new Set(order.order_items.map((i) => i.product_type));
+    .select("order_id, status")
+    .in("order_id", checkoutOrderIds)
+    .in("status", ["pending", "processing", "completed"]);
+  if (initialPaymentError) {
+    redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, "Could not verify existing payment sessions.");
+  }
+  const hasInitialPaymentSession = Boolean(initialPaymentRows?.length);
+
+  if (!isDirectCheckout && !hasInitialPaymentSession) {
+    const syncResults = await Promise.all(checkoutOrderIds.map((id) => syncOrderWithCart(id)));
+    const cancelledOrderIds: string[] = [];
+    for (let index = 0; index < syncResults.length; index += 1) {
+      const result = syncResults[index];
+      if (!result.ok) {
+        if (result.error === "cart_empty") {
+          cancelledOrderIds.push(checkoutOrderIds[index]);
+          continue;
+        }
+        redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, result.error);
+      }
+      if (result.changed && result.changes) {
+        cartWasUpdated = true;
+        aggregateChanges.itemsAdded += result.changes.itemsAdded;
+        aggregateChanges.itemsRemoved += result.changes.itemsRemoved;
+        aggregateChanges.itemsUpdated += result.changes.itemsUpdated;
+        aggregateChanges.priceChanged ||= result.changes.priceChanged;
+        aggregateChanges.shippingReset ||= result.changes.shippingReset;
+      }
+    }
+    checkoutOrderIds = checkoutOrderIds.filter((id) => !cancelledOrderIds.includes(id));
+    if (!checkoutOrderIds.length) redirect("/cart");
+  }
+
+  const { data: rawOrders, error: ordersError } = await fetchOrders(checkoutOrderIds);
+  if (ordersError || !rawOrders || rawOrders.length !== checkoutOrderIds.length) {
+    redirectWithError(
+      CHECKOUT_ERRORS.ORDER_NOT_FOUND,
+      "One or more orders could not be found or are no longer payable."
+    );
+  }
+
+  const rawOrdersById = new Map(rawOrders.map((row) => [row.id, row]));
+  const orderedRawOrders = checkoutOrderIds.map((id) => rawOrdersById.get(id)!);
+  const displayOrders = orderedRawOrders.map(normaliseOrder);
+  const allItems = displayOrders.flatMap((order) => order.order_items);
+  const types = new Set(allItems.map((item) => item.product_type));
   if (types.has("digital") && types.has("physical")) {
     redirectWithError(
       CHECKOUT_ERRORS.MIXED_PRODUCTS,
-      "Order contains both digital and physical items"
+      "Your cart contains both digital and physical items. Please check them out separately."
     );
   }
-
-  if (!order.order_items.length) {
-    redirectWithError(CHECKOUT_ERRORS.NO_ITEMS, "Order has no items");
+  if (!allItems.length || displayOrders.some((order) => !order.order_items.length)) {
+    redirectWithError(CHECKOUT_ERRORS.NO_ITEMS, "One or more orders have no items.");
   }
 
-  try {
-    if (!hasActivePaymentSession) {
-      await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+  const hasUntrackedPaymentProvider = displayOrders.some((order) =>
+    ["pending", "processing"].includes(order.payment_status) &&
+    Boolean(order.payment_provider || order.gateway_used)
+  );
+  const hasPaymentInFlight = hasInitialPaymentSession || hasUntrackedPaymentProvider;
+
+  // Currency normalization is safe only before a provider has received an amount.
+  if (!hasPaymentInFlight) {
+    for (const order of displayOrders) {
+      try {
+        await ensurePendingOrderPlatformCurrency(admin, order.id);
+      } catch (error) {
+        console.warn("[checkout] pending USD normalize skipped", { orderId: order.id, error });
+      }
     }
-  } catch (error) {
-    console.warn("[checkout] pending USD normalize skipped", error);
   }
 
-  if (order.order_items.some((item) => item.product_source === "cj")) {
+  if (allItems.some((item) => item.product_source === "cj")) {
     try {
       await getOrRefreshAccessToken();
     } catch (error) {
@@ -269,15 +323,56 @@ export default async function CheckoutPage(props: {
     }
   }
 
-  const { data: refreshedRaw } = await createAdminClient()
-    .from("orders")
-    .select(ORDER_SELECT)
-    .eq("id", orderId)
-    .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed", "processing"])
-    .single();
-  const displayOrder = refreshedRaw ? normaliseOrder(refreshedRaw) : order;
-  
+  // Re-read after safe normalization; keep the requested order sequence stable.
+  let finalOrders = displayOrders;
+  if (!hasPaymentInFlight) {
+    const { data: refreshedRawOrders } = await fetchOrders(checkoutOrderIds);
+    if (refreshedRawOrders?.length === checkoutOrderIds.length) {
+      const refreshedById = new Map(refreshedRawOrders.map((row) => [row.id, row]));
+      finalOrders = checkoutOrderIds.map((id) => normaliseOrder(refreshedById.get(id)!));
+    }
+  }
+
+  const { data: latestPaymentRows, error: latestPaymentError } = await admin
+    .from("transactions")
+    .select("order_id, provider, provider_transaction_id, status, metadata, created_at")
+    .in("order_id", checkoutOrderIds)
+    .in("status", ["pending", "processing", "completed"])
+    .order("created_at", { ascending: false });
+  if (latestPaymentError) {
+    redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, "Could not verify the current payment session.");
+  }
+
+  const latestPaymentByOrder = new Map<string, (typeof latestPaymentRows)[number]>();
+  for (const row of latestPaymentRows ?? []) {
+    if (!latestPaymentByOrder.has(row.order_id)) latestPaymentByOrder.set(row.order_id, row);
+  }
+  const mappedProviders = finalOrders.map((order) => {
+    const payment = latestPaymentByOrder.get(order.id);
+    const metadata =
+      payment?.metadata && typeof payment.metadata === "object" && !Array.isArray(payment.metadata)
+        ? payment.metadata as Record<string, unknown>
+        : {};
+    const storedProvider = String(
+      payment?.provider ??
+      (["pending", "processing"].includes(order.payment_status) ? order.payment_provider ?? order.gateway_used : "") ??
+      ""
+    ).toLowerCase();
+    const mapped =
+      storedProvider === "binance" ? "binancepay" :
+      storedProvider === "flutterwave" && metadata.method === "mobile_money" ? "mobile_money" :
+      storedProvider;
+    return ["nowpayments", "flutterwave", "binancepay", "mobile_money", "wallet"].includes(mapped)
+      ? mapped
+      : null;
+  });
+  const resumeProvider = (
+    mappedProviders.every(Boolean) && new Set(mappedProviders).size === 1
+      ? mappedProviders[0]
+      : null
+  ) as "nowpayments" | "flutterwave" | "binancepay" | "mobile_money" | "wallet" | null;
+  const hasActivePaymentSession = Boolean(latestPaymentRows?.length);
+
   // ── Profile ─────────────────────────────────────────────────────────────────
   const { data: profile } = await supabase
     .from("profiles")
@@ -289,14 +384,14 @@ export default async function CheckoutPage(props: {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-8xl mx-auto px-0 sm:px-4 md:px-6">
         <CheckoutExperience
-          orders={[displayOrder] as never}
+          orders={finalOrders as never}
           profile={profile}
-          mode={isCommunity ? "community" : "cart"}
+          mode={finalOrders.some((order) => order.integration_source === "community") ? "community" : "cart"}
           preferredMethod={preferredMethod}
           resumeProvider={resumeProvider}
           hasActivePaymentSession={hasActivePaymentSession}
-          cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
-          changes={!isDirectCheckout ? syncResult?.changes : undefined}
+          cartWasUpdated={cartWasUpdated}
+          changes={cartWasUpdated ? aggregateChanges : undefined}
         />
       </div>
     </div>
