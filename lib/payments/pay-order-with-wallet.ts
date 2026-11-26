@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
 import { orderTotalsForUsdGateway, usdToRwfAmount } from "@/lib/money";
@@ -268,10 +267,9 @@ export async function payOrdersWithWallet(
     return { ok: false, status: 400, error: "The combined order total is invalid." };
   }
 
-  const paymentReference = `WALLET-ORDERS-${createHash("sha256")
-    .update(unpaidOrders.map((order) => order.id).sort().join(","))
-    .digest("hex")
-    .slice(0, 32)}`;
+  // Stable per-order references let retries resume safely even if some
+  // orders were finalized before a transient failure interrupted the cart.
+  const paymentReference = "WALLET-ORDER";
 
   const { data: reservation, error: reserveError } = await db.rpc(
     "reserve_orders_wallet_payment",
