@@ -264,7 +264,8 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(securityCheckUrl);
         }
 
-        if (profile2fa.two_factor_enabled) {
+        const privateProfile = profile2fa as unknown as { two_factor_enabled?: boolean };
+        if (privateProfile.two_factor_enabled) {
           const challenge = redirectToTwoFa(request, pathname);
           challenge.cookies.set(TWO_FA_PENDING_COOKIE, user.id, twoFaPendingCookieOptions());
           return challenge;
