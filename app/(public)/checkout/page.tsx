@@ -34,9 +34,12 @@ type OrderRow = {
   id: string;
   status: string;
   payment_status: string;
+  payment_provider: string | null;
+  gateway_used: string | null;
   total_amount: number;
   subtotal: number;
   shipping_amount: number | null;
+  discount_amount: number | null;
   currency: string | null;
   metadata: unknown;
   shipping_address: unknown;
@@ -113,9 +116,12 @@ function normaliseOrder(raw: any): OrderRow {
     id: raw.id,
     status: raw.status,
     payment_status: raw.payment_status,
+    payment_provider: raw.payment_provider ?? null,
+    gateway_used: raw.gateway_used ?? null,
     total_amount: raw.total_amount,
     subtotal: raw.subtotal,
     shipping_amount: raw.shipping_amount ?? null,
+    discount_amount: raw.discount_amount ?? null,
     currency: raw.currency ?? null,
     metadata: sanitizeCustomerOrderMetadata(raw.metadata),
     shipping_address: raw.shipping_address ?? null,
@@ -125,8 +131,8 @@ function normaliseOrder(raw: any): OrderRow {
 }
 
 const ORDER_SELECT = `
-  id, status, payment_status,
-  total_amount, subtotal, shipping_amount, currency,
+  id, status, payment_status, payment_provider, gateway_used,
+  total_amount, subtotal, shipping_amount, discount_amount, currency,
   integration_source, metadata, shipping_address,
   vendors (id, business_name, business_slug),
   order_items (
@@ -186,7 +192,7 @@ export default async function CheckoutPage(props: {
     .select(ORDER_SELECT)
     .eq("id", orderId)
     .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed"])
+    .in("payment_status", ["pending", "failed", "processing"])
     .single();
 
   if (orderError || !rawOrder) {
@@ -198,6 +204,29 @@ export default async function CheckoutPage(props: {
 
   const isCommunity = rawOrder.integration_source === "community";
   const order = normaliseOrder(rawOrder);
+  const { data: latestPayment } = await createAdminClient()
+    .from("transactions")
+    .select("provider, provider_transaction_id, status, metadata, created_at")
+    .eq("order_id", order.id)
+    .in("status", ["pending", "processing", "completed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const latestPaymentMetadata =
+    latestPayment?.metadata && typeof latestPayment.metadata === "object" && !Array.isArray(latestPayment.metadata)
+      ? latestPayment.metadata as Record<string, unknown>
+      : {};
+  const storedProvider = String(latestPayment?.provider ?? order.payment_provider ?? order.gateway_used ?? "").toLowerCase();
+  const mappedProvider =
+    storedProvider === "binance" ? "binancepay" :
+    storedProvider === "flutterwave" && latestPaymentMetadata.method === "mobile_money" ? "mobile_money" :
+    storedProvider;
+  const resumeProvider = (
+    ["nowpayments", "flutterwave", "binancepay", "mobile_money", "wallet"].includes(mappedProvider)
+      ? mappedProvider
+      : null
+  ) as "nowpayments" | "flutterwave" | "binancepay" | "mobile_money" | "wallet" | null;
+  const hasActivePaymentSession = Boolean(latestPayment);
   const types = new Set(order.order_items.map((i) => i.product_type));
   if (types.has("digital") && types.has("physical")) {
     redirectWithError(
@@ -211,7 +240,9 @@ export default async function CheckoutPage(props: {
   }
 
   try {
-    await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+    if (!hasActivePaymentSession) {
+      await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+    }
   } catch (error) {
     console.warn("[checkout] pending USD normalize skipped", error);
   }
@@ -229,7 +260,7 @@ export default async function CheckoutPage(props: {
     .select(ORDER_SELECT)
     .eq("id", orderId)
     .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed"])
+    .in("payment_status", ["pending", "failed", "processing"])
     .single();
   const displayOrder = refreshedRaw ? normaliseOrder(refreshedRaw) : order;
   
@@ -248,6 +279,7 @@ export default async function CheckoutPage(props: {
           profile={profile}
           mode={isCommunity ? "community" : "cart"}
           preferredMethod={preferredMethod}
+          resumeProvider={resumeProvider}
           cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
           changes={!isDirectCheckout ? syncResult?.changes : undefined}
         />
