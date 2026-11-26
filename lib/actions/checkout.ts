@@ -984,6 +984,9 @@ export async function updatePendingOrdersShipping(
     const existing = linesByOrder.get(line.order_id) ?? [];
     linesByOrder.set(line.order_id, [...existing, line]);
   }
+  if (payload.orderIds.some((id) => !linesByOrder.has(id))) {
+    return err("One or more orders no longer contain items. Please refresh your cart.");
+  }
   const supplierOrderIds = new Set(
     (cartLineRows ?? [])
       .filter((line) => line.product_source === "cj")
