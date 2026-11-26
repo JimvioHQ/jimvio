@@ -1365,6 +1365,10 @@ export default function PublicOrderDetailPage() {
 
   async function handlePay() {
     if (!order) return;
+    if (latestTransaction?.provider?.toLowerCase() === "wallet") {
+      await handlePayWithWallet();
+      return;
+    }
     setPaying(true);
     try {
       const provider = latestTransaction?.provider?.toLowerCase() || "flutterwave";
