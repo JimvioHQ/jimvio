@@ -1169,12 +1169,12 @@ export async function updatePendingOrdersShipping(
     if (data?.[0]?.id) updatedIds.push(data[0].id);
   }
 
-  if (!updatedIds.length) {
+  if (updatedIds.length !== existingOrders.length) {
     console.error(
-      "[updatePendingOrdersShipping] Update returned 0 rows despite passing pre-check",
-      { userId, orderIds: payload.orderIds, existingOrders }
+      "[updatePendingOrdersShipping] Not every order was updated",
+      { userId, requested: existingOrders.length, updated: updatedIds.length, orderIds: payload.orderIds }
     );
-    return err("Could not update orders. Please refresh and try again.");
+    return err("We couldn't update every order in this cart. Refresh Orders before trying payment again.");
   }
 
   revalidatePath("/checkout");
