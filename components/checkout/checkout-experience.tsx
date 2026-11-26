@@ -149,6 +149,8 @@ export function CheckoutExperience({
       ["pending", "processing"].includes(order.payment_status) &&
       Boolean(order.payment_provider || order.gateway_used)
    );
+   const supportsMultiOrderNowPayments =
+      orders.map((order) => order.id).join(",").length <= 240;
 
    const currency = orders[0]?.currency ?? PLATFORM_CURRENCY;
    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
@@ -172,10 +174,14 @@ export function CheckoutExperience({
       ) {
          return preferredMethod as MethodId;
       }
-      return orders.length > 1 ? "nowpayments" : defaultPayment(currency);
+      return orders.length > 1
+         ? supportsMultiOrderNowPayments ? "nowpayments" : "wallet"
+         : defaultPayment(currency);
    });
    const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>(
-      () => orders.length > 1 ? ["nowpayments", "wallet"] : undefined
+      () => orders.length > 1
+         ? supportsMultiOrderNowPayments ? ["nowpayments", "wallet"] : ["wallet"]
+         : undefined
    );
    const [momoForm, setMomoForm] = useState<MoMoFormState>({
       country: "",
@@ -231,7 +237,9 @@ export function CheckoutExperience({
                // Multi-vendor carts must use a provider that settles every order
                // in one invoice/debit. Other gateways remain available per order.
                const available = orders.length > 1
-                  ? data.enabled.filter((method) => method === "nowpayments" || method === "wallet")
+                  ? data.enabled.filter((method) =>
+                     method === "wallet" || (method === "nowpayments" && supportsMultiOrderNowPayments)
+                  )
                   : data.enabled;
                if (available.length > 0) {
                   setEnabledPaymentMethods(available);
