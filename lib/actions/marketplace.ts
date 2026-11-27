@@ -1223,6 +1223,7 @@ import { grantDigitalAccess } from "./digital-access";
 import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { toPublicProduct } from "@/lib/marketplace/public-product";
 import { resolvePurchaseLine } from "@/lib/products/resolve-purchase-line";
 import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 import {
@@ -2697,10 +2698,21 @@ export async function buyDirectCheckout(
 
 export async function getProductVariants(productId: string) {
   try {
-    const supabase = await createClient();
+    if (!/^[0-9a-f-]{36}$/i.test(productId)) {
+      return { success: false, error: "Invalid product", variants: [] };
+    }
+
+    // Variant supplier fields are intentionally unavailable to browser roles.
+    // Read them server-side, validate the public product, then strip supplier
+    // identifiers before the variants reach the product-detail client.
+    const admin = catalogReader();
     const [{ data: product }, { data, error }] = await Promise.all([
-      supabase.from("products").select("track_inventory").eq("id", productId).maybeSingle(),
-      supabase
+      admin
+        .from("products")
+        .select("track_inventory, status, is_active, deleted_at, product_type, digital_verification_state")
+        .eq("id", productId)
+        .maybeSingle(),
+      admin
         .from("product_variants")
         .select(`
           id, name, sku, price, compare_at_price,
@@ -2714,10 +2726,20 @@ export async function getProductVariants(productId: string) {
         .order("created_at", { ascending: true }),
     ]);
 
+    if (!product || product.status !== "active" || product.is_active !== true || product.deleted_at) {
+      return { success: true, variants: [] };
+    }
+    if (
+      product.product_type !== "physical" &&
+      product.digital_verification_state !== "published"
+    ) {
+      return { success: true, variants: [] };
+    }
     if (error) throw error;
 
-    const trackInventory = Boolean(product?.track_inventory);
-    const variants = filterStorefrontVariants(data ?? [], trackInventory);
+    const trackInventory = Boolean(product.track_inventory);
+    const variants = filterStorefrontVariants(data ?? [], trackInventory)
+      .map((variant) => toPublicProduct(variant));
 
     return { success: true, variants };
   } catch (error: any) {
