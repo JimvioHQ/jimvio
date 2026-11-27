@@ -69,7 +69,7 @@ export async function PATCH(
 
   const { data: order, error: orderError } = await adminDb
     .from("orders")
-    .select("id, status, payment_status, buyer_id, order_number, order_items(vendor_id)")
+    .select("id, status, payment_status, buyer_id, order_number, tracking_number, order_items(vendor_id)")
     .eq("id", orderId)
     .single();
 
