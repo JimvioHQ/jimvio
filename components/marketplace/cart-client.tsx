@@ -77,7 +77,6 @@ export interface CartItem {
   quantity: number;
   unit_price_at_add: number;
   currency_at_add: string;
-  product_source: string;
   source_metadata: Record<string, unknown>;
   affiliate_link_id: string | null;
   added_at: string;
