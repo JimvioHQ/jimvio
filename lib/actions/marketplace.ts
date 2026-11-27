@@ -2709,7 +2709,7 @@ export async function getProductVariants(productId: string) {
     const [{ data: product }, { data, error }] = await Promise.all([
       admin
         .from("products")
-        .select("track_inventory, status, is_active, deleted_at, product_type, digital_verification_state")
+        .select("track_inventory, status, is_active, deleted_at, product_type, is_digital, digital_verification_state")
         .eq("id", productId)
         .maybeSingle(),
       admin
@@ -2729,10 +2729,11 @@ export async function getProductVariants(productId: string) {
     if (!product || product.status !== "active" || product.is_active !== true || product.deleted_at) {
       return { success: true, variants: [] };
     }
-    if (
-      product.product_type !== "physical" &&
-      product.digital_verification_state !== "published"
-    ) {
+    const isDigitalProduct =
+      product.product_type != null
+        ? product.product_type !== "physical"
+        : product.is_digital === true;
+    if (isDigitalProduct && product.digital_verification_state !== "published") {
       return { success: true, variants: [] };
     }
     if (error) throw error;
