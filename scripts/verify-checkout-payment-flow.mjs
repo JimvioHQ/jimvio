@@ -411,6 +411,79 @@ assert(
   "Unified payment webhook must be idempotent and call finalizeOrderPayment"
 );
 
+// ── Unified order fulfillment + favicon/PWA invariants ──────────────────────
+const trackingDecision = read("lib/order-fulfillment/tracking-decision.ts");
+const advanceOrder = read("lib/order-fulfillment/advance-order-status.ts");
+const cjSync = read("lib/cj/order-sync.ts");
+const cjService = read("services/cj/cj-order-service.ts");
+const vendorAction = read("lib/actions/vendor.ts");
+const vendorFulfillRoute = read("app/api/vendor/orders/[orderId]/fulfill/route.ts");
+const orderStatusRoute = read("app/api/orders/update/[status]/[orderId]/route.ts");
+assert(
+  trackingDecision.includes("currentSupplierStatus") &&
+    trackingDecision.includes('key === "awaiting_shipment"'),
+  "Supplier raw status changes within the same processing/awaiting-shipment phase must be persisted"
+);
+assert(
+  advanceOrder.includes("patch.tracking_url = trackingUrl") &&
+    advanceOrder.includes("recordOrderStatusChange"),
+  "Shared fulfillment lifecycle must persist tracking URL and status history"
+);
+assert(
+  cjSync.includes('FINISHED:       "delivered"') &&
+    cjService.includes('FINISHED:      "delivered"') &&
+    !cjService.includes('??\n    "processing"'),
+  "CJ delivery statuses must map to delivered without forcing unknown states to processing"
+);
+assert(
+  vendorAction.includes("advanceOrderFulfillment") &&
+    !vendorAction.includes('.from("orders")\n    .update(') &&
+    vendorAction.includes("isOrderPaymentComplete"),
+  "Vendor server actions must use the shared fulfillment lifecycle and paid-order guard"
+);
+assert(
+  vendorFulfillRoute.includes("advanceOrderFulfillment") &&
+    vendorFulfillRoute.includes("tracking number is required") &&
+    vendorFulfillRoute.includes("vendorIds"),
+  "Vendor shipping API must enforce tracking, multi-store ownership, and shared order lifecycle"
+);
+assert(
+  orderStatusRoute.includes("advanceOrderFulfillment") &&
+    orderStatusRoute.includes("tracking number is required") &&
+    orderStatusRoute.includes("VENDOR_ONLY_STATUSES"),
+  "Order status API must use the shared lifecycle and enforce vendor-only fulfillment transitions"
+);
+const seo = read("lib/seo.ts");
+const siteManifest = read("public/site.webmanifest");
+const nextManifest = read("app/manifest.ts");
+const browserConfig = read("public/browserconfig.xml");
+assert(
+  seo.includes("/favicon.ico?v=20261127") &&
+    seo.includes("/favicon.svg?v=20261127") &&
+    seo.includes("/favicon-16x16.png?v=20261127") &&
+    seo.includes("/favicon-32x32.png?v=20261127") &&
+    seo.includes("/apple-touch-icon.png?v=20261127") &&
+    seo.includes('manifest: "/site.webmanifest"'),
+  "Browser, classic, SVG, Apple, and manifest metadata must use the current Jimvio icon package"
+);
+assert(
+  siteManifest.includes('"theme_color": "#F95405"') &&
+    siteManifest.includes('"sizes": "192x192"') &&
+    siteManifest.includes('"sizes": "512x512"') &&
+    siteManifest.includes('"purpose": "maskable"') &&
+    nextManifest.includes('theme_color: "#F95405"'),
+  "PWA manifest must include standard, maskable, and orange-themed app icons"
+);
+assert(
+  browserConfig.includes("#F95405") &&
+    existsSync(join(root, "app/favicon.ico")) &&
+    existsSync(join(root, "public/favicon.svg")) &&
+    existsSync(join(root, "app/apple-touch-icon.png/route.ts")) &&
+    existsSync(join(root, "app/favicon-16x16.png/route.ts")) &&
+    existsSync(join(root, "app/favicon-32x32.png/route.ts")),
+  "Classic ICO, SVG, Apple touch, browser PNG, and Windows tile assets must exist"
+);
+
 if (fails.length) {
   console.error("VERIFY FAIL — checkout/payment flow invariants:");
   for (const f of fails) console.error(" -", f);
