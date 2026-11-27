@@ -686,7 +686,7 @@ export default function BuyerOrdersPage() {
    /* ── Loading skeleton ── */
    if (loading) return (
       <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
-         <div className="max-w-full mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
+         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 space-y-8">
             {/* Header skeleton */}
             <div className="flex items-center gap-4 animate-pulse">
                <div className="h-9 w-9 rounded-xl bg-[var(--color-border)]" />
@@ -744,7 +744,7 @@ export default function BuyerOrdersPage() {
             />
          )}
 
-         <div className="space-y-8 pb-16">
+         <div className="space-y-8 pb-16 px-4 sm:px-6 lg:px-8">
             <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#111113_0%,#1c1917_55%,#2a1810_100%)] px-5 py-6 text-white shadow-[0_20px_50px_-28px_rgba(0,0,0,0.55)] sm:px-8 sm:py-8">
                <div
                   aria-hidden
