@@ -435,6 +435,7 @@ export async function syncAllOpenCJOrders(): Promise<{
         cjOrderId: order.cj_order_id!,
       });
       if (result.updated) updated++;
+      else if (result.error) errors++;
     } catch (err) {
       errors++;
       console.error(`[CJ sync] Error syncing order ${order.id}:`, err);
