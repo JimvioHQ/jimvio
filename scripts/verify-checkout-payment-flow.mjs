@@ -37,6 +37,8 @@ const shippingEligibility = read("lib/cj/shipping-method-eligibility.ts");
 const paymentErrors = read("lib/currency/platform.ts");
 const paymentSelectorForOrder = read("components/checkout/PaymentMethodSelector.tsx");
 const marketplaceActions = read("lib/actions/marketplace.ts");
+const adminCj = read("lib/actions/admin-cj.ts");
+const cjOrderService = read("services/cj/cj-order-service.ts");
 const binanceWh = read("app/api/webhooks/binance/route.ts");
 const flwWh = read("app/api/payments/flutterwave/webhook/route.ts");
 const nowWh = read("app/api/webhooks/nowpayments/route.ts");
@@ -106,6 +108,12 @@ assert(
   shippingEligibility.includes("liquid soap") &&
     shippingEligibility.includes("essential oils?"),
   "Liquid product classification must use specific product/category signals, not generic product wording"
+);
+assert(
+  adminCj.includes("syncCJOrderStatus") &&
+    !adminCj.includes('import("@/lib/cj/order-sync")') &&
+    cjOrderService.includes("cjStatusChanged"),
+  "Manual CJ sync must target the selected order and update supplier status even when the order status is unchanged"
 );
 const paymentMethodsStart = paymentSelectorForOrder.indexOf("const METHODS: MethodDef[] = [");
 const binanceMethodIndex = paymentSelectorForOrder.indexOf('id: "binancepay"', paymentMethodsStart);
