@@ -2,105 +2,98 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 
-export async function updateVendorOrderStatus(orderId: string, requestedStatus: string, trackingNumber?: string) {
+export async function updateVendorOrderStatus(
+  orderId: string,
+  requestedStatus: string,
+  trackingNumber?: string
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Unauthorized" };
 
-  // Check if user is a vendor (support multi-store vendors)
-  const { data: userVendors } = await supabase
+  const { data: userVendors, error: vendorError } = await supabase
     .from("vendors")
     .select("id")
     .eq("user_id", user.id);
 
-  if (!userVendors || userVendors.length === 0) return { success: false, error: "Not a vendor" };
-  const vendorIds = userVendors.map(v => v.id);
+  if (vendorError) return { success: false, error: "Unable to verify vendor access" };
+  if (!userVendors?.length) return { success: false, error: "Not a vendor" };
+  const vendorIds = userVendors.map((vendor) => vendor.id);
 
-  // Use service role to bypass RLS for fetching rigorous order state and updating globally.
   const adminClient = createServiceRoleClient();
-  
-  // 1. Fetch current order state and items to validate ownership
-  const { data: order, error: orderErr } = await adminClient
+  const { data: order, error: orderError } = await adminClient
     .from("orders")
     .select("id, status, payment_status, order_items(id, vendor_id)")
     .eq("id", orderId)
     .single();
 
-  if (orderErr || !order) return { success: false, error: "Order not found" };
+  if (orderError || !order) return { success: false, error: "Order not found" };
+  const ownsItem = (order.order_items ?? []).some((item: { vendor_id: string | null }) =>
+    item.vendor_id != null && vendorIds.includes(item.vendor_id)
+  );
+  if (!ownsItem) return { success: false, error: "Unauthorized access to this order" };
 
-  // Validate Vendor Ownership over at least one item
-  const isOwner = order.order_items.some((item: any) => vendorIds.includes(item.vendor_id));
-  if (!isOwner) return { success: false, error: "Unauthorized access to this order" };
-
-  const currentStatus = order.status;
-
-  // 2. Strict State Transition Logic (Vendor specific rules)
-  // Vendor allowed transitions: 
-  // confirmed -> processing
-  // processing -> shipped
-  // Any -> cancelled (only if not already shipped/delivered)
-  // shipped -> delivered (Allowed by vendor for manual updates, or buyer)
-
+  const currentStatus = String(order.status ?? "pending").toLowerCase();
+  const nextStatus = requestedStatus.trim().toLowerCase();
   const allowedTransitions: Record<string, string[]> = {
-    "pending": [], // Only system/payment logic moves pending -> confirmed
-    "confirmed": ["processing", "shipped", "cancelled"],
-    "processing": ["shipped", "cancelled"],
-    "shipped": ["delivered"],
-    "delivered": [], // Only system triggers completed
-    "completed": [],
-    "cancelled": [],
+    pending: [],
+    confirmed: ["processing", "shipped", "cancelled"],
+    processing: ["shipped", "cancelled"],
+    shipped: ["delivered"],
+    delivered: [],
+    completed: [],
+    cancelled: [],
+    refunded: [],
   };
 
-  if (requestedStatus === "cancelled" && ["shipped", "delivered", "completed"].includes(currentStatus)) {
-    return { success: false, error: "Cannot cancel an order that is already shipped or delivered" };
+  if (!(allowedTransitions[currentStatus] ?? []).includes(nextStatus)) {
+    return {
+      success: false,
+      error: `Invalid transition: Cannot move from ${currentStatus} to ${nextStatus}`,
+    };
   }
 
-  if (requestedStatus !== "cancelled") {
-      const validNextStates = allowedTransitions[currentStatus] || [];
-      if (!validNextStates.includes(requestedStatus)) {
-        return { success: false, error: `Invalid transition: Cannot move from ${currentStatus} to ${requestedStatus}` };
-      }
+  if (["processing", "shipped", "delivered"].includes(nextStatus) &&
+      !isOrderPaymentComplete(order.payment_status)) {
+    return { success: false, error: "Order must be paid before fulfillment" };
   }
 
-  // 3. Fulfillment Rules
-  const updatePayload: any = { 
-    status: requestedStatus, 
-    updated_at: new Date().toISOString() 
-  };
-
-  if (requestedStatus === "shipped") {
-    if (!trackingNumber || trackingNumber.trim() === "") {
-       return { success: false, error: "A tracking number is strictly required to mark an order as shipped" };
-    }
-    updatePayload.tracking_number = trackingNumber.trim();
+  if (nextStatus === "cancelled" && isOrderPaymentComplete(order.payment_status)) {
+    return {
+      success: false,
+      error: "Paid orders must go through the refund/support process before cancellation",
+    };
   }
 
-  // 4. Trace the transaction
-  const { error: historyErr } = await adminClient
-     .from("order_status_history")
-     .insert({
-        order_id: orderId,
-        user_id: user.id,
-        previous_status: currentStatus,
-        new_status: requestedStatus,
-        notes: `Vendor manually transitioned order to ${requestedStatus}`,
-     });
-  
-  if (historyErr) {
-    console.warn("Failed to log order_status_history, table might not exist natively yet, proceeding.", historyErr.message);
+  const cleanTrackingNumber = trackingNumber?.trim() || "";
+  if (nextStatus === "shipped" && !cleanTrackingNumber) {
+    return { success: false, error: "A tracking number is required to mark an order as shipped" };
   }
 
-  // 5. Commit State
-  const { error } = await adminClient
-    .from("orders")
-    .update(updatePayload)
-    .eq("id", orderId);
+  const result = await advanceOrderFulfillment(adminClient, orderId, {
+    newStatus: nextStatus as "processing" | "shipped" | "delivered" | "cancelled",
+    trackingNumber: nextStatus === "shipped" ? cleanTrackingNumber : undefined,
+    trackingStatus:
+      nextStatus === "shipped" ? "In transit" :
+      nextStatus === "delivered" ? "Delivered" : undefined,
+    notes: `Vendor manually transitioned order to ${nextStatus}`,
+    metadata: {
+      source: "vendor_fulfillment",
+      vendor_user_id: user.id,
+    },
+  });
 
-  if (error) return { success: false, error: error.message };
+  if (!result.updated || result.status !== nextStatus) {
+    return { success: false, error: `Order could not be moved to ${nextStatus}` };
+  }
 
+  revalidatePath(`/commerce/orders/${orderId}`);
+  revalidatePath("/commerce/orders");
+  revalidatePath("/commerce/fulfillment");
   revalidatePath(`/ugc/campaign-center/orders/${orderId}`);
   revalidatePath("/ugc/campaign-center/orders");
   return { success: true };
