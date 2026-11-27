@@ -102,6 +102,11 @@ assert(
     submitCj.includes("isCjShippingMethodEligible"),
   "Liquid-only CJ shipping lanes must be filtered in checkout and rejected server-side"
 );
+assert(
+  shippingEligibility.includes("liquid soap") &&
+    shippingEligibility.includes("essential oils?"),
+  "Liquid product classification must use specific product/category signals, not generic product wording"
+);
 const paymentMethodsStart = paymentSelectorForOrder.indexOf("const METHODS: MethodDef[] = [");
 const binanceMethodIndex = paymentSelectorForOrder.indexOf('id: "binancepay"', paymentMethodsStart);
 const walletMethodIndex = paymentSelectorForOrder.indexOf('id: "wallet"', paymentMethodsStart);
