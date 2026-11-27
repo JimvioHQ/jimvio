@@ -1201,9 +1201,7 @@ type BuyerCartItem = { id: string; source_metadata?: unknown };
  * buyer-safe SKU and weight are returned. The metadata is already present in
  * the server-only cart query, so this does not need another database request.
  */
-function withBuyerLineFacts<T extends BuyerCartItem>(
-  items: T[]
-): Array<T & { source_metadata: Record<string, unknown> }> {
+function withBuyerLineFacts<T extends BuyerCartItem>(items: T[]): T[] {
   return items.map((item) => {
     const rawMetadata = item.source_metadata;
     const meta =
@@ -1221,7 +1219,7 @@ function withBuyerLineFacts<T extends BuyerCartItem>(
         ...(sku ? { sku } : {}),
         ...(weight != null ? { weight } : {}),
       },
-    } as T & { source_metadata: Record<string, unknown> };
+    } as T;
   });
 }
 
