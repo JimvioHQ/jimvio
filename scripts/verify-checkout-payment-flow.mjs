@@ -115,6 +115,10 @@ assert(
     cjOrderService.includes("cjStatusChanged"),
   "Manual CJ sync must target the selected order and update supplier status even when the order status is unchanged"
 );
+assert(
+  cjOrderService.includes("else if (result.error) errors++"),
+  "Batch CJ sync must count supplier lookup errors instead of silently treating them as unchanged"
+);
 const paymentMethodsStart = paymentSelectorForOrder.indexOf("const METHODS: MethodDef[] = [");
 const binanceMethodIndex = paymentSelectorForOrder.indexOf('id: "binancepay"', paymentMethodsStart);
 const walletMethodIndex = paymentSelectorForOrder.indexOf('id: "wallet"', paymentMethodsStart);
