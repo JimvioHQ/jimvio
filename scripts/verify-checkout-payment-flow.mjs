@@ -36,6 +36,7 @@ const submitCj = read("lib/sources/cj/submit-order.ts");
 const shippingEligibility = read("lib/cj/shipping-method-eligibility.ts");
 const paymentErrors = read("lib/currency/platform.ts");
 const paymentSelectorForOrder = read("components/checkout/PaymentMethodSelector.tsx");
+const marketplaceActions = read("lib/actions/marketplace.ts");
 const binanceWh = read("app/api/webhooks/binance/route.ts");
 const flwWh = read("app/api/payments/flutterwave/webhook/route.ts");
 const nowWh = read("app/api/webhooks/nowpayments/route.ts");
@@ -119,6 +120,11 @@ assert(
   afterPay.includes('cj_fulfillment_status: "submitted"') &&
     afterPay.includes("cj_submit_time"),
   "CJ successful submission must persist its reference, timestamp, and submitted status"
+);
+assert(
+  marketplaceActions.includes("affiliate_link_id, added_at, updated_at, source_metadata") &&
+    marketplaceActions.includes("cart: { ...cart, cart_items: items }"),
+  "Cart must sanitize supplier metadata from the same server-only read without a second metadata query"
 );
 assert(
   binanceWh.includes("finalizeOrderPayment") &&
