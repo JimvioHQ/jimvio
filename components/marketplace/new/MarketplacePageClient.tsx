@@ -588,7 +588,7 @@ export function MarketplacePageClient({
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
               rating, review_count, is_free_shipping, vendor_id, category_id, sku,
-              source, is_trending, has_supplier_video, is_partner_verified,
+              is_trending, has_supplier_video, is_partner_verified,
               vendors(id, verification_status)
             `)
           .eq("status", "active")
