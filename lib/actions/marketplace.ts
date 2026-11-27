@@ -1203,9 +1203,9 @@ type BuyerCartItem = { id: string; source_metadata?: unknown };
  */
 function withBuyerLineFacts<T extends BuyerCartItem>(
   items: T[]
-): Array<Omit<T, "source_metadata"> & { source_metadata: Record<string, unknown> }> {
+): Array<T & { source_metadata: Record<string, unknown> }> {
   return items.map((item) => {
-    const { source_metadata: rawMetadata, ...buyerItem } = item;
+    const rawMetadata = item.source_metadata;
     const meta =
       rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
         ? (rawMetadata as Record<string, unknown>)
@@ -1216,12 +1216,12 @@ function withBuyerLineFacts<T extends BuyerCartItem>(
         : undefined;
     const weight = meta.weight ?? meta.cj_weight;
     return {
-      ...buyerItem,
+      ...item,
       source_metadata: {
         ...(sku ? { sku } : {}),
         ...(weight != null ? { weight } : {}),
       },
-    };
+    } as T & { source_metadata: Record<string, unknown> };
   });
 }
 
