@@ -34,6 +34,7 @@ const globals = read("styles/globals.css");
 const afterPay = read("lib/order-fulfillment/after-payment.ts");
 const submitCj = read("lib/sources/cj/submit-order.ts");
 const shippingEligibility = read("lib/cj/shipping-method-eligibility.ts");
+const paymentErrors = read("lib/currency/platform.ts");
 const binanceWh = read("app/api/webhooks/binance/route.ts");
 const flwWh = read("app/api/payments/flutterwave/webhook/route.ts");
 const nowWh = read("app/api/webhooks/nowpayments/route.ts");
@@ -98,6 +99,16 @@ assert(
     setShipping.includes("isCjShippingMethodEligible") &&
     submitCj.includes("isCjShippingMethodEligible"),
   "Liquid-only CJ shipping lanes must be filtered in checkout and rejected server-side"
+);
+assert(
+  selector.indexOf('id: "binancepay"') >= 0 &&
+    selector.indexOf('id: "binancepay"') < selector.indexOf('id: "wallet"'),
+  "Jimvio Wallet must appear below Binance Pay"
+);
+assert(
+  paymentErrors.indexOf("400004") >= 0 &&
+    paymentErrors.indexOf("400004") < paymentErrors.indexOf("/amount|minimum/i"),
+  "Binance API authorization errors must not be mapped to amount errors"
 );
 assert(
   afterPay.includes('cj_fulfillment_status: "submitted"') &&
