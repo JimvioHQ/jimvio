@@ -148,7 +148,7 @@ assert(
   "Cart must sanitize supplier metadata from the same server-only read without a second metadata query"
 );
 assert(
-  marketplaceActions.includes('Array<T & { source_metadata: Record<string, unknown> }>') &&
+  marketplaceActions.includes("function withBuyerLineFacts<T extends BuyerCartItem>(items: T[]): T[]") &&
     marketplaceActions.includes("...item,"),
   "Cart metadata sanitization must preserve the full CartItem shape and type"
 );
