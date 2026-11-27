@@ -17,6 +17,7 @@ import {
   validateManualApprovalInput,
 } from "../payments/manual-approval-policy.ts";
 import { buildInvoiceData } from "../orders/invoice-data.ts";
+import { mapCjFulfillmentToOrderStatus } from "../payments/order-payment-utils.ts";
 import { isOfficialJimvioStoreLabel } from "../marketplace/store-display.ts";
 
 describe("chunk recovery", () => {
@@ -35,6 +36,17 @@ describe("chunk recovery", () => {
     const id = readChunkDeploymentId("/_next/static/chunks/abc.js?dpl=dpl_old");
     assert.equal(id, "dpl_old");
     assert.notEqual(chunkReloadStorageKey("dpl_old", "/help"), chunkReloadStorageKey("dpl_new", "/help"));
+  });
+});
+
+describe("CJ supplier order status mapping", () => {
+  it("maps common CJ processing, shipment, and delivery states", () => {
+    assert.equal(mapCjFulfillmentToOrderStatus("UNSHIPPED"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("PACKED"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("WAIT_SHIP"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("IN_TRANSIT"), "shipped");
+    assert.equal(mapCjFulfillmentToOrderStatus("FINISHED"), "delivered");
+    assert.equal(mapCjFulfillmentToOrderStatus("DONE"), "delivered");
   });
 });
 
