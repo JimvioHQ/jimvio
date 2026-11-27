@@ -90,6 +90,7 @@ export async function advanceOrderFulfillment(
     const metaPatch: Record<string, unknown> = { ...storedMeta };
     let metaChanged = false;
     if (trackingUrl) {
+      patch.tracking_url = trackingUrl;
       metaPatch.tracking_url = trackingUrl;
       metaChanged = true;
     }
