@@ -33,6 +33,7 @@ const theme = read("components/providers/theme-provider.tsx");
 const globals = read("styles/globals.css");
 const afterPay = read("lib/order-fulfillment/after-payment.ts");
 const submitCj = read("lib/sources/cj/submit-order.ts");
+const shippingEligibility = read("lib/cj/shipping-method-eligibility.ts");
 const binanceWh = read("app/api/webhooks/binance/route.ts");
 const flwWh = read("app/api/payments/flutterwave/webhook/route.ts");
 const nowWh = read("app/api/webhooks/nowpayments/route.ts");
@@ -88,6 +89,20 @@ assert(
   submitCj.includes("Already submitted") ||
     submitCj.includes("cj_order_submission_skipped_duplicate"),
   "CJ submit must skip when cj_order_id already exists"
+);
+assert(
+  shippingEligibility.includes("isCjShippingMethodEligible") &&
+    shippingEligibility.includes("LIQUID") &&
+    checkout.includes("eligibleOpts") &&
+    checkout.includes("isCjShippingMethodEligible") &&
+    setShipping.includes("isCjShippingMethodEligible") &&
+    submitCj.includes("isCjShippingMethodEligible"),
+  "Liquid-only CJ shipping lanes must be filtered in checkout and rejected server-side"
+);
+assert(
+  afterPay.includes('cj_fulfillment_status: "submitted"') &&
+    afterPay.includes("cj_submit_time"),
+  "CJ successful submission must persist its reference, timestamp, and submitted status"
 );
 assert(
   binanceWh.includes("finalizeOrderPayment") &&
