@@ -110,6 +110,10 @@ assert(
   "Liquid product classification must use specific product/category signals, not generic product wording"
 );
 assert(
+  shippingEligibility.includes("if (/LIQUID/i.test(productType))"),
+  "CJ supplier product types explicitly marked liquid must remain eligible for liquid-only lanes"
+);
+assert(
   adminCj.includes("syncCJOrderStatus") &&
     !adminCj.includes('import("@/lib/cj/order-sync")') &&
     cjOrderService.includes("cjStatusChanged"),
