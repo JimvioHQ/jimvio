@@ -1934,9 +1934,9 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
           id, user_id, currency, item_count, subtotal, last_activity_at, created_at, updated_at, jimvio_store_id,
           cart_items (
             id, cart_id, product_id, variant_id, vendor_id, quantity, unit_price_at_add, currency_at_add,
-            product_source, affiliate_link_id, added_at, updated_at,
+            affiliate_link_id, added_at, updated_at,
             products (
-              id, name, slug, images, source, cj_last_synced_at,
+              id, name, slug, images,
               pricing_type, billing_period, product_type
             ),
             product_variants (
