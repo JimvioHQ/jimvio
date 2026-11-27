@@ -37,7 +37,7 @@ export function isCjLiquidProduct(item: CjShippingProductFacts): boolean {
     .join(" ");
 
   if (/\bLIQUID\b/i.test(productType)) return true;
-  return /\b(liquid|perfume|fragrance|essential oils?|shampoo|conditioner|lotion|serum|gel|detergent|cleaner|nail polish|ink|paint|spray|beverage|drink)\b/i.test(searchable);
+  return /\b(perfume|fragrance|essential oils?|shampoo|conditioner|lotion|serum|gel|detergent|cleaner|nail polish|ink|paint|spray|beverage|drink|sauce|syrup|juice|cream|glue|adhesive|liquid soap|liquid detergent|liquid cleaner|liquid makeup)\b/i.test(searchable);
 }
 
 export function isCjShippingMethodEligible(
