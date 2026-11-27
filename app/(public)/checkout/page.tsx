@@ -183,7 +183,7 @@ export default async function CheckoutPage(props: {
   }
 
   const preferredMethod = searchParams.method ?? null;
-  const isDirectCheckout = searchParams.direct === "1";
+  const requestedDirectCheckout = searchParams.direct === "1";
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
@@ -192,7 +192,13 @@ export default async function CheckoutPage(props: {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const next = `/checkout?order_id=${requestedOrderIds[0]}&order_ids=${encodeURIComponent(requestedOrderIds.join(","))}`;
+    const nextParams = new URLSearchParams({
+      order_id: requestedOrderIds[0],
+      order_ids: requestedOrderIds.join(","),
+    });
+    if (requestedDirectCheckout) nextParams.set("direct", "1");
+    if (preferredMethod) nextParams.set("method", preferredMethod);
+    const next = `/checkout?${nextParams.toString()}`;
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
@@ -209,6 +215,12 @@ export default async function CheckoutPage(props: {
   // payment metadata. A combined checkout can never mix another user's orders.
   const { data: initialRawOrders, error: initialOrdersError } = await fetchOrders(requestedOrderIds);
   if (initialOrdersError || !initialRawOrders || initialRawOrders.length !== requestedOrderIds.length) {
+    console.error("[checkout] initial order lookup failed", {
+      code: initialOrdersError?.code ?? null,
+      message: initialOrdersError?.message ?? null,
+      requestedCount: requestedOrderIds.length,
+      returnedCount: initialRawOrders?.length ?? 0,
+    });
     redirectWithError(
       CHECKOUT_ERRORS.ORDER_NOT_FOUND,
       "One or more orders could not be found or are no longer payable."
@@ -217,6 +229,12 @@ export default async function CheckoutPage(props: {
 
   const initialOrdersById = new Map(initialRawOrders.map((row) => [row.id, row]));
   const initialOrders = requestedOrderIds.map((id) => initialOrdersById.get(id)!);
+  const isDirectCheckout = requestedDirectCheckout || initialOrders.every((order) => {
+    const metadata = order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+      ? order.metadata as Record<string, unknown>
+      : {};
+    return order.status === "checkout_direct" || metadata.is_direct_checkout === true;
+  });
   const cartIdValues = initialOrders.map((row) => metaString(row.metadata, "cart_id"));
   const cartIds = new Set(cartIdValues.filter(Boolean));
   if (
@@ -275,6 +293,12 @@ export default async function CheckoutPage(props: {
 
   const { data: rawOrders, error: ordersError } = await fetchOrders(checkoutOrderIds);
   if (ordersError || !rawOrders || rawOrders.length !== checkoutOrderIds.length) {
+    console.error("[checkout] refreshed order lookup failed", {
+      code: ordersError?.code ?? null,
+      message: ordersError?.message ?? null,
+      requestedCount: checkoutOrderIds.length,
+      returnedCount: rawOrders?.length ?? 0,
+    });
     redirectWithError(
       CHECKOUT_ERRORS.ORDER_NOT_FOUND,
       "One or more orders could not be found or are no longer payable."
