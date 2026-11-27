@@ -455,7 +455,10 @@ export function CartClient({ initialItems }: CartClientProps) {
         setProceedingCheckout(false);
         return;
       }
-      router.push(`/checkout?order_id=${result.orderId}`);
+      const checkoutOrderIds = result.orderIds?.length ? result.orderIds : [result.orderId];
+      router.push(
+        `/checkout?order_id=${result.orderId}&order_ids=${encodeURIComponent(checkoutOrderIds.join(","))}`
+      );
     } catch (err) {
       console.error(err);
       toast.error("Something went wrong. Please try again.");

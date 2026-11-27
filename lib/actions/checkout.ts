@@ -717,7 +717,7 @@ async function refreshPendingOrdersAffiliateAttribution(
 
 export async function updatePendingOrdersShipping(
   rawPayload: ShippingPayload
-): Promise<Result> {
+): Promise<Result<{ resumeProvider?: "flutterwave" | "nowpayments" | "binancepay" | "mobile_money" | "wallet"; resumeTxRef?: string }>> {
   // ── Auth ───────────────────────────────────────────────────────────────────
   const supabase = await createClient();
   const {
@@ -754,7 +754,7 @@ export async function updatePendingOrdersShipping(
   // jimvio_store_id is not in generated Database types yet — use cosTable accessor
   const { data: existingOrdersRaw, error: fetchError } = await cosTable(admin, "orders")
     .select(
-      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata, jimvio_store_id, currency"
+      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata, jimvio_store_id, currency, payment_provider, gateway_used"
     )
     .in("id", payload.orderIds);
 
@@ -772,6 +772,8 @@ export async function updatePendingOrdersShipping(
     metadata: unknown;
     jimvio_store_id: string | null;
     currency: string | null;
+    payment_provider: string | null;
+    gateway_used: string | null;
   };
 
   const existingOrders = (existingOrdersRaw ?? []) as ShippingOrderRow[];
@@ -796,10 +798,167 @@ export async function updatePendingOrdersShipping(
   // Marketplace's direct-checkout flow legitimately creates unpaid orders with
   // status="checkout_direct". Payment eligibility is determined by payment_status;
   // the order status must only exclude terminal/cancelled states here.
+  const invalidOrderStatus = existingOrders.filter(
+    (o) => !["pending", "checkout_direct"].includes(o.status ?? "")
+  );
+  if (invalidOrderStatus.length) {
+    return err("One or more orders are no longer available for checkout. Please open Orders to review their status.");
+  }
+
+  // A previous payment attempt may still have a valid provider session. Never
+  // rewrite shipping/totals once a provider has been given the order amount.
+  const { data: paymentRows, error: paymentRowsError } = await admin
+    .from("transactions")
+    .select("id, order_id, provider, provider_transaction_id, reference, status, created_at, metadata")
+    .in("order_id", payload.orderIds)
+    .in("status", ["pending", "processing", "completed", "failed"])
+    .order("created_at", { ascending: false });
+  if (paymentRowsError) {
+    console.error("[updatePendingOrdersShipping] Payment state lookup failed:", paymentRowsError);
+    return err("We couldn't verify your existing payment attempt. Please open Orders and try again.");
+  }
+
+  const completedPaymentRows = (paymentRows ?? []).filter(
+    (row) => row.status === "completed" && String(row.provider ?? "").toLowerCase() !== "wallet"
+  );
+  if (completedPaymentRows.length) {
+    return err("A payment was already received and is being confirmed. Please check Orders before trying again.");
+  }
+
+  const now = Date.now();
+  const oneHourAgo = now - 60 * 60 * 1000;
+  const activeRows = (paymentRows ?? []).filter((row) => {
+    if (row.status === "failed") return false;
+    const provider = String(row.provider ?? "").toLowerCase();
+    const createdAt = new Date(row.created_at ?? 0).getTime();
+    const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? row.metadata as Record<string, unknown>
+      : {};
+    if (provider === "wallet") return true; // Wallet debit reservations must always be reconciled.
+    if (provider === "binance") {
+      const expiry = Number(metadata.expire_time);
+      return Number.isFinite(createdAt) && createdAt >= oneHourAgo &&
+        (!Number.isFinite(expiry) || expiry > now);
+    }
+    if (provider === "nowpayments") return true;
+    if (provider === "flutterwave") return Number.isFinite(createdAt) && createdAt >= oneHourAgo;
+    if (provider === "mobile_money") return true; // Await provider confirmation; never start a duplicate charge.
+    return true; // Unknown active providers fail closed instead of permitting a second charge.
+  });
+
+  if (activeRows.length) {
+    const activeOrderIds = new Set(activeRows.map((row) => row.order_id));
+    if (existingOrders.some((order) => !activeOrderIds.has(order.id))) {
+      return err("A payment was started for only part of this cart. Please open Orders and finish or resolve that payment before retrying the cart.");
+    }
+
+    const providers = new Set(activeRows.map((row) => String(row.provider ?? "").toLowerCase()));
+    if (providers.size !== 1) {
+      return err("More than one payment attempt is active for this cart. Please open Orders and resolve the existing payment before starting another.");
+    }
+
+    const provider = [...providers][0];
+    const isMobileMoney = provider === "flutterwave" && activeRows.some((row) => {
+      const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? row.metadata as Record<string, unknown>
+        : {};
+      return metadata.method === "mobile_money";
+    });
+    const resumeProvider =
+      isMobileMoney ? "mobile_money" :
+      provider === "binance" ? "binancepay" :
+      provider === "flutterwave" ? "flutterwave" :
+      provider === "nowpayments" ? "nowpayments" :
+      provider === "wallet" ? "wallet" : null;
+
+    if (!resumeProvider) {
+      return err("A payment is still awaiting confirmation. Please complete or check that payment in Orders before starting another.");
+    }
+
+    if (provider !== "wallet") {
+      const sessionKeys = new Set(activeRows.map((row) => {
+        const metadata = row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+          ? row.metadata as Record<string, unknown>
+          : {};
+        return provider === "nowpayments"
+          ? String(metadata.invoice_id ?? row.reference ?? "")
+          : provider === "binance"
+            ? String(metadata.prepay_id ?? row.provider_transaction_id ?? "")
+            : String(row.provider_transaction_id ?? "");
+      }));
+      if (sessionKeys.size !== 1 || sessionKeys.has("")) {
+        return err("The existing payment session is incomplete. Please open Orders and contact support before retrying payment.");
+      }
+    }
+
+    const addressKeys = ["firstName", "lastName", "email", "phone", "address1", "address2", "city", "country", "country_code", "zip"];
+    const normalizedAddress = (value: unknown) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+      const record = value as Record<string, unknown>;
+      return addressKeys.map((key) => String(record[key] ?? "").trim());
+    };
+    const sameMoney = (a: unknown, b: unknown) =>
+      Math.round((Number(a ?? 0) + Number.EPSILON) * 100) ===
+      Math.round((Number(b ?? 0) + Number.EPSILON) * 100);
+
+    const existingShippingTotal = existingOrders.reduce(
+      (sum, order) => sum + Number(order.shipping_amount ?? 0),
+      0
+    );
+    const existingDiscountTotal = existingOrders.reduce(
+      (sum, order) => sum + Number(order.discount_amount ?? 0),
+      0
+    );
+    const unchanged =
+      existingOrders.every((order) =>
+        JSON.stringify(normalizedAddress(order.shipping_address)) ===
+        JSON.stringify(normalizedAddress(shipping_address))
+      ) &&
+      (typeof payload.shippingAmount !== "number" || sameMoney(existingShippingTotal, payload.shippingAmount)) &&
+      (typeof payload.discountAmount !== "number" || sameMoney(existingDiscountTotal, payload.discountAmount));
+    if (!unchanged) {
+      return err("A payment session is already active for this order. Finish that payment from Orders before changing shipping details or totals.");
+    }
+
+    return ok({
+      resumeProvider,
+      ...(isMobileMoney && typeof activeRows[0].provider_transaction_id === "string"
+        ? { resumeTxRef: activeRows[0].provider_transaction_id }
+        : {}),
+    });
+  }
+
+  // An order may carry a provider marker even if its transaction insert failed.
+  // Do not change its payable amount until that provider attempt is reconciled.
+  const hasUntrackedProviderAttempt = existingOrders.some((order) =>
+    ["pending", "processing"].includes(order.payment_status ?? "") &&
+    (order.payment_provider || order.gateway_used) &&
+    !(paymentRows ?? []).some((row) => row.order_id === order.id)
+  );
+  if (hasUntrackedProviderAttempt) {
+    return err("The payment provider has not confirmed the previous attempt yet. Please check Orders before trying another payment.");
+  }
+
+  // A stale processing flag without an active transaction is recoverable. Reset
+  // it only after confirming that there is no pending/processing/completed row.
+  const processingOrders = existingOrders.filter((order) => order.payment_status === "processing");
+  const processingOrderIds = processingOrders.map((order) => order.id);
+  if (processingOrderIds.length) {
+    const { error: resetError } = await admin
+      .from("orders")
+      .update({ payment_status: "pending" as PaymentStatusValue, updated_at: new Date().toISOString() })
+      .in("id", processingOrderIds)
+      .eq("buyer_id", userId)
+      .in("status", ["pending", "checkout_direct"])
+      .eq("payment_status", "processing");
+    if (resetError) {
+      console.error("[updatePendingOrdersShipping] Stale processing reset failed:", resetError);
+      return err("We couldn't safely resume this order. Please open Orders and try again.");
+    }
+  }
+
   const notPending = existingOrders.filter(
-    (o) =>
-      !["pending", "checkout_direct"].includes(o.status ?? "") ||
-      !["pending", "failed"].includes(o.payment_status ?? "")
+    (o) => !["pending", "failed", "processing"].includes(o.payment_status ?? "")
   );
   if (notPending.length) {
     console.warn("[updatePendingOrdersShipping] Not pending:", notPending);
@@ -814,19 +973,92 @@ export async function updatePendingOrdersShipping(
     source: referralCode ? "cookie" : "none",
   });
 
+  // ── Allocate cart-level shipping and discounts to each vendor order ────────
+  const { data: cartLineRows, error: cartLineError } = await admin
+    .from("order_items")
+    .select("order_id, product_source, product_type")
+    .in("order_id", payload.orderIds);
+  if (cartLineError) {
+    console.error("[updatePendingOrdersShipping] Could not load order lines:", cartLineError);
+    return err("Could not verify the items in these orders. Please refresh and try again.");
+  }
+  const linesByOrder = new Map<string, NonNullable<typeof cartLineRows>>();
+  for (const line of cartLineRows ?? []) {
+    const existing = linesByOrder.get(line.order_id) ?? [];
+    linesByOrder.set(line.order_id, [...existing, line]);
+  }
+  if (payload.orderIds.some((id) => !linesByOrder.has(id))) {
+    return err("One or more orders no longer contain items. Please refresh your cart.");
+  }
+  const supplierOrderIds = new Set(
+    (cartLineRows ?? [])
+      .filter((line) => line.product_source === "cj")
+      .map((line) => line.order_id)
+  );
+
+  const allocateAmount = (total: number, targetOrders: NonNullable<typeof existingOrders>) => {
+    const allocations = new Map<string, number>();
+    if (!targetOrders.length) return allocations;
+    const totalCents = Math.round(total * 100);
+    const weights = targetOrders.map((order) => Math.max(0, Number(order.subtotal ?? order.total_amount ?? 0)));
+    const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+    let allocatedCents = 0;
+    targetOrders.forEach((order, index) => {
+      const cents = index === targetOrders.length - 1
+        ? totalCents - allocatedCents
+        : weightTotal > 0
+          ? Math.round(totalCents * (weights[index] / weightTotal))
+          : Math.round(totalCents / targetOrders.length);
+      allocatedCents += cents;
+      allocations.set(order.id, cents / 100);
+    });
+    return allocations;
+  };
+
+  const shippingTargets = supplierOrderIds.size
+    ? existingOrders.filter((order) => supplierOrderIds.has(order.id))
+    : existingOrders;
+  const shippingAllocations = typeof payload.shippingAmount === "number"
+    ? allocateAmount(payload.shippingAmount, shippingTargets)
+    : new Map<string, number>();
+  const discountAllocations = typeof payload.discountAmount === "number"
+    ? allocateAmount(payload.discountAmount, existingOrders)
+    : new Map<string, number>();
+
+  let trustedSupplierRate: ReturnType<typeof resolveTrustedRateFromQuoteToken> = null;
+  if (supplierOrderIds.size) {
+    if (typeof payload.shippingAmount !== "number") {
+      return err("Select a delivery method before paying.");
+    }
+    trustedSupplierRate = resolveTrustedRateFromQuoteToken({
+      token: payload.quoteToken,
+      selection: {
+        optionId: payload.shippingOptionId,
+        name: payload.shippingOptionName || "",
+        priceUSD: payload.shippingAmount,
+      },
+      products: [],
+      destCountryCode: payload.countryCode,
+      orderIds: payload.orderIds,
+    });
+    if (
+      !trustedSupplierRate ||
+      !Number.isFinite(Number(trustedSupplierRate.priceUSD)) ||
+      Math.round(Number(trustedSupplierRate.priceUSD) * 100) !== Math.round(payload.shippingAmount * 100)
+    ) {
+      return err("Your delivery quote has expired. Please select a delivery method again.");
+    }
+  }
+
   // ── Persist per-order with recomputed payable total ─────────────────────────
   const updatedIds: string[] = [];
 
   for (const order of existingOrders) {
     const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
     let shippingAmount =
-      typeof payload.shippingAmount === "number"
-        ? payload.shippingAmount
-        : Number(order.shipping_amount ?? 0);
+      shippingAllocations.get(order.id) ?? Number(order.shipping_amount ?? 0);
     let discountAmount =
-      typeof payload.discountAmount === "number"
-        ? payload.discountAmount
-        : Number(order.discount_amount ?? 0);
+      discountAllocations.get(order.id) ?? Number(order.discount_amount ?? 0);
     let taxAmount = Number(order.tax_amount ?? 0);
 
     const existingMeta =
@@ -839,11 +1071,7 @@ export async function updatePendingOrdersShipping(
     // Jimvio Store checkouts: server-authoritative discount + tax + shipping quotes
     if (order.jimvio_store_id) {
       try {
-        const { data: lineRows } = await admin
-          .from("order_items")
-          .select("product_source, product_type")
-          .eq("order_id", order.id);
-        const lines = lineRows ?? [];
+        const lines = linesByOrder.get(order.id) ?? [];
         const supplier = lines.some((line) => line.product_source === "cj");
         const needsShipping = lines.some(
           (line) => (line.product_type || "physical") !== "digital"
@@ -853,31 +1081,15 @@ export async function updatePendingOrdersShipping(
           : needsShipping
             ? "merchant"
             : "digital";
-        let verifiedSupplierShipping: number | null = null;
-        if (fulfillment === "supplier") {
-          const trusted = resolveTrustedRateFromQuoteToken({
-            token: payload.quoteToken,
-            selection: {
-              optionId: payload.shippingOptionId,
-              name: payload.shippingOptionName || "",
-              priceUSD: payload.shippingAmount,
-            },
-            products: [],
-            destCountryCode: payload.countryCode,
-            orderIds: [order.id],
-          });
-          verifiedSupplierShipping =
-            trusted && Number.isFinite(Number(trusted.priceUSD))
-              ? Number(trusted.priceUSD)
-              : null;
-        }
+        const verifiedSupplierShipping =
+          fulfillment === "supplier" ? shippingAmount : null;
         const storeTotals = await resolveJimvioStoreCheckoutTotals(admin, {
           storeId: order.jimvio_store_id as string,
           subtotal,
           countryCode: payload.countryCode,
           proposedShippingAmount:
             typeof payload.shippingAmount === "number"
-              ? payload.shippingAmount
+              ? shippingAllocations.get(order.id) ?? 0
               : undefined,
           discountCode: payload.discountCode ?? null,
           fulfillment,
@@ -907,27 +1119,10 @@ export async function updatePendingOrdersShipping(
         return err(message);
       }
     } else {
-      const { data: lineRows } = await admin
-        .from("order_items")
-        .select("product_source")
-        .eq("order_id", order.id);
-      const supplier = (lineRows ?? []).some((line) => line.product_source === "cj");
+      const supplier = supplierOrderIds.has(order.id);
       if (supplier) {
-        const trusted = resolveTrustedRateFromQuoteToken({
-          token: payload.quoteToken,
-          selection: {
-            optionId: payload.shippingOptionId,
-            name: payload.shippingOptionName || "",
-            priceUSD: payload.shippingAmount,
-          },
-          products: [],
-          destCountryCode: payload.countryCode,
-          orderIds: [order.id],
-        });
-        if (!trusted || !Number.isFinite(Number(trusted.priceUSD))) {
-          return err("Select a delivery method before paying.");
-        }
-        shippingAmount = Number(trusted.priceUSD);
+        if (!trustedSupplierRate) return err("Select a delivery method before paying.");
+        shippingAmount = shippingAllocations.get(order.id) ?? 0;
       }
       const taxEstimate = estimateOrderTax({
         subtotal,
@@ -980,12 +1175,12 @@ export async function updatePendingOrdersShipping(
     if (data?.[0]?.id) updatedIds.push(data[0].id);
   }
 
-  if (!updatedIds.length) {
+  if (updatedIds.length !== existingOrders.length) {
     console.error(
-      "[updatePendingOrdersShipping] Update returned 0 rows despite passing pre-check",
-      { userId, orderIds: payload.orderIds, existingOrders }
+      "[updatePendingOrdersShipping] Not every order was updated",
+      { userId, requested: existingOrders.length, updated: updatedIds.length, orderIds: payload.orderIds }
     );
-    return err("Could not update orders. Please refresh and try again.");
+    return err("We couldn't update every order in this cart. Refresh Orders before trying payment again.");
   }
 
   revalidatePath("/checkout");
@@ -1040,10 +1235,10 @@ export async function startCheckout(
 
   // ── Resume existing pending/failed orders for this cart ───────────────────
   let existingQuery = cosTable(admin, "orders")
-    .select("id, payment_status, jimvio_store_id")
+    .select("id, payment_status, jimvio_store_id, payment_provider, gateway_used")
     .eq("buyer_id", userId)
     .eq("status", "pending")
-    .in("payment_status", ["pending", "failed"])
+    .in("payment_status", ["pending", "failed", "processing"])
     .filter("metadata->>cart_id", "eq", cartId);
   if (scopedStoreId) {
     existingQuery = existingQuery.eq("jimvio_store_id", scopedStoreId);
@@ -1058,13 +1253,36 @@ export async function startCheckout(
   }
 
   if (existingOrders && existingOrders.length > 0) {
-    const stockError = await revalidatePendingCjOrders(
-      admin,
-      existingOrders.map((order) => order.id),
+    const existingOrderIds = existingOrders.map((order) => order.id);
+    const { data: activePaymentRows, error: activePaymentError } = await admin
+      .from("transactions")
+      .select("order_id, status")
+      .in("order_id", existingOrderIds)
+      .in("status", ["pending", "processing", "completed", "failed"]);
+    if (activePaymentError) {
+      console.error("[startCheckout] Could not verify active payment sessions:", activePaymentError);
+      return err("Could not verify an existing payment. Please open Orders and try again.");
+    }
+    const hasUntrackedProcessingAttempt = existingOrders.some((order) =>
+      ["pending", "processing"].includes(order.payment_status ?? "") &&
+      (order.payment_provider || order.gateway_used) &&
+      !(activePaymentRows ?? []).some((row) => row.order_id === order.id)
     );
-    if (stockError) return err(stockError);
+    if (hasUntrackedProcessingAttempt) {
+      return err("The payment provider has not confirmed a previous order attempt. Please check Orders before retrying checkout.");
+    }
+    const hasAnyActivePayment = (activePaymentRows ?? []).some((row) => row.status !== "failed");
+    const ordersSafeToRevalidate = hasAnyActivePayment
+      ? []
+      : existingOrders.map((order) => order.id);
+    if (ordersSafeToRevalidate.length) {
+      const stockError = await revalidatePendingCjOrders(admin, ordersSafeToRevalidate);
+      if (stockError) return err(stockError);
+    }
 
-    const failedOrders = existingOrders.filter((o) => o.payment_status === "failed");
+    const failedOrders = hasAnyActivePayment
+      ? []
+      : existingOrders.filter((o) => o.payment_status === "failed");
 
     if (failedOrders.length > 0) {
       const failedIds = failedOrders.map((o) => o.id);
@@ -1097,12 +1315,17 @@ export async function startCheckout(
 
     // Resume must not freeze a missing affiliate attribution from an earlier attempt.
     try {
-      await refreshPendingOrdersAffiliateAttribution(
-        admin,
-        existingOrders.map((o) => o.id),
-        userId,
-        cartId
-      );
+      const attributionRefreshIds = hasAnyActivePayment
+        ? []
+        : existingOrders.map((order) => order.id);
+      if (attributionRefreshIds.length) {
+        await refreshPendingOrdersAffiliateAttribution(
+          admin,
+          attributionRefreshIds,
+          userId,
+          cartId
+        );
+      }
     } catch (refreshErr) {
       console.warn("[startCheckout] attribution refresh skipped:", refreshErr);
     }
@@ -1439,19 +1662,69 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: true, changed: false };
   }
 
-  // Don't sync orders that are already in flight or completed
-  if (
-    order.status !== "pending" ||
-    !["pending", "failed"].includes(order.payment_status as string)
-  ) {
-    return { ok: false, error: "Order is no longer editable" };
-  }
-
   const cartId = (order.metadata as Record<string, unknown>)?.cart_id as
     | string
     | undefined;
-  if (!cartId) {
-    return { ok: false, error: "Order has no cart reference" };
+  if (!cartId) return { ok: false, error: "Order has no cart reference" };
+
+  // If any order in this cart has an active provider transaction, freeze all
+  // vendor orders together so the shared checkout amount cannot drift.
+  let relatedOrdersQuery = cosTable(admin, "orders")
+    .select("id, payment_provider, gateway_used")
+    .eq("buyer_id", user.id)
+    .filter("metadata->>cart_id", "eq", cartId)
+    .eq("status", "pending")
+    .in("payment_status", ["pending", "failed", "processing"]);
+  if (orderStoreId) {
+    relatedOrdersQuery = relatedOrdersQuery.eq("jimvio_store_id", orderStoreId);
+  } else {
+    relatedOrdersQuery = relatedOrdersQuery.is("jimvio_store_id", null);
+  }
+  const { data: relatedOrders, error: relatedOrdersError } = await relatedOrdersQuery;
+  if (relatedOrdersError) {
+    return { ok: false, error: "Could not verify related checkout orders." };
+  }
+  const relatedOrderIds = (relatedOrders ?? []).map((row) => row.id);
+  const { data: activePaymentRows, error: activePaymentError } = await admin
+    .from("transactions")
+    .select("id, order_id, status")
+    .in("order_id", relatedOrderIds.length ? relatedOrderIds : [orderId])
+    .in("status", ["pending", "processing", "completed", "failed"]);
+  if (activePaymentError) {
+    return { ok: false, error: "Could not verify the existing payment session." };
+  }
+  if (activePaymentRows?.some((row) => row.status !== "failed")) {
+    return { ok: true, changed: false };
+  }
+  const currentRelatedOrder = (relatedOrders ?? []).find((row) => row.id === orderId);
+  if (
+    ["pending", "processing"].includes(order.payment_status as string) &&
+    (currentRelatedOrder?.payment_provider || currentRelatedOrder?.gateway_used) &&
+    !activePaymentRows?.some((row) => row.order_id === orderId)
+  ) {
+    return { ok: false, error: "The payment provider has not confirmed the previous attempt. Please check Orders before editing this order." };
+  }
+
+  // A stale processing flag without a corresponding transaction can be reset;
+  // active provider sessions were returned above and remain immutable.
+  if (order.status === "pending" && order.payment_status === "processing") {
+    const { error: resetError } = await admin
+      .from("orders")
+      .update({ payment_status: "pending", updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .eq("buyer_id", user.id)
+      .eq("payment_status", "processing");
+    if (resetError) {
+      return { ok: false, error: "Could not safely resume the previous payment attempt." };
+    }
+  }
+
+  // Don't sync orders that are already in flight or completed.
+  if (
+    order.status !== "pending" ||
+    !["pending", "failed", "processing"].includes(order.payment_status as string)
+  ) {
+    return { ok: false, error: "Order is no longer editable" };
   }
 
   // ── Fetch current cart items (only this vendor's items) ─────────────────────

@@ -34,10 +34,14 @@ type OrderRow = {
   id: string;
   status: string;
   payment_status: string;
+  payment_provider: string | null;
+  gateway_used: string | null;
   total_amount: number;
   subtotal: number;
   shipping_amount: number | null;
+  discount_amount: number | null;
   currency: string | null;
+  integration_source: string | null;
   metadata: unknown;
   shipping_address: unknown;
   vendors: { id: string; business_name: string; business_slug: string } | null;
@@ -51,6 +55,12 @@ const CHECKOUT_ERRORS = {
   SYNC_FAILED: "sync_failed",
 } as const;
 
+function metaString(meta: unknown, key: string): string | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = (meta as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 function redirectWithError(code: string, detail?: string): never {
   const params = new URLSearchParams({ error: code });
   if (detail) params.set("detail", detail);
@@ -60,11 +70,7 @@ function redirectWithError(code: string, detail?: string): never {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function metaString(meta: unknown, key: string): string | null {
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
-  const value = (meta as Record<string, unknown>)[key];
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
+
 
 function metaNumber(meta: unknown, key: string): number | null {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
@@ -113,10 +119,14 @@ function normaliseOrder(raw: any): OrderRow {
     id: raw.id,
     status: raw.status,
     payment_status: raw.payment_status,
+    payment_provider: raw.payment_provider ?? null,
+    gateway_used: raw.gateway_used ?? null,
     total_amount: raw.total_amount,
     subtotal: raw.subtotal,
     shipping_amount: raw.shipping_amount ?? null,
+    discount_amount: raw.discount_amount ?? null,
     currency: raw.currency ?? null,
+    integration_source: raw.integration_source ?? null,
     metadata: sanitizeCustomerOrderMetadata(raw.metadata),
     shipping_address: raw.shipping_address ?? null,
     vendors: Array.isArray(raw.vendors) ? raw.vendors[0] ?? null : raw.vendors,
@@ -125,8 +135,8 @@ function normaliseOrder(raw: any): OrderRow {
 }
 
 const ORDER_SELECT = `
-  id, status, payment_status,
-  total_amount, subtotal, shipping_amount, currency,
+  id, status, payment_status, payment_provider, gateway_used,
+  total_amount, subtotal, shipping_amount, discount_amount, currency,
   integration_source, metadata, shipping_address,
   vendors (id, business_name, business_slug),
   order_items (
@@ -144,6 +154,8 @@ const ORDER_SELECT = `
 export default async function CheckoutPage(props: {
   searchParams: Promise<{
     order_id?: string;
+    order_ids?: string;
+    orderIds?: string;
     order?: string;
     orderId?: string;
     method?: string;
@@ -151,72 +163,163 @@ export default async function CheckoutPage(props: {
   }>;
 }) {
   const searchParams = await props.searchParams;
-  const orderId =
+  const primaryOrderId =
     searchParams.orderId ?? searchParams.order_id ?? searchParams.order ?? null;
+  const orderIdsParam = searchParams.order_ids ?? searchParams.orderIds ?? "";
+  const requestedOrderIds = orderIdsParam
+    ? orderIdsParam.split(",").map((value) => value.trim()).filter(Boolean)
+    : primaryOrderId ? [primaryOrderId] : [];
+  if (primaryOrderId && !requestedOrderIds.includes(primaryOrderId)) {
+    requestedOrderIds.unshift(primaryOrderId);
+  }
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (
+    requestedOrderIds.length === 0 ||
+    requestedOrderIds.length > 50 ||
+    new Set(requestedOrderIds).size !== requestedOrderIds.length ||
+    requestedOrderIds.some((id) => !UUID_PATTERN.test(id))
+  ) {
+    redirect("/cart");
+  }
+
   const preferredMethod = searchParams.method ?? null;
   const isDirectCheckout = searchParams.direct === "1";
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    const next = orderId ? `/checkout?order_id=${orderId}` : "/checkout";
+    const next = `/checkout?order_id=${requestedOrderIds[0]}&order_ids=${encodeURIComponent(requestedOrderIds.join(","))}`;
     redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
-  // ── No order ID → user came here directly, send back to cart ───────────────
-  if (!orderId) {
-    redirect("/cart");
+  const admin = createAdminClient();
+  const fetchOrders = async (ids: string[]) =>
+    admin
+      .from("orders")
+      .select(ORDER_SELECT)
+      .eq("buyer_id", user.id)
+      .in("id", ids)
+      .in("payment_status", ["pending", "failed", "processing"]);
+
+  // Confirm every requested order belongs to this buyer before syncing or reading
+  // payment metadata. A combined checkout can never mix another user's orders.
+  const { data: initialRawOrders, error: initialOrdersError } = await fetchOrders(requestedOrderIds);
+  if (initialOrdersError || !initialRawOrders || initialRawOrders.length !== requestedOrderIds.length) {
+    redirectWithError(
+      CHECKOUT_ERRORS.ORDER_NOT_FOUND,
+      "One or more orders could not be found or are no longer payable."
+    );
   }
 
-  // ── Sync the order to current cart state (cart checkout only) ───────────────
-  // Buy Now uses a standalone checkout session and must not be synced to cart.
-  let syncResult: Awaited<ReturnType<typeof syncOrderWithCart>> | null = null;
-  if (!isDirectCheckout) {
-    syncResult = await syncOrderWithCart(orderId);
+  const initialOrdersById = new Map(initialRawOrders.map((row) => [row.id, row]));
+  const initialOrders = requestedOrderIds.map((id) => initialOrdersById.get(id)!);
+  const cartIdValues = initialOrders.map((row) => metaString(row.metadata, "cart_id"));
+  const cartIds = new Set(cartIdValues.filter(Boolean));
+  if (
+    cartIds.size > 1 ||
+    (requestedOrderIds.length > 1 && (cartIdValues.some((id) => !id) || cartIds.size !== 1))
+  ) {
+    redirectWithError(CHECKOUT_ERRORS.ORDER_NOT_FOUND, "These orders do not belong to the same checkout cart.");
+  }
 
-    if (!syncResult.ok) {
-      redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, syncResult.error);
+  let checkoutOrderIds = [...requestedOrderIds];
+  let cartWasUpdated = false;
+  const aggregateChanges = {
+    itemsAdded: 0,
+    itemsRemoved: 0,
+    itemsUpdated: 0,
+    priceChanged: false,
+    shippingReset: false,
+  };
+
+  // Do not sync or rewrite any order if any order in this cart already has an
+  // active payment session. The provider's amount and all order lines stay fixed.
+  const { data: initialPaymentRows, error: initialPaymentError } = await admin
+    .from("transactions")
+    .select("order_id, status")
+    .in("order_id", checkoutOrderIds)
+    .in("status", ["pending", "processing", "completed"]);
+  if (initialPaymentError) {
+    redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, "Could not verify existing payment sessions.");
+  }
+  const hasInitialPaymentSession = Boolean(initialPaymentRows?.length);
+
+  if (!isDirectCheckout && !hasInitialPaymentSession) {
+    const syncResults = await Promise.all(checkoutOrderIds.map((id) => syncOrderWithCart(id)));
+    const cancelledOrderIds: string[] = [];
+    for (let index = 0; index < syncResults.length; index += 1) {
+      const result = syncResults[index];
+      if (!result.ok) {
+        if (result.error === "cart_empty") {
+          cancelledOrderIds.push(checkoutOrderIds[index]);
+          continue;
+        }
+        redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, result.error);
+      }
+      if (result.changed && result.changes) {
+        cartWasUpdated = true;
+        aggregateChanges.itemsAdded += result.changes.itemsAdded;
+        aggregateChanges.itemsRemoved += result.changes.itemsRemoved;
+        aggregateChanges.itemsUpdated += result.changes.itemsUpdated;
+        aggregateChanges.priceChanged ||= result.changes.priceChanged;
+        aggregateChanges.shippingReset ||= result.changes.shippingReset;
+      }
+    }
+    checkoutOrderIds = checkoutOrderIds.filter((id) => !cancelledOrderIds.includes(id));
+    if (!checkoutOrderIds.length) redirect("/cart");
+  }
+
+  const { data: rawOrders, error: ordersError } = await fetchOrders(checkoutOrderIds);
+  if (ordersError || !rawOrders || rawOrders.length !== checkoutOrderIds.length) {
+    redirectWithError(
+      CHECKOUT_ERRORS.ORDER_NOT_FOUND,
+      "One or more orders could not be found or are no longer payable."
+    );
+  }
+
+  const rawOrdersById = new Map(rawOrders.map((row) => [row.id, row]));
+  const orderedRawOrders = checkoutOrderIds.map((id) => rawOrdersById.get(id)!);
+  if (orderedRawOrders.some((order) => !["pending", "checkout_direct"].includes(order.status))) {
+    redirectWithError(CHECKOUT_ERRORS.ORDER_NOT_FOUND, "One or more orders are no longer available for payment.");
+  }
+  const displayOrders = orderedRawOrders.map(normaliseOrder);
+  const allItems = displayOrders.flatMap((order) => order.order_items);
+  const hasMixedOrder = displayOrders.some((order) => {
+    const orderTypes = new Set(order.order_items.map((item) => item.product_type));
+    return orderTypes.has("digital") && orderTypes.has("physical");
+  });
+  if (hasMixedOrder) {
+    redirectWithError(
+      CHECKOUT_ERRORS.MIXED_PRODUCTS,
+      "One of these orders mixes digital and physical items. Please separate those items before checkout."
+    );
+  }
+  if (!allItems.length || displayOrders.some((order) => !order.order_items.length)) {
+    redirectWithError(CHECKOUT_ERRORS.NO_ITEMS, "One or more orders have no items.");
+  }
+
+  const hasUntrackedPaymentProvider = displayOrders.some((order) =>
+    ["pending", "processing"].includes(order.payment_status) &&
+    Boolean(order.payment_provider || order.gateway_used)
+  );
+  const hasPaymentInFlight = hasInitialPaymentSession || hasUntrackedPaymentProvider;
+
+  // Currency normalization is safe only before a provider has received an amount.
+  if (!hasPaymentInFlight) {
+    for (const order of displayOrders) {
+      try {
+        await ensurePendingOrderPlatformCurrency(admin, order.id);
+      } catch (error) {
+        console.warn("[checkout] pending USD normalize skipped", { orderId: order.id, error });
+      }
     }
   }
 
-  const { data: rawOrder, error: orderError } = await createAdminClient()
-    .from("orders")
-    .select(ORDER_SELECT)
-    .eq("id", orderId)
-    .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed"])
-    .single();
-
-  if (orderError || !rawOrder) {
-    redirectWithError(
-      CHECKOUT_ERRORS.ORDER_NOT_FOUND,
-      `Order ${orderId} not found or already paid`
-    );
-  }
-
-  const isCommunity = rawOrder.integration_source === "community";
-  const order = normaliseOrder(rawOrder);
-  const types = new Set(order.order_items.map((i) => i.product_type));
-  if (types.has("digital") && types.has("physical")) {
-    redirectWithError(
-      CHECKOUT_ERRORS.MIXED_PRODUCTS,
-      "Order contains both digital and physical items"
-    );
-  }
-
-  if (!order.order_items.length) {
-    redirectWithError(CHECKOUT_ERRORS.NO_ITEMS, "Order has no items");
-  }
-
-  try {
-    await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
-  } catch (error) {
-    console.warn("[checkout] pending USD normalize skipped", error);
-  }
-
-  if (order.order_items.some((item) => item.product_source === "cj")) {
+  if (allItems.some((item) => item.product_source === "cj")) {
     try {
       await getOrRefreshAccessToken();
     } catch (error) {
@@ -224,15 +327,56 @@ export default async function CheckoutPage(props: {
     }
   }
 
-  const { data: refreshedRaw } = await createAdminClient()
-    .from("orders")
-    .select(ORDER_SELECT)
-    .eq("id", orderId)
-    .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed"])
-    .single();
-  const displayOrder = refreshedRaw ? normaliseOrder(refreshedRaw) : order;
-  
+  // Re-read after safe normalization; keep the requested order sequence stable.
+  let finalOrders = displayOrders;
+  if (!hasPaymentInFlight) {
+    const { data: refreshedRawOrders } = await fetchOrders(checkoutOrderIds);
+    if (refreshedRawOrders?.length === checkoutOrderIds.length) {
+      const refreshedById = new Map(refreshedRawOrders.map((row) => [row.id, row]));
+      finalOrders = checkoutOrderIds.map((id) => normaliseOrder(refreshedById.get(id)!));
+    }
+  }
+
+  const { data: latestPaymentRows, error: latestPaymentError } = await admin
+    .from("transactions")
+    .select("order_id, provider, provider_transaction_id, status, metadata, created_at")
+    .in("order_id", checkoutOrderIds)
+    .in("status", ["pending", "processing", "completed"])
+    .order("created_at", { ascending: false });
+  if (latestPaymentError) {
+    redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, "Could not verify the current payment session.");
+  }
+
+  const latestPaymentByOrder = new Map<string, NonNullable<typeof latestPaymentRows>[number]>();
+  for (const row of latestPaymentRows ?? []) {
+    if (!latestPaymentByOrder.has(row.order_id)) latestPaymentByOrder.set(row.order_id, row);
+  }
+  const mappedProviders = finalOrders.map((order) => {
+    const payment = latestPaymentByOrder.get(order.id);
+    const metadata =
+      payment?.metadata && typeof payment.metadata === "object" && !Array.isArray(payment.metadata)
+        ? payment.metadata as Record<string, unknown>
+        : {};
+    const storedProvider = String(
+      payment?.provider ??
+      (["pending", "processing"].includes(order.payment_status) ? order.payment_provider ?? order.gateway_used : "") ??
+      ""
+    ).toLowerCase();
+    const mapped =
+      storedProvider === "binance" ? "binancepay" :
+      storedProvider === "flutterwave" && metadata.method === "mobile_money" ? "mobile_money" :
+      storedProvider;
+    return ["nowpayments", "flutterwave", "binancepay", "mobile_money", "wallet"].includes(mapped)
+      ? mapped
+      : null;
+  });
+  const resumeProvider = (
+    mappedProviders.every(Boolean) && new Set(mappedProviders).size === 1
+      ? mappedProviders[0]
+      : null
+  ) as "nowpayments" | "flutterwave" | "binancepay" | "mobile_money" | "wallet" | null;
+  const hasActivePaymentSession = Boolean(latestPaymentRows?.length);
+
   // ── Profile ─────────────────────────────────────────────────────────────────
   const { data: profile } = await supabase
     .from("profiles")
@@ -244,12 +388,14 @@ export default async function CheckoutPage(props: {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-8xl mx-auto px-0 sm:px-4 md:px-6">
         <CheckoutExperience
-          orders={[displayOrder] as never}
+          orders={finalOrders as never}
           profile={profile}
-          mode={isCommunity ? "community" : "cart"}
+          mode={finalOrders.some((order) => order.integration_source === "community") ? "community" : "cart"}
           preferredMethod={preferredMethod}
-          cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
-          changes={!isDirectCheckout ? syncResult?.changes : undefined}
+          resumeProvider={resumeProvider}
+          hasActivePaymentSession={hasActivePaymentSession}
+          cartWasUpdated={cartWasUpdated}
+          changes={cartWasUpdated ? aggregateChanges : undefined}
         />
       </div>
     </div>

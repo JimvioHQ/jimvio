@@ -146,6 +146,7 @@ function getProviderLabel(provider: string | null | undefined) {
     pawapay: "PawaPay (retired)",
     flutterwave: "Flutterwave",
     binancepay: "Binance Pay",
+    binance: "Binance Pay",
     afripay: "AfriPay (retired)",
     stripe: "Card",
     mtn: "MTN Money",
@@ -1267,7 +1268,11 @@ export default function PublicOrderDetailPage() {
     return [...order.transactions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   }, [order]);
 
-  const providerLabel = isFreeOrder ? "Free" : getProviderLabel(latestTransaction?.provider);
+  const providerLabel = isFreeOrder
+    ? "Free"
+    : latestTransaction?.metadata?.method === "mobile_money"
+      ? "Mobile Money"
+      : getProviderLabel(latestTransaction?.provider);
   const paymentRef = latestTransaction?.provider_transaction_id || (latestTransaction?.metadata as any)?.reference || "—";
   const vendorGroups = useMemo(() => order ? groupItemsByVendor(order.order_items) : [], [order]);
 
@@ -1366,22 +1371,49 @@ export default function PublicOrderDetailPage() {
 
   async function handlePay() {
     if (!order) return;
-    if (latestTransaction?.provider?.toLowerCase() === "wallet") {
+    const provider = latestTransaction?.provider?.toLowerCase() || "flutterwave";
+    const metadata = latestTransaction?.metadata && typeof latestTransaction.metadata === "object"
+      ? latestTransaction.metadata as Record<string, unknown>
+      : {};
+    const isMobileMoney = provider === "mobile_money" ||
+      (provider === "flutterwave" && metadata.method === "mobile_money");
+
+    if (provider === "wallet") {
       await handlePayWithWallet();
       return;
     }
     setPaying(true);
     try {
-      const provider = latestTransaction?.provider?.toLowerCase() || "flutterwave";
       if (provider === "pawapay" || provider === "afripay" || provider === "pesapal" || provider === "paypal") {
         throw new Error("This payment method is no longer available. Please choose another method from checkout.");
       }
-      const endpoint =
-        provider === "mobile_money" || provider === "flutterwave"
-          ? provider === "mobile_money"
-            ? "/api/payments/mobile-money/initiate"
-            : "/api/payments/flutterwave/initiate"
-          : `/api/payments/${provider}/initiate`;
+
+      if (isMobileMoney) {
+        const txRef = latestTransaction?.provider_transaction_id;
+        if (!txRef) throw new Error("The Mobile Money reference is missing. Please contact support.");
+        toast.message("Checking your existing Mobile Money payment. Approve the request on your phone if prompted.");
+        const pollUrl = `/api/payments/mobile-money/status?orderId=${order.id}&txRef=${encodeURIComponent(txRef)}`;
+        for (let attempt = 0; attempt < 60; attempt += 1) {
+          const response = await fetch(pollUrl, { cache: "no-store" });
+          const data = await response.json();
+          if (data.status === "successful") {
+            toast.success("Payment confirmed.");
+            router.refresh();
+            setRetryCount((current) => current + 1);
+            return;
+          }
+          if (data.status === "failed" || data.status === "cancelled") {
+            throw new Error(data.message || "The Mobile Money payment was not completed.");
+          }
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+        throw new Error("Payment confirmation is taking longer than expected. Check Orders before trying again.");
+      }
+
+      // Binance stores the provider as "binance" but its checkout endpoint is
+      // /api/payments/binancepay/initiate.
+      const paymentProvider = provider === "binance" ? "binancepay" : provider;
+      const endpoint = `/api/payments/${paymentProvider}/initiate`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1397,8 +1429,8 @@ export default function PublicOrderDetailPage() {
       const url = data.redirectUrl || data.invoiceUrl || data.approvalUrl || data.redirectURL;
       if (url) window.location.href = url;
       else throw new Error("No payment link returned. Please contact support.");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "We couldn't resume this payment.");
     } finally {
       setPaying(false);
     }

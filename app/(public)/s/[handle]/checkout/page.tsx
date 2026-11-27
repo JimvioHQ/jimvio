@@ -43,8 +43,8 @@ type OrderItemRow = {
 };
 
 const ORDER_SELECT = `
-  id, status, payment_status,
-  total_amount, subtotal, shipping_amount, currency,
+  id, status, payment_status, payment_provider, gateway_used,
+  total_amount, subtotal, shipping_amount, discount_amount, currency,
   integration_source, metadata, shipping_address, jimvio_store_id,
   vendors (id, business_name, business_slug),
   order_items (
@@ -157,7 +157,7 @@ export default async function StorefrontCheckoutPage({
     .select(ORDER_SELECT)
     .eq("id", orderId)
     .eq("buyer_id", user.id)
-    .in("payment_status", ["pending", "failed"])
+    .in("payment_status", ["pending", "failed", "processing"])
     .single();
 
   if (orderError || !rawOrder) {
@@ -172,13 +172,44 @@ export default async function StorefrontCheckoutPage({
     redirect(`${cartHref}?error=order_not_found`);
   }
 
+  const { data: latestPayment } = await createAdminClient()
+    .from("transactions")
+    .select("provider, provider_transaction_id, status, metadata, created_at")
+    .eq("order_id", orderId)
+    .in("status", ["pending", "processing", "completed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const latestPaymentMetadata =
+    latestPayment?.metadata && typeof latestPayment.metadata === "object" && !Array.isArray(latestPayment.metadata)
+      ? latestPayment.metadata as Record<string, unknown>
+      : {};
+  const storedProvider = String(
+    latestPayment?.provider ??
+    (["pending", "processing"].includes(String(rawOrder.payment_status)) ? rawOrder.payment_provider ?? rawOrder.gateway_used : "") ??
+    ""
+  ).toLowerCase();
+  const mappedProvider =
+    storedProvider === "binance" ? "binancepay" :
+    storedProvider === "flutterwave" && latestPaymentMetadata.method === "mobile_money" ? "mobile_money" :
+    storedProvider;
+  const resumeProvider = (
+    ["nowpayments", "flutterwave", "binancepay", "mobile_money", "wallet"].includes(mappedProvider)
+      ? mappedProvider
+      : null
+  ) as "nowpayments" | "flutterwave" | "binancepay" | "mobile_money" | "wallet" | null;
+  const hasActivePaymentSession = Boolean(latestPayment);
+
   const order = {
     id: rawOrder.id,
     status: rawOrder.status,
     payment_status: rawOrder.payment_status,
+    payment_provider: rawOrder.payment_provider ?? null,
+    gateway_used: rawOrder.gateway_used ?? null,
     total_amount: rawOrder.total_amount,
     subtotal: rawOrder.subtotal,
     shipping_amount: rawOrder.shipping_amount ?? null,
+    discount_amount: rawOrder.discount_amount ?? null,
     currency: rawOrder.currency ?? null,
     metadata: sanitizeCustomerOrderMetadata(rawOrder.metadata),
     shipping_address: rawOrder.shipping_address ?? null,
@@ -199,7 +230,9 @@ export default async function StorefrontCheckoutPage({
   }
 
   try {
-    await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+    if (!hasActivePaymentSession) {
+      await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+    }
   } catch {
     /* non-fatal */
   }
@@ -258,6 +291,8 @@ export default async function StorefrontCheckoutPage({
           profile={profile}
           mode="cart"
           preferredMethod={preferredMethod}
+          resumeProvider={resumeProvider}
+          hasActivePaymentSession={hasActivePaymentSession}
           cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
           changes={!isDirectCheckout ? syncResult?.changes : undefined}
           brandSurface="merchant"

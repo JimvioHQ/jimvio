@@ -223,7 +223,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     , req);
   }
 
-  if (order.payment_status !== "pending") {
+  // "processing" is expected after Binance creates a payment session. It is
+  // payable again only through the existing, idempotently reused session below.
+  if (!["pending", "processing"].includes(String(order.payment_status))) {
     return errorResponse(
       `Order payment status "${order.payment_status}" is not payable`,
       409,
@@ -263,6 +265,46 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     queryExtra: { provider: "binance" },
   });
 
+  // Do not start Binance while a different provider still has an active
+  // transaction for this order. A completed transaction also needs reconciliation
+  // before another charge can be created.
+  const { data: otherActiveTransactions, error: otherActiveError } = await supabase
+    .from("transactions")
+    .select("id, provider, status")
+    .eq("order_id", orderId)
+    .neq("provider", "binance")
+    .in("status", ["pending", "processing"])
+    .limit(1);
+  if (otherActiveError) {
+    return errorResponse("Could not verify the existing payment state. Please try again.", 503, req);
+  }
+  if (otherActiveTransactions?.length) {
+    return errorResponse(
+      "Another payment is already active for this order. Finish it from Orders before choosing Binance Pay.",
+      409,
+      { reason: "another_payment_active" },
+      req
+    );
+  }
+
+  const { data: completedTransactions, error: completedError } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("status", "completed")
+    .limit(1);
+  if (completedError) {
+    return errorResponse("Could not verify the existing payment state. Please try again.", 503, req);
+  }
+  if (completedTransactions?.length) {
+    return errorResponse(
+      "A payment was already received and is being confirmed. Please check Orders before trying again.",
+      409,
+      { reason: "payment_received_pending_reconciliation" },
+      req
+    );
+  }
+
   // ── 6. Check for a reusable pending transaction ────────────────────────────
   const cutoff = new Date(
     Date.now() - PENDING_TX_REUSE_WINDOW_MS
@@ -273,7 +315,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .select("id, provider_transaction_id, metadata, created_at")
     .eq("order_id", orderId)
     .eq("provider", "binance")
-    .eq("status", "pending")
+    .in("status", ["pending", "processing"])
     .gte("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -310,14 +352,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       .eq("id", existingTx.id);
   }
 
-  // Expire any other stale pending transactions outside the reuse window
+  // Expire any other stale Binance transactions outside the reuse window.
   await supabase
     .from("transactions")
     .update({ status: "failed" })
     .eq("order_id", orderId)
     .eq("provider", "binance")
-    .eq("status", "pending")
+    .in("status", ["pending", "processing"])
     .lt("created_at", cutoff);
+
+  // A stale processing flag without an active provider transaction is safe to
+  // reset; this prevents old attempts from blocking a fresh, verified session.
+  if (order.payment_status === "processing") {
+    const { error: resetError } = await supabase
+      .from("orders")
+      .update({ payment_status: "pending", updated_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .eq("buyer_id", user.id)
+      .eq("payment_status", "processing");
+    if (resetError) {
+      return errorResponse("Could not safely reset the previous payment attempt. Please open Orders.", 503, req);
+    }
+  }
 
   // ── 7. Currency conversion ─────────────────────────────────────────────────
   let payAmount = order.total_amount;

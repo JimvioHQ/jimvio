@@ -115,6 +115,8 @@ interface CheckoutExperienceProps {
    orders: CartOrder[];
    profile: { full_name: string | null; email: string | null; phone: string | null } | null;
    preferredMethod?: string | null;
+   resumeProvider?: MethodId | null;
+   hasActivePaymentSession?: boolean;
    mode?: "cart" | "community";
    cartWasUpdated?: boolean;
    changes?: CheckoutSyncChanges;
@@ -133,7 +135,7 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 };
 
 export function CheckoutExperience({
-   orders, profile, preferredMethod, mode = "cart",
+   orders, profile, preferredMethod, resumeProvider, hasActivePaymentSession = false, mode = "cart",
    brandSurface = "platform",
    storeName = null,
 }: CheckoutExperienceProps) {
@@ -143,24 +145,46 @@ export function CheckoutExperience({
    const isCommunity = mode === "community";
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
+   const hasStartedPayment = Boolean(resumeProvider || hasActivePaymentSession) || orders.some((order) =>
+      ["pending", "processing"].includes(order.payment_status) &&
+      Boolean(order.payment_provider || order.gateway_used)
+   );
+   const supportsMultiOrderNowPayments =
+      orders.map((order) => order.id).join(",").length <= 240;
 
    const currency = orders[0]?.currency ?? PLATFORM_CURRENCY;
    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
    const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
 
    const [stage, setStage] = useState<Stage>(
-      isAllDigital || isCommunity ? "payment" : "shipping"
+      isAllDigital || isCommunity || hasStartedPayment ? "payment" : "shipping"
    );
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
       const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay", "wallet"];
-      if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
+      if (resumeProvider && valid.includes(resumeProvider)) {
+         // Mobile Money resumes through its existing Flutterwave authorization.
+         return resumeProvider === "mobile_money" ? "flutterwave" : resumeProvider;
+      }
+      if (
+         preferredMethod &&
+         valid.includes(preferredMethod as MethodId) &&
+         (orders.length <= 1 ||
+            (["nowpayments", "wallet"].includes(preferredMethod) &&
+             (preferredMethod !== "nowpayments" || supportsMultiOrderNowPayments)))
+      ) {
          return preferredMethod as MethodId;
       }
-      return defaultPayment(currency);
+      return orders.length > 1
+         ? supportsMultiOrderNowPayments ? "nowpayments" : "wallet"
+         : defaultPayment(currency);
    });
-   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>();
+   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>(
+      () => orders.length > 1
+         ? supportsMultiOrderNowPayments ? ["nowpayments", "wallet"] : ["wallet"]
+         : undefined
+   );
    const [momoForm, setMomoForm] = useState<MoMoFormState>({
       country: "",
       network: "",
@@ -212,14 +236,23 @@ export function CheckoutExperience({
          .then((r) => r.json())
          .then((data: { enabled?: MethodId[] }) => {
             if (Array.isArray(data.enabled) && data.enabled.length > 0) {
-               setEnabledPaymentMethods(data.enabled);
-               setPayment((current) =>
-                  data.enabled!.includes(current) ? current : data.enabled![0]
-               );
+               // Multi-vendor carts must use a provider that settles every order
+               // in one invoice/debit. Other gateways remain available per order.
+               const available = orders.length > 1
+                  ? data.enabled.filter((method) =>
+                     method === "wallet" || (method === "nowpayments" && supportsMultiOrderNowPayments)
+                  )
+                  : data.enabled;
+               if (available.length > 0) {
+                  setEnabledPaymentMethods(available);
+                  setPayment((current) =>
+                     available.includes(current) ? current : available[0]
+                  );
+               }
             }
          })
          .catch(() => undefined);
-   }, []);
+   }, [orders.length]);
 
    useEffect(() => {
       return () => {
@@ -252,7 +285,9 @@ export function CheckoutExperience({
    // ── Promo ─────────────────────────────────────────────────────────────────
    const [promoCode, setPromoCode] = useState("");
    const [promoApplying, setPromoApplying] = useState(false);
-   const [discount, setDiscount] = useState(0);
+   const [discount, setDiscount] = useState(() =>
+      orders.reduce((sum, order) => sum + Number(order.discount_amount ?? 0), 0)
+   );
 
    // ── Submission ────────────────────────────────────────────────────────────
    const [submitting, setSubmitting] = useState(false);
@@ -275,7 +310,12 @@ export function CheckoutExperience({
       [isCJOrder, cjSelected]
    );
 
-   const total = subtotal - discount + (shippingCost ?? 0);
+   const existingShippingCost = useMemo(
+      () => orders.reduce((sum, order) => sum + Number(order.shipping_amount ?? 0), 0),
+      [orders]
+   );
+   const displayShippingCost = shippingCost ?? existingShippingCost;
+   const total = subtotal - discount + displayShippingCost;
 
    async function applyPromo() {
       setPromoApplying(true);
@@ -422,17 +462,17 @@ export function CheckoutExperience({
    // ── Final pay ─────────────────────────────────────────────────────────────
    async function handlePay() {
       if (submitting || payInFlightRef.current) return;
-      if (isCJOrder && !cjSelected) {
+      if (isCJOrder && !cjSelected && !hasStartedPayment) {
          toast.error("Please select a delivery method");
          setStage("delivery");
          return;
       }
-      if (isCJOrder && shippingCost === null) {
+      if (isCJOrder && shippingCost === null && !hasStartedPayment) {
          toast.error("Please select a delivery method");
          setStage("delivery");
          return;
       }
-      if (isCJOrder && !cjQuoteToken) {
+      if (isCJOrder && !cjQuoteToken && !hasStartedPayment) {
          toast.error("Please refresh shipping options before paying.");
          setStage("delivery");
          return;
@@ -454,7 +494,7 @@ export function CheckoutExperience({
             ...shipping,
             address1: shipping.address1 || (isAllDigital ? "Digital Delivery" : ""),
             city: shipping.city || (isAllDigital ? "Online" : ""),
-            shippingAmount: shippingCost ?? 0,
+            shippingAmount: isCJOrder && cjSelected ? shippingCost ?? undefined : undefined,
             discountAmount: discount,
             ...(cjQuoteToken ? { quoteToken: cjQuoteToken } : {}),
             ...(cjSelected?.optionId ? { shippingOptionId: cjSelected.optionId } : {}),
@@ -463,7 +503,13 @@ export function CheckoutExperience({
          });
          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
 
-         if (isCJOrder && cjSelected) {
+         // If a prior payment session is still active, continue it instead of
+         // creating a second provider charge or rewriting the order totals.
+         const resumedProvider = save.resumeProvider as MethodId | undefined;
+         const activePayment = resumedProvider ?? payment;
+         if (resumedProvider) setPayment(resumedProvider);
+
+         if (isCJOrder && cjSelected && !resumedProvider) {
             const cjRes = await fetch("/api/cj/set-shipping", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
@@ -486,11 +532,52 @@ export function CheckoutExperience({
          }
 
          console.info("[checkout] payment_initialized", {
-            provider: payment,
+            provider: activePayment,
             orderId: primaryOrderId,
          });
 
-         if (payment === "mobile_money") {
+         if (resumedProvider === "mobile_money") {
+            const txRef = save.resumeTxRef;
+            if (!txRef) throw new Error("Your Mobile Money payment is awaiting confirmation. Please check Orders.");
+            const pollUrl = `/api/payments/mobile-money/status?orderId=${primaryOrderId}&txRef=${encodeURIComponent(txRef)}`;
+            setMomoAwaiting(true);
+            toast.message("Resuming your Mobile Money payment. Approve the request on your phone if prompted.");
+            if (momoPollRef.current) clearInterval(momoPollRef.current);
+            momoPollCountRef.current = 0;
+            const MAX_POLLS = 60;
+            await new Promise<void>((resolve, reject) => {
+               momoPollRef.current = setInterval(async () => {
+                  momoPollCountRef.current += 1;
+                  if (momoPollCountRef.current > MAX_POLLS) {
+                     if (momoPollRef.current) clearInterval(momoPollRef.current);
+                     setMomoAwaiting(false);
+                     reject(new Error("Payment confirmation is taking longer than expected. Check Orders before trying again."));
+                     return;
+                  }
+                  try {
+                     const response = await fetch(pollUrl, { cache: "no-store" });
+                     const json = await response.json();
+                     if (json.status === "successful") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        window.location.href = `/checkout/success?order=${primaryOrderId}`;
+                        resolve();
+                        return;
+                     }
+                     if (json.status === "failed" || json.status === "cancelled") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        reject(new Error(json.message || "The Mobile Money payment was not completed."));
+                     }
+                  } catch {
+                     // The signed webhook remains authoritative during transient polling errors.
+                  }
+               }, 5000);
+            });
+            return;
+         }
+
+         if (activePayment === "mobile_money") {
             setMomoError(null);
             if (!momoForm.country) {
                throw new Error("Mobile Money is not available in this country.");
@@ -587,7 +674,7 @@ export function CheckoutExperience({
          }
 
          // Initiate payment — never re-quotes shipping.
-         const res = await fetch(PAYMENT_ENDPOINTS[payment], {
+         const res = await fetch(PAYMENT_ENDPOINTS[activePayment], {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -598,7 +685,7 @@ export function CheckoutExperience({
          const data = await res.json();
          if (!res.ok) {
             console.warn("[checkout] payment_initialization_failed", {
-               provider: payment,
+               provider: activePayment,
                orderId: primaryOrderId,
                status: res.status,
             });
@@ -606,7 +693,7 @@ export function CheckoutExperience({
          }
          const redirectUrl = extractRedirectUrl(data);
          if (!redirectUrl) throw new Error("No redirect URL from payment provider");
-         if (payment === "wallet") {
+         if (activePayment === "wallet") {
             // Wallet settlement stays on Jimvio; only allow a same-origin path.
             if (!redirectUrl.startsWith("/") || redirectUrl.startsWith("//")) {
                throw new Error("Invalid wallet redirect");
@@ -666,7 +753,7 @@ export function CheckoutExperience({
    }
 
    const payDisabled =
-      (isCJOrder && (shippingCost === null || !cjSelected)) ||
+      (isCJOrder && !hasStartedPayment && (shippingCost === null || !cjSelected)) ||
       stage === "mobile_money" ||
       (stage === "payment" && payment === "mobile_money");
 
@@ -826,6 +913,18 @@ export function CheckoutExperience({
                            transition={{ duration: 0.28, ease: "easeOut" }}
                            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:p-5 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-7"
                         >
+                           {resumeProvider === "mobile_money" && (
+                              <p className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+                                 Your Mobile Money request is already active. Continue below to check the same payment; do not start a second request.
+                              </p>
+                           )}
+                           {orders.length > 1 && (
+                              <p className="mb-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+                                 {supportsMultiOrderNowPayments
+                                    ? "This cart contains orders from multiple sellers. Jimvio Wallet or Cryptocurrency will settle every order together; other payment methods remain available when paying one order at a time from Orders."
+                                    : "This cart contains many seller orders. Jimvio Wallet will settle every order together; other payment methods remain available when paying one order at a time from Orders."}
+                              </p>
+                           )}
                            <PaymentMethodSelector
                               selected={payment === "mobile_money" ? null : payment}
                               onSelect={(m) => {
@@ -938,7 +1037,7 @@ export function CheckoutExperience({
                         items={allItems}
                         subtotal={subtotal}
                         discount={discount}
-                        shipping={shippingCost}
+                        shipping={displayShippingCost}
                         total={total}
                         currency={currency}
                         formatMoney={formatMoney}

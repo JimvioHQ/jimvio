@@ -49,6 +49,9 @@ export type CartOrder = {
     total_amount: number;
     subtotal: number;
     shipping_amount: number | null;
+    discount_amount?: number | null;
+    payment_provider?: string | null;
+    gateway_used?: string | null;
     currency: string | null;
     status: string;
     payment_status: string;
