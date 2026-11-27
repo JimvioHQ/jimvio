@@ -310,12 +310,20 @@ export async function submitOrderToCJ(params: {
 
 // Map CJ's order status strings to your order_status enum
 const CJ_STATUS_MAP: Record<string, string> = {
-  CREATED:    "processing",
-  PAYING:     "processing",
-  IN_PROCESS: "processing",
-  SHIPPED:    "shipped",
-  FINISHED:   "delivered",
-  CANCELLED:  "cancelled",
+  CREATED:       "processing",
+  PAYING:        "processing",
+  IN_PROCESS:    "processing",
+  UNSHIPPED:     "processing",
+  IN_PRODUCTION: "processing",
+  PICKING:       "processing",
+  PACKED:        "processing",
+  WAIT_SHIP:     "processing",
+  SHIPPED:       "shipped",
+  IN_TRANSIT:    "shipped",
+  FINISHED:      "delivered",
+  DONE:           "delivered",
+  DELIVERED:      "delivered",
+  CANCELLED:      "cancelled",
 };
 
 
