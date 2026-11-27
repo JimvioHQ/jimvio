@@ -36,7 +36,7 @@ export function isCjLiquidProduct(item: CjShippingProductFacts): boolean {
     .filter((value): value is string => typeof value === "string")
     .join(" ");
 
-  if (/\bLIQUID\b/i.test(productType)) return true;
+  if (/LIQUID/i.test(productType)) return true;
   return /\b(perfume|fragrance|essential oils?|shampoo|conditioner|lotion|serum|gel|detergent|cleaner|nail polish|ink|paint|spray|beverage|drink|sauce|syrup|juice|cream|glue|adhesive|liquid soap|liquid detergent|liquid cleaner|liquid makeup)\b/i.test(searchable);
 }
 
