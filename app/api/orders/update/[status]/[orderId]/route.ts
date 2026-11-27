@@ -120,6 +120,20 @@ export async function PATCH(
     );
   }
 
+  if (isVendor && status !== "cancelled" &&
+      !VENDOR_ONLY_STATUSES.includes(status as (typeof VENDOR_ONLY_STATUSES)[number])) {
+    return NextResponse.json(
+      { error: "Vendors may only update fulfillment to processing, shipped, or delivered" },
+      { status: 403 }
+    );
+  }
+  if (isVendor && status === "cancelled" && !["confirmed", "processing"].includes(currentStatus)) {
+    return NextResponse.json(
+      { error: `Cannot cancel an order from '${currentStatus}'` },
+      { status: 409 }
+    );
+  }
+
   if (VENDOR_ONLY_STATUSES.includes(status as (typeof VENDOR_ONLY_STATUSES)[number])) {
     if (!isVendor) {
       return NextResponse.json({ error: `Status '${status}' can only be set by the vendor` }, { status: 403 });
