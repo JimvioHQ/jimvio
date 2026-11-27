@@ -1,27 +1,23 @@
 /**
- * app/api/vendor/orders/[orderId]/fulfill/route.ts
- *
- * Vendor fulfillment endpoint — lets vendors update physical order status.
- * Physical products are NEVER auto-fulfilled; vendors control this manually.
+ * Vendor fulfillment endpoint. All state changes go through the shared order
+ * lifecycle so timestamps, history, tracking and buyer notifications stay in sync.
  *
  * PATCH /api/vendor/orders/:orderId/fulfill
  * Body: { status: "shipped" | "delivered", tracking_number?: string, tracking_url?: string }
- *
- * Rules:
- *  - Caller must be authenticated as a vendor who owns an item in this order
- *  - Order must be payment_status = 'completed' before allowing fulfillment
- *  - Status transitions: confirmed → shipped → delivered  (no backward movement)
- *  - Sends notification to buyer on transition
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { notifyUser } from "@/lib/notifications/notify-user";
+import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
+import {
+  getSupabaseSecretKey,
+  getSupabasePublishableKey,
+  getSupabaseUrl,
+} from "@/lib/supabase/service-role";
 
-import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -40,7 +36,6 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
-  // --- Auth: get calling user from session ---
   const cookieStore = await cookies();
   const authDb = createServerClient(
     getSupabaseUrl(),
@@ -53,16 +48,10 @@ export async function PATCH(
     }
   );
 
-  const {
-    data: { user },
-  } = await authDb.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { data: { user } } = await authDb.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { orderId } = await params;
-
   let body: { status?: string; tracking_number?: string; tracking_url?: string };
   try {
     body = await req.json();
@@ -78,18 +67,16 @@ export async function PATCH(
     );
   }
 
-  // --- Load order ---
-  const { data: order } = await adminDb
+  const { data: order, error: orderError } = await adminDb
     .from("orders")
     .select("id, status, payment_status, buyer_id, order_number, order_items(vendor_id)")
     .eq("id", orderId)
     .single();
 
-  if (!order) {
+  if (orderError || !order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // --- Payment guard: must be paid (accept legacy + current terminal statuses) ---
   if (!isOrderPaymentComplete(order.payment_status)) {
     return NextResponse.json(
       { error: "Cannot fulfill an unpaid order" },
@@ -97,100 +84,68 @@ export async function PATCH(
     );
   }
 
-  // --- Vendor ownership check ---
-  const { data: vendor } = await adminDb
+  const { data: vendors, error: vendorError } = await adminDb
     .from("vendors")
     .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
-  if (!vendor) {
+  if (vendorError) {
+    return NextResponse.json({ error: "Unable to verify vendor access" }, { status: 500 });
+  }
+  const vendorIds = new Set((vendors ?? []).map((vendor) => vendor.id));
+  if (vendorIds.size === 0) {
     return NextResponse.json({ error: "Not a vendor account" }, { status: 403 });
   }
 
-  type OrderItem = { vendor_id: string };
-  const items = (order.order_items ?? []) as OrderItem[];
-  const ownsItem = items.some((i) => i.vendor_id === vendor.id);
+  const ownsItem = (order.order_items ?? []).some(
+    (item: { vendor_id: string | null }) => item.vendor_id != null && vendorIds.has(item.vendor_id)
+  );
   if (!ownsItem) {
-    return NextResponse.json(
-      { error: "You have no items in this order" },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: "You have no items in this order" }, { status: 403 });
   }
 
-  // --- Status transition guard ---
-  const allowedNext = ALLOWED_TRANSITIONS[order.status] ?? [];
-  if (!allowedNext.includes(newStatus)) {
+  const currentStatus = String(order.status ?? "").toLowerCase();
+  if (!(ALLOWED_TRANSITIONS[currentStatus] ?? []).includes(newStatus)) {
     return NextResponse.json(
-      { error: `Cannot transition from '${order.status}' to '${newStatus}'` },
+      { error: `Cannot transition from '${currentStatus}' to '${newStatus}'` },
       { status: 422 }
     );
   }
 
-  // --- Apply update ---
-  const patch: Record<string, unknown> = {
-    status: newStatus,
-    updated_at: new Date().toISOString(),
-  };
-  if (newStatus === "shipped") {
-    patch.shipped_at = new Date().toISOString();
-    if (body.tracking_number) patch.tracking_number = body.tracking_number;
-    if (body.tracking_url) patch.tracking_url = body.tracking_url;
-  }
-  if (newStatus === "delivered") {
-    patch.delivered_at = new Date().toISOString();
+  const trackingNumber = body.tracking_number?.trim() || "";
+  const trackingUrl = body.tracking_url?.trim() || "";
+  if (newStatus === "shipped" && !trackingNumber) {
+    return NextResponse.json(
+      { error: "A tracking number is required before marking the order as shipped" },
+      { status: 422 }
+    );
   }
 
-  const { error: updateErr } = await adminDb
-    .from("orders")
-    .update(patch)
-    .eq("id", orderId);
+  const result = await advanceOrderFulfillment(adminDb, orderId, {
+    newStatus: newStatus as "shipped" | "delivered",
+    trackingNumber: newStatus === "shipped" ? trackingNumber : undefined,
+    trackingUrl: trackingUrl || undefined,
+    trackingStatus: newStatus === "shipped" ? "In transit" : "Delivered",
+    notes: newStatus === "shipped"
+      ? "Vendor marked the order as shipped."
+      : "Vendor confirmed the order was delivered.",
+    metadata: {
+      source: "vendor_fulfillment",
+      vendor_user_id: user.id,
+    },
+  });
 
-  if (updateErr) {
-    console.error("[fulfill] update failed", updateErr);
-    return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+  if (!result.updated || result.status !== newStatus) {
+    return NextResponse.json(
+      { error: "Order status could not be updated. Refresh the order and try again." },
+      { status: 409 }
+    );
   }
-
-  // --- Notify buyer ---
-  const messages: Record<string, string> = {
-    shipped: `Your order #${order.order_number} has been shipped!${body.tracking_number ? ` Tracking: ${body.tracking_number}` : ""}`,
-    delivered: `Your order #${order.order_number} has been delivered. Enjoy!`,
-  };
-
-  if (order.buyer_id) {
-    const orderNumber = String(order.order_number ?? orderId);
-    const isShipped = newStatus === "shipped";
-
-    await notifyUser(adminDb, {
-      userId: order.buyer_id,
-      type: "order",
-      title: isShipped ? "Order Shipped 📦" : "Order Delivered ✅",
-      message: messages[newStatus],
-      data: {
-        order_id: orderId,
-        status: newStatus,
-        tracking_number: body.tracking_number ?? null,
-        tracking_url: body.tracking_url ?? null,
-      },
-      actionUrl: `/orders/${orderId}`,
-      email: isShipped
-        ? {
-            kind: "order_shipped",
-            orderId,
-            orderNumber,
-            trackingNumber: body.tracking_number ?? null,
-            trackingUrl: body.tracking_url ?? null,
-          }
-        : undefined,
-    });
-  }
-
-  console.log(`[fulfill] ✓ Order ${orderId} → ${newStatus} by vendor ${vendor.id}`);
 
   return NextResponse.json({
     success: true,
     orderId,
-    status: newStatus,
-    tracking_number: body.tracking_number ?? null,
+    status: result.status,
+    tracking_number: newStatus === "shipped" ? trackingNumber : order.tracking_number ?? null,
   });
 }
