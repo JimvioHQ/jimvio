@@ -146,11 +146,16 @@ export function marketplacePaymentErrorMessage(
   if (/currency/i.test(text)) {
     return "This payment method does not support USD for this order. Please choose another method.";
   }
-  if (/amount|minimum|invalid/i.test(text) && /payment|order|link|invoice/i.test(text)) {
-    return "The payment amount could not be submitted. Please review your order and try again.";
+  // Binance code 400004 means the API key, source IP, or API permissions were
+  // rejected. Do not mislabel this gateway-authentication failure as an amount error.
+  if (/400004|invalid api[- ]?key|request ip|permissions? for action/i.test(text)) {
+    return "Binance Pay could not authorize this payment. Please choose another payment method while gateway access is checked.";
   }
   if (/not configured|secret|api key|credential|missing BINANCE|missing PAYPAL|NOWPAYMENTS_API_KEY/i.test(text)) {
     return "This payment method is temporarily unavailable. Please choose another method.";
+  }
+  if (/amount|minimum/i.test(text) && /payment|order|link|invoice/i.test(text)) {
+    return "The payment amount could not be submitted. Please review your order and try again.";
   }
   if (/phone|customer/i.test(text) && /flutterwave|payment/i.test(text)) {
     return "We could not start payment with the customer details on this order. Please update your phone or email and try again.";
