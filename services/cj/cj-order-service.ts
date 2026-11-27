@@ -358,9 +358,11 @@ export async function syncCJOrderStatus(params: {
     return { updated: false, error: message };
   }
 
-  const mappedStatus = (CJ_STATUS_MAP[detail.orderStatus] ??
+  const mappedStatus = (
+    CJ_STATUS_MAP[detail.orderStatus] ??
     mapCjFulfillmentToOrderStatus(detail.orderStatus.toLowerCase()) ??
-    "processing") as OrderStatusValue;
+    undefined
+  ) as OrderStatusValue | undefined;
   const trackingNumber = detail.trackingNumber?.trim() || null;
   const trackingChanged = Boolean(trackingNumber && trackingNumber !== order.tracking_number);
   const cjStatusChanged =
