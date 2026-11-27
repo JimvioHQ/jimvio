@@ -517,22 +517,6 @@ const METHODS: MethodDef[] = [
     feeLabel: "Free",
   },
   {
-    id: "wallet",
-    title: "Jimvio Wallet",
-    description: "Pay instantly using your available Jimvio Wallet balance",
-    iconNode: (
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%",
-        background: "linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)",
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <Wallet className="h-5 w-5 text-white" />
-      </div>
-    ),
-    logos: [],
-    feeLabel: "Free",
-  },
-  {
     id: "mobile_money",
     title: "Mobile Money",
     description: "Pay securely with your local mobile wallet",
@@ -588,6 +572,22 @@ const METHODS: MethodDef[] = [
       </div>
     ),
     logos: [<PartnerLogo key="bp" domain="binance.com" label="Binance Pay" localSrc="/logos/binance.png" />],
+    feeLabel: "Free",
+  },
+  {
+    id: "wallet",
+    title: "Jimvio Wallet",
+    description: "Pay instantly using your available Jimvio Wallet balance",
+    iconNode: (
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: "linear-gradient(135deg, #FF6B35 0%, #F7931E 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <Wallet className="h-5 w-5 text-white" />
+      </div>
+    ),
+    logos: [],
     feeLabel: "Free",
   },
 ];
