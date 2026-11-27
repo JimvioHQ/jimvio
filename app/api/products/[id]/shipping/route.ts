@@ -96,7 +96,7 @@ export async function GET(
       .from("products")
       .select(
         `
-        id, source, product_type, status, is_active, deleted_at,
+        id, source, product_type, is_digital, status, is_active, deleted_at,
         product_shipping_options (
           id, method_name, carrier, estimated_delivery,
           min_delivery_days, max_delivery_days,
@@ -137,7 +137,10 @@ export async function GET(
       });
     }
 
-    if (product.product_type !== "physical" || product.source !== "cj") {
+    const isPhysicalProduct =
+      product.product_type === "physical" ||
+      (product.product_type == null && product.is_digital !== true);
+    if (!isPhysicalProduct || product.source !== "cj") {
       return NextResponse.json({ success: true, country, options: [], source: "none" });
     }
 
