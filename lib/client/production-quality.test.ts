@@ -56,6 +56,7 @@ describe("supplier tracking decisions", () => {
       currentStatus: "shipped",
       currentTrackingStatus: "In transit",
       currentTrackingNumber: "T1",
+      currentSupplierStatus: "IN_TRANSIT",
       currentEventAt: "2026-10-14T12:00:00.000Z",
       incomingStatus: "IN_TRANSIT",
       incomingTrackingNumber: "T1",
@@ -63,6 +64,21 @@ describe("supplier tracking decisions", () => {
     });
     assert.equal(duplicate.apply, false);
     assert.equal(duplicate.reason, "unchanged");
+
+    const sameCustomerPhaseNewSupplierState = decideSupplierTrackingUpdate({
+      currentStatus: "processing",
+      currentTrackingStatus: "Awaiting shipment",
+      currentTrackingNumber: null,
+      currentSupplierStatus: "UNSHIPPED",
+      currentEventAt: "2026-10-14T12:00:00.000Z",
+      incomingStatus: "PACKED",
+      incomingTrackingNumber: null,
+      occurredAt: "2026-10-14T13:00:00.000Z",
+    });
+    assert.equal(sameCustomerPhaseNewSupplierState.apply, true);
+    assert.equal(sameCustomerPhaseNewSupplierState.reason, "accepted");
+    assert.equal(sameCustomerPhaseNewSupplierState.notify, null);
+    assert.equal(sameCustomerPhaseNewSupplierState.trackingStatus, "Awaiting shipment");
   });
 
   it("accepts out for delivery once and hides supplier wording", () => {
