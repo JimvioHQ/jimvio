@@ -3,6 +3,7 @@ import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { usableCjVid } from "@/lib/cj/variant-vid";
 import { revalidateCjLineStock } from "@/lib/cj/revalidate-cart-stock";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { isCjShippingMethodEligible } from "@/lib/cj/shipping-method-eligibility";
 
 export type CjOrderLine = {
     orderItemId:    string;
@@ -219,6 +220,14 @@ export async function submitCjOrderForLines(
     logisticName = (logisticName ?? "").toString().trim();
     if (!logisticName) {
         return { ok: false, error: "logisticName must not be empty — select a shipping method at checkout" };
+    }
+    if (!isCjShippingMethodEligible(logisticName, lines.map((line) => ({
+        sourceMetadata: line.sourceMetadata,
+    })))) {
+        return {
+            ok: false,
+            error: "The selected CJ shipping service is only available for liquid products. Choose a compatible delivery method.",
+        };
     }
 
     // ── Build full name (V2 uses shippingCustomerName, not first+last) ─────────

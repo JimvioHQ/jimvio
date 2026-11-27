@@ -69,7 +69,7 @@ export function mapSupplierStatusToPhase(raw: string | null | undefined): Tracki
       "waiting_for_submission",
     ].includes(key)
   ) {
-    return key === "unshipped" || key === "wait_ship" || key === "packed" ? "awaiting_shipment" : "processing";
+    return key === "unshipped" || key === "wait_ship" || key === "packed" || key === "awaiting_shipment" ? "awaiting_shipment" : "processing";
   }
   return null;
 }
@@ -137,6 +137,7 @@ export function decideSupplierTrackingUpdate(input: {
   currentStatus: string | null | undefined;
   currentTrackingStatus: string | null | undefined;
   currentTrackingNumber: string | null | undefined;
+  currentSupplierStatus?: string | null;
   currentEventAt: string | null | undefined;
   incomingStatus: string | null | undefined;
   incomingTrackingNumber?: string | null;
@@ -170,7 +171,10 @@ export function decideSupplierTrackingUpdate(input: {
   const trackingNumber = input.incomingTrackingNumber?.trim() || null;
   const sameTracking = (trackingNumber ?? "") === (input.currentTrackingNumber?.trim() ?? "");
   const samePhase = phase === currentPhase;
-  if (samePhase && sameTracking) {
+  const sameSupplierStatus =
+    String(input.incomingStatus ?? "").trim().toLowerCase() ===
+    String(input.currentSupplierStatus ?? "").trim().toLowerCase();
+  if (samePhase && sameTracking && sameSupplierStatus) {
     return { apply: false, reason: "unchanged", orderStatus: null, trackingStatus: null, notify: null, phase };
   }
 

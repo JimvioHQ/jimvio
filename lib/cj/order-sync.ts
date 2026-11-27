@@ -18,6 +18,7 @@ const CJ_STATUS_MAP: Record<string, string> = {
     WAIT_SHIP:      "processing",
     SHIPPED:        "shipped",
     IN_TRANSIT:     "shipped",
+    FINISHED:       "delivered",
     DONE:           "delivered",    // CJ's terminal "delivered" status
     DELIVERED:      "delivered",
     CANCELLED:      "cancelled",

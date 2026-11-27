@@ -13,6 +13,7 @@ import { resolveTrustedRateFromQuoteToken } from "@/lib/cj/checkout-quote-token"
 import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { isCjShippingMethodEligible } from "@/lib/cj/shipping-method-eligibility";
 
 // Expected, user-facing errors — logged at debug level, not as errors
 class UserError extends Error {
@@ -114,7 +115,7 @@ async function saveSelection(
     const { data: orders, error } = await supabase
         .from("orders")
         .select(
-            "id, buyer_id, payment_status, shipping_address, metadata, subtotal, discount_amount, tax_amount, shipping_amount, total_amount, order_items(variant_id, quantity, product_source)"
+            "id, buyer_id, payment_status, shipping_address, metadata, subtotal, discount_amount, tax_amount, shipping_amount, total_amount, order_items(variant_id, quantity, product_source, product_name, source_metadata)"
         )
         .in("id", orderIds);
 
@@ -232,6 +233,15 @@ async function saveSelection(
     if (!trusted) {
         throw new UserError(
             "Selected shipping option no longer available. Please choose again."
+        );
+    }
+
+    const cjOrderItems = orders.flatMap((order: any) =>
+        (order.order_items ?? []).filter((item: any) => item.product_source === "cj")
+    );
+    if (!isCjShippingMethodEligible(trusted.name, cjOrderItems)) {
+        throw new UserError(
+            "This delivery service is only available for liquid products. Please choose another shipping method."
         );
     }
 

@@ -145,24 +145,48 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
   }
 
   if (result.externalReference) {
+    const submittedAt = new Date().toISOString();
     console.info("[checkout] cj_order_submission_success", {
       orderId: params.orderId,
       cjOrderId: result.externalReference,
     });
-    await db
+    const { error: writebackError } = await db
       .from("orders")
       .update({
         cj_order_id: result.externalReference,
-        updated_at: new Date().toISOString(),
+        cj_submit_time: submittedAt,
+        cj_fulfillment_status: "submitted",
+        updated_at: submittedAt,
       })
       .eq("id", params.orderId);
 
-    await advanceOrderFulfillment(db, params.orderId, {
+    if (writebackError) {
+      console.error("[CJ] Supplier accepted the order but Jimvio could not save the CJ reference", {
+        orderId: params.orderId,
+        code: writebackError.code,
+      });
+      await logCjInternalError({
+        action: "submit_writeback_fail",
+        message: "CJ accepted the order but Jimvio failed to persist its reference",
+        error: writebackError.message,
+        orderId: params.orderId,
+      });
+      return;
+    }
+
+    const fulfillment = await advanceOrderFulfillment(db, params.orderId, {
       newStatus: "processing",
-      cjFulfillmentStatus: "processing",
-      notes: "Your order is being prepared for shipment.",
+      cjFulfillmentStatus: "submitted",
+      notes: "Your order was submitted to CJ and is being prepared for shipment.",
       metadata: { cj_order_id: result.externalReference, source: "cj_submit" },
     });
+    if (!fulfillment.updated) {
+      console.warn("[CJ] CJ reference saved but fulfillment status needs reconciliation", {
+        orderId: params.orderId,
+        cjOrderId: result.externalReference,
+        orderStatus: fulfillment.status,
+      });
+    }
   }
 }
 

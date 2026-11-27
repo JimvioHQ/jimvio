@@ -310,19 +310,27 @@ export async function submitOrderToCJ(params: {
 
 // Map CJ's order status strings to your order_status enum
 const CJ_STATUS_MAP: Record<string, string> = {
-  CREATED:    "processing",
-  PAYING:     "processing",
-  IN_PROCESS: "processing",
-  SHIPPED:    "shipped",
-  FINISHED:   "delivered",
-  CANCELLED:  "cancelled",
+  CREATED:       "processing",
+  PAYING:        "processing",
+  IN_PROCESS:    "processing",
+  UNSHIPPED:     "processing",
+  IN_PRODUCTION: "processing",
+  PICKING:       "processing",
+  PACKED:        "processing",
+  WAIT_SHIP:     "processing",
+  SHIPPED:       "shipped",
+  IN_TRANSIT:    "shipped",
+  FINISHED:      "delivered",
+  DONE:           "delivered",
+  DELIVERED:      "delivered",
+  CANCELLED:      "cancelled",
 };
 
 
 export async function syncCJOrderStatus(params: {
   orderId: string;
   cjOrderId: string;
-}): Promise<{ updated: boolean; newStatus?: string }> {
+}): Promise<{ updated: boolean; newStatus?: string; error?: string }> {
   const { orderId, cjOrderId } = params;
   const token = await getValidToken();
   const supabase = createServiceRoleClient();
@@ -353,17 +361,23 @@ export async function syncCJOrderStatus(params: {
       token
     );
   } catch (err) {
+    const message = err instanceof Error ? err.message : "CJ status lookup failed";
     console.error(`[CJ sync] Failed to fetch CJ order ${cjOrderId}:`, err);
-    return { updated: false };
+    return { updated: false, error: message };
   }
 
-  const mappedStatus = (CJ_STATUS_MAP[detail.orderStatus] ??
+  const mappedStatus = (
+    CJ_STATUS_MAP[detail.orderStatus] ??
     mapCjFulfillmentToOrderStatus(detail.orderStatus.toLowerCase()) ??
-    "processing") as OrderStatusValue;
+    undefined
+  ) as OrderStatusValue | undefined;
   const trackingNumber = detail.trackingNumber?.trim() || null;
   const trackingChanged = Boolean(trackingNumber && trackingNumber !== order.tracking_number);
+  const cjStatusChanged =
+    String(detail.orderStatus ?? "").toLowerCase() !==
+    String(order.cj_fulfillment_status ?? "").toLowerCase();
 
-  if (!trackingChanged && mappedStatus === order.status) {
+  if (!trackingChanged && mappedStatus === order.status && !cjStatusChanged) {
     return { updated: false };
   }
 
@@ -431,6 +445,7 @@ export async function syncAllOpenCJOrders(): Promise<{
         cjOrderId: order.cj_order_id!,
       });
       if (result.updated) updated++;
+      else if (result.error) errors++;
     } catch (err) {
       errors++;
       console.error(`[CJ sync] Error syncing order ${order.id}:`, err);

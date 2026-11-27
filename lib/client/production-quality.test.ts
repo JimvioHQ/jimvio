@@ -17,6 +17,7 @@ import {
   validateManualApprovalInput,
 } from "../payments/manual-approval-policy.ts";
 import { buildInvoiceData } from "../orders/invoice-data.ts";
+import { mapCjFulfillmentToOrderStatus } from "../payments/order-payment-utils.ts";
 import { isOfficialJimvioStoreLabel } from "../marketplace/store-display.ts";
 
 describe("chunk recovery", () => {
@@ -38,6 +39,17 @@ describe("chunk recovery", () => {
   });
 });
 
+describe("CJ supplier order status mapping", () => {
+  it("maps common CJ processing, shipment, and delivery states", () => {
+    assert.equal(mapCjFulfillmentToOrderStatus("UNSHIPPED"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("PACKED"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("WAIT_SHIP"), "processing");
+    assert.equal(mapCjFulfillmentToOrderStatus("IN_TRANSIT"), "shipped");
+    assert.equal(mapCjFulfillmentToOrderStatus("FINISHED"), "delivered");
+    assert.equal(mapCjFulfillmentToOrderStatus("DONE"), "delivered");
+  });
+});
+
 describe("supplier tracking decisions", () => {
   it("rejects an older event and a duplicate webhook", () => {
     const older = decideSupplierTrackingUpdate({
@@ -56,6 +68,7 @@ describe("supplier tracking decisions", () => {
       currentStatus: "shipped",
       currentTrackingStatus: "In transit",
       currentTrackingNumber: "T1",
+      currentSupplierStatus: "IN_TRANSIT",
       currentEventAt: "2026-10-14T12:00:00.000Z",
       incomingStatus: "IN_TRANSIT",
       incomingTrackingNumber: "T1",
@@ -63,6 +76,21 @@ describe("supplier tracking decisions", () => {
     });
     assert.equal(duplicate.apply, false);
     assert.equal(duplicate.reason, "unchanged");
+
+    const sameCustomerPhaseNewSupplierState = decideSupplierTrackingUpdate({
+      currentStatus: "processing",
+      currentTrackingStatus: "Awaiting shipment",
+      currentTrackingNumber: null,
+      currentSupplierStatus: "UNSHIPPED",
+      currentEventAt: "2026-10-14T12:00:00.000Z",
+      incomingStatus: "PACKED",
+      incomingTrackingNumber: null,
+      occurredAt: "2026-10-14T13:00:00.000Z",
+    });
+    assert.equal(sameCustomerPhaseNewSupplierState.apply, true);
+    assert.equal(sameCustomerPhaseNewSupplierState.reason, "accepted");
+    assert.equal(sameCustomerPhaseNewSupplierState.notify, null);
+    assert.equal(sameCustomerPhaseNewSupplierState.trackingStatus, "Awaiting shipment");
   });
 
   it("accepts out for delivery once and hides supplier wording", () => {

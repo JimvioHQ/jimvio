@@ -1194,20 +1194,35 @@ function catalogReader() {
  * Cart lines for the browser: the line's supplier metadata stays on the server;
  * only a buyer-safe SKU and the weight shown in the cart are attached.
  */
-async function withBuyerLineFacts<T extends { id: string }>(items: T[]): Promise<Array<T & { source_metadata: Record<string, unknown> }>> {
-  if (items.length === 0) return [];
-  const { data } = await catalogReader()
-    .from("cart_items")
-    .select("id, source_metadata")
-    .in("id", items.map((item) => item.id));
-  const metaById = new Map((data ?? []).map((row) => [row.id as string, (row.source_metadata ?? {}) as Record<string, unknown>]));
+type BuyerCartItem = { id: string; source_metadata?: unknown };
+
+/**
+ * Cart lines for the browser: supplier metadata stays server-side; only a
+ * buyer-safe SKU and weight are returned. The metadata is already present in
+ * the server-only cart query, so this does not need another database request.
+ */
+function withBuyerLineFacts<T extends BuyerCartItem>(items: T[]): T[] {
   return items.map((item) => {
-    const meta = metaById.get(item.id) ?? {};
-    const sku = typeof meta.sku === "string" && !/^cj/i.test(meta.sku) ? meta.sku : undefined;
+    const rawMetadata = item.source_metadata;
+    const meta =
+      rawMetadata && typeof rawMetadata === "object" && !Array.isArray(rawMetadata)
+        ? (rawMetadata as Record<string, unknown>)
+        : {};
+    const sku =
+      typeof meta.sku === "string" && !/^cj/i.test(meta.sku)
+        ? meta.sku
+        : undefined;
     const weight = meta.weight ?? meta.cj_weight;
-    return { ...item, source_metadata: { ...(sku ? { sku } : {}), ...(weight != null ? { weight } : {}) } };
+    return {
+      ...item,
+      source_metadata: {
+        ...(sku ? { sku } : {}),
+        ...(weight != null ? { weight } : {}),
+      },
+    } as T;
   });
 }
+
 import { revalidatePath } from "next/cache";
 import { finalizeAndCompleteOrder } from "./order-lifecycle";
 import {
@@ -1935,7 +1950,7 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
           id, user_id, currency, item_count, subtotal, last_activity_at, created_at, updated_at, jimvio_store_id,
           cart_items (
             id, cart_id, product_id, variant_id, vendor_id, quantity, unit_price_at_add, currency_at_add,
-            affiliate_link_id, added_at, updated_at,
+            affiliate_link_id, added_at, updated_at, source_metadata,
             products (
               id, name, slug, images,
               pricing_type, billing_period, product_type
@@ -1961,13 +1976,13 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
       if (cartError) throw cartError;
       if (!cart) return { cart: null, items: [], total: 0 };
 
-      const items = await withBuyerLineFacts((cart.cart_items as any[]) ?? []);
+      const items = withBuyerLineFacts((cart.cart_items as any[]) ?? []);
       const total = items.reduce(
         (sum, item) => sum + Number(item.unit_price_at_add) * Number(item.quantity),
         0
       );
 
-      return { cart, items, total };
+      return { cart: { ...cart, cart_items: items }, items, total };
     } catch (error) {
       const canRetry = attempt < maxAttempts && isTransientNetworkError(error);
       if (canRetry) {

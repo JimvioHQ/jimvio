@@ -22,6 +22,7 @@ import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
 import { CJ_CUSTOMER_MESSAGES, sanitizeCustomerError } from "@/lib/cj/customer-errors-shared";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { isCjShippingMethodEligible } from "@/lib/cj/shipping-method-eligibility";
 import {
   marketplacePaymentErrorMessage,
   PLATFORM_CURRENCY,
@@ -420,13 +421,16 @@ export function CheckoutExperience({
                arrivalDays: r.arrivalDays,
                priceUSD: r.priceUSD ?? 0,
             }));
-            if (opts.length > 0) {
-               setCjOptions(opts);
+            const eligibleOpts = opts.filter((option) =>
+               isCjShippingMethodEligible(option.name, cjItems)
+            );
+            if (eligibleOpts.length > 0) {
+               setCjOptions(eligibleOpts);
                setCjQuoteToken(typeof json.quoteToken === "string" ? json.quoteToken : null);
-               const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
+               const cheapest = eligibleOpts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
                setCjSelected((prev) => {
                   if (!prev) return cheapest;
-                  const stillThere = opts.find(
+                  const stillThere = eligibleOpts.find(
                      (o) =>
                         o.optionId === prev.optionId ||
                         o.channelId === prev.channelId ||
@@ -439,7 +443,11 @@ export function CheckoutExperience({
                setCjSelected(null);
                setCjQuoteToken(null);
                setCjOptions([]);
-               setCjError(json.message || CJ_CUSTOMER_MESSAGES.shippingUnavailable);
+               setCjError(
+                  opts.length > 0
+                     ? "No delivery method is compatible with every product in this order."
+                     : json.message || CJ_CUSTOMER_MESSAGES.shippingUnavailable
+               );
             }
             setStage("delivery");
          } catch (e) {

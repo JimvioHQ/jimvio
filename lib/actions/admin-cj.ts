@@ -238,8 +238,18 @@ export async function syncOneCJOrder(orderId: string): Promise<CJActionResult> {
             return { success: false, message: "Order not yet submitted to CJ" };
         }
 
-        const { syncCJOrders } = await import("@/lib/cj/order-sync");
-        await syncCJOrders();
+        const { syncCJOrderStatus } = await import("@/services/cj/cj-order-service");
+        const syncResult = await syncCJOrderStatus({
+            orderId,
+            cjOrderId: order.cj_order_id,
+        });
+        if (syncResult.error) {
+            return {
+                success: false,
+                message: "CJ status sync failed",
+                error: syncResult.error,
+            };
+        }
 
         const { data: updated } = await db
             .from("orders")
@@ -247,7 +257,7 @@ export async function syncOneCJOrder(orderId: string): Promise<CJActionResult> {
             .eq("id", orderId)
             .single();
 
-        await logCJ({ order_id: orderId, action: "admin_sync", message: "Admin synced CJ status" });
+        await logCJ({ order_id: orderId, action: "admin_sync", message: syncResult.updated ? `Admin synced CJ status: ${syncResult.newStatus ?? "updated"}` : "Admin checked CJ status; no change was needed" });
         revalidatePath(`/admin/orders/${orderId}`);
 
         const status   = updated?.cj_fulfillment_status ?? order.cj_fulfillment_status;

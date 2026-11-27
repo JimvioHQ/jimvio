@@ -24,7 +24,7 @@ export async function advanceOrderFulfillment(
 ): Promise<{ updated: boolean; status: string }> {
     const { data: order } = await db
         .from("orders")
-        .select("status, shipped_at, delivered_at, tracking_number, tracking_status, tracking_url, buyer_id, order_number, metadata")
+        .select("status, shipped_at, delivered_at, tracking_number, tracking_status, tracking_url, cj_fulfillment_status, buyer_id, order_number, metadata")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -46,6 +46,7 @@ export async function advanceOrderFulfillment(
             currentStatus: previousStatus,
             currentTrackingStatus: order.tracking_status,
             currentTrackingNumber: order.tracking_number,
+            currentSupplierStatus: order.cj_fulfillment_status,
             currentEventAt: typeof storedMeta.tracking_event_at === "string" ? storedMeta.tracking_event_at : null,
             incomingStatus: params.cjFulfillmentStatus ?? params.newStatus ?? params.trackingStatus,
             incomingTrackingNumber: params.trackingNumber,
@@ -89,6 +90,7 @@ export async function advanceOrderFulfillment(
     const metaPatch: Record<string, unknown> = { ...storedMeta };
     let metaChanged = false;
     if (trackingUrl) {
+      patch.tracking_url = trackingUrl;
       metaPatch.tracking_url = trackingUrl;
       metaChanged = true;
     }

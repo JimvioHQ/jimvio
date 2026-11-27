@@ -33,6 +33,12 @@ const theme = read("components/providers/theme-provider.tsx");
 const globals = read("styles/globals.css");
 const afterPay = read("lib/order-fulfillment/after-payment.ts");
 const submitCj = read("lib/sources/cj/submit-order.ts");
+const shippingEligibility = read("lib/cj/shipping-method-eligibility.ts");
+const paymentErrors = read("lib/currency/platform.ts");
+const paymentSelectorForOrder = read("components/checkout/PaymentMethodSelector.tsx");
+const marketplaceActions = read("lib/actions/marketplace.ts");
+const adminCj = read("lib/actions/admin-cj.ts");
+const cjOrderService = read("services/cj/cj-order-service.ts");
 const binanceWh = read("app/api/webhooks/binance/route.ts");
 const flwWh = read("app/api/payments/flutterwave/webhook/route.ts");
 const nowWh = read("app/api/webhooks/nowpayments/route.ts");
@@ -88,6 +94,63 @@ assert(
   submitCj.includes("Already submitted") ||
     submitCj.includes("cj_order_submission_skipped_duplicate"),
   "CJ submit must skip when cj_order_id already exists"
+);
+assert(
+  shippingEligibility.includes("isCjShippingMethodEligible") &&
+    shippingEligibility.includes("LIQUID") &&
+    checkout.includes("eligibleOpts") &&
+    checkout.includes("isCjShippingMethodEligible") &&
+    setShipping.includes("isCjShippingMethodEligible") &&
+    submitCj.includes("isCjShippingMethodEligible"),
+  "Liquid-only CJ shipping lanes must be filtered in checkout and rejected server-side"
+);
+assert(
+  shippingEligibility.includes("liquid soap") &&
+    shippingEligibility.includes("essential oils?"),
+  "Liquid product classification must use specific product/category signals, not generic product wording"
+);
+assert(
+  shippingEligibility.includes("if (/LIQUID/i.test(productType))"),
+  "CJ supplier product types explicitly marked liquid must remain eligible for liquid-only lanes"
+);
+assert(
+  adminCj.includes("syncCJOrderStatus") &&
+    !adminCj.includes('import("@/lib/cj/order-sync")') &&
+    cjOrderService.includes("cjStatusChanged"),
+  "Manual CJ sync must target the selected order and update supplier status even when the order status is unchanged"
+);
+assert(
+  cjOrderService.includes("else if (result.error) errors++"),
+  "Batch CJ sync must count supplier lookup errors instead of silently treating them as unchanged"
+);
+const paymentMethodsStart = paymentSelectorForOrder.indexOf("const METHODS: MethodDef[] = [");
+const binanceMethodIndex = paymentSelectorForOrder.indexOf('id: "binancepay"', paymentMethodsStart);
+const walletMethodIndex = paymentSelectorForOrder.indexOf('id: "wallet"', paymentMethodsStart);
+assert(
+  paymentMethodsStart >= 0 &&
+    binanceMethodIndex > paymentMethodsStart &&
+    walletMethodIndex > binanceMethodIndex,
+  "Jimvio Wallet must appear below Binance Pay"
+);
+assert(
+  paymentErrors.indexOf("400004") >= 0 &&
+    paymentErrors.indexOf("400004") < paymentErrors.indexOf("/amount|minimum/i"),
+  "Binance API authorization errors must not be mapped to amount errors"
+);
+assert(
+  afterPay.includes('cj_fulfillment_status: "submitted"') &&
+    afterPay.includes("cj_submit_time"),
+  "CJ successful submission must persist its reference, timestamp, and submitted status"
+);
+assert(
+  marketplaceActions.includes("affiliate_link_id, added_at, updated_at, source_metadata") &&
+    marketplaceActions.includes("cart: { ...cart, cart_items: items }"),
+  "Cart must sanitize supplier metadata from the same server-only read without a second metadata query"
+);
+assert(
+  marketplaceActions.includes("function withBuyerLineFacts<T extends BuyerCartItem>(items: T[]): T[]") &&
+    marketplaceActions.includes("...item,"),
+  "Cart metadata sanitization must preserve the full CartItem shape and type"
 );
 assert(
   binanceWh.includes("finalizeOrderPayment") &&
@@ -346,6 +409,79 @@ assert(
     paymentWebhook.includes("Duplicate event") &&
     paymentWebhook.includes("finalizeOrderPayment"),
   "Unified payment webhook must be idempotent and call finalizeOrderPayment"
+);
+
+// ── Unified order fulfillment + favicon/PWA invariants ──────────────────────
+const trackingDecision = read("lib/order-fulfillment/tracking-decision.ts");
+const advanceOrder = read("lib/order-fulfillment/advance-order-status.ts");
+const cjSync = read("lib/cj/order-sync.ts");
+const cjService = read("services/cj/cj-order-service.ts");
+const vendorAction = read("lib/actions/vendor.ts");
+const vendorFulfillRoute = read("app/api/vendor/orders/[orderId]/fulfill/route.ts");
+const orderStatusRoute = read("app/api/orders/update/[status]/[orderId]/route.ts");
+assert(
+  trackingDecision.includes("currentSupplierStatus") &&
+    trackingDecision.includes('key === "awaiting_shipment"'),
+  "Supplier raw status changes within the same processing/awaiting-shipment phase must be persisted"
+);
+assert(
+  advanceOrder.includes("patch.tracking_url = trackingUrl") &&
+    advanceOrder.includes("recordOrderStatusChange"),
+  "Shared fulfillment lifecycle must persist tracking URL and status history"
+);
+assert(
+  cjSync.includes('FINISHED:       "delivered"') &&
+    cjService.includes('FINISHED:      "delivered"') &&
+    !cjService.includes('??\n    "processing"'),
+  "CJ delivery statuses must map to delivered without forcing unknown states to processing"
+);
+assert(
+  vendorAction.includes("advanceOrderFulfillment") &&
+    !vendorAction.includes('.from("orders")\n    .update(') &&
+    vendorAction.includes("isOrderPaymentComplete"),
+  "Vendor server actions must use the shared fulfillment lifecycle and paid-order guard"
+);
+assert(
+  vendorFulfillRoute.includes("advanceOrderFulfillment") &&
+    vendorFulfillRoute.includes("tracking number is required") &&
+    vendorFulfillRoute.includes("vendorIds"),
+  "Vendor shipping API must enforce tracking, multi-store ownership, and shared order lifecycle"
+);
+assert(
+  orderStatusRoute.includes("advanceOrderFulfillment") &&
+    orderStatusRoute.includes("tracking number is required") &&
+    orderStatusRoute.includes("VENDOR_ONLY_STATUSES"),
+  "Order status API must use the shared lifecycle and enforce vendor-only fulfillment transitions"
+);
+const seo = read("lib/seo.ts");
+const siteManifest = read("public/site.webmanifest");
+const nextManifest = read("app/manifest.ts");
+const browserConfig = read("public/browserconfig.xml");
+assert(
+  seo.includes("/favicon.ico?v=20261127") &&
+    seo.includes("/favicon.svg?v=20261127") &&
+    seo.includes("/favicon-16x16.png?v=20261127") &&
+    seo.includes("/favicon-32x32.png?v=20261127") &&
+    seo.includes("/apple-touch-icon.png?v=20261127") &&
+    seo.includes('manifest: "/site.webmanifest"'),
+  "Browser, classic, SVG, Apple, and manifest metadata must use the current Jimvio icon package"
+);
+assert(
+  siteManifest.includes('"theme_color": "#F95405"') &&
+    siteManifest.includes('"sizes": "192x192"') &&
+    siteManifest.includes('"sizes": "512x512"') &&
+    siteManifest.includes('"purpose": "maskable"') &&
+    nextManifest.includes('theme_color: "#F95405"'),
+  "PWA manifest must include standard, maskable, and orange-themed app icons"
+);
+assert(
+  browserConfig.includes("#F95405") &&
+    existsSync(join(root, "app/favicon.ico")) &&
+    existsSync(join(root, "public/favicon.svg")) &&
+    existsSync(join(root, "app/apple-touch-icon.png/route.ts")) &&
+    existsSync(join(root, "app/favicon-16x16.png/route.ts")) &&
+    existsSync(join(root, "app/favicon-32x32.png/route.ts")),
+  "Classic ICO, SVG, Apple touch, browser PNG, and Windows tile assets must exist"
 );
 
 if (fails.length) {
