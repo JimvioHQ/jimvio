@@ -322,7 +322,7 @@ const CJ_STATUS_MAP: Record<string, string> = {
 export async function syncCJOrderStatus(params: {
   orderId: string;
   cjOrderId: string;
-}): Promise<{ updated: boolean; newStatus?: string }> {
+}): Promise<{ updated: boolean; newStatus?: string; error?: string }> {
   const { orderId, cjOrderId } = params;
   const token = await getValidToken();
   const supabase = createServiceRoleClient();
@@ -353,8 +353,9 @@ export async function syncCJOrderStatus(params: {
       token
     );
   } catch (err) {
+    const message = err instanceof Error ? err.message : "CJ status lookup failed";
     console.error(`[CJ sync] Failed to fetch CJ order ${cjOrderId}:`, err);
-    return { updated: false };
+    return { updated: false, error: message };
   }
 
   const mappedStatus = (CJ_STATUS_MAP[detail.orderStatus] ??
@@ -362,8 +363,11 @@ export async function syncCJOrderStatus(params: {
     "processing") as OrderStatusValue;
   const trackingNumber = detail.trackingNumber?.trim() || null;
   const trackingChanged = Boolean(trackingNumber && trackingNumber !== order.tracking_number);
+  const cjStatusChanged =
+    String(detail.orderStatus ?? "").toLowerCase() !==
+    String(order.cj_fulfillment_status ?? "").toLowerCase();
 
-  if (!trackingChanged && mappedStatus === order.status) {
+  if (!trackingChanged && mappedStatus === order.status && !cjStatusChanged) {
     return { updated: false };
   }
 
