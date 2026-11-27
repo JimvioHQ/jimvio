@@ -7,6 +7,7 @@ import { sanitizeCustomerOrderMetadata } from "@/lib/orders/customer-order-field
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensurePendingOrderPlatformCurrency } from "@/lib/commerce/ensure-platform-currency";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { toPublicPayload } from "@/lib/marketplace/public-product";
 
 export const dynamic = "force-dynamic";
 
@@ -408,11 +409,23 @@ export default async function CheckoutPage(props: {
     .eq("id", user.id)
     .single();
 
+  const buyerSafeOrders = toPublicPayload(
+    finalOrders.map((order) => ({
+      ...order,
+      order_items: order.order_items.map((item) => ({
+        ...item,
+        is_supplier_fulfilled: item.product_source === "cj",
+        // The checkout UI needs a supplier-fulfilled flag, not the supplier ID.
+        product_source: item.product_source === "cj" ? "vendor" : item.product_source,
+      })),
+    })),
+  );
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-8xl mx-auto px-0 sm:px-4 md:px-6">
         <CheckoutExperience
-          orders={finalOrders as never}
+          orders={buyerSafeOrders as never}
           profile={profile}
           mode={finalOrders.some((order) => order.integration_source === "community") ? "community" : "cart"}
           preferredMethod={preferredMethod}
