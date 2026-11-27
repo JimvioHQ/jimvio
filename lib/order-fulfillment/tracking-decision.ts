@@ -69,7 +69,7 @@ export function mapSupplierStatusToPhase(raw: string | null | undefined): Tracki
       "waiting_for_submission",
     ].includes(key)
   ) {
-    return key === "unshipped" || key === "wait_ship" || key === "packed" ? "awaiting_shipment" : "processing";
+    return key === "unshipped" || key === "wait_ship" || key === "packed" || key === "awaiting_shipment" ? "awaiting_shipment" : "processing";
   }
   return null;
 }
