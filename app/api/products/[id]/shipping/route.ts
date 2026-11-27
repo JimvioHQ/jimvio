@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isStorefrontVisibleProduct } from "@/lib/marketplace/product-route-lookup";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
@@ -42,14 +44,22 @@ async function fetchLiveCjRates(params: {
   };
   if (params.cjPid) body.pid = params.cjPid;
 
-  const res = await fetch(`${CJ_BASE_URL}/logistic/freightCalculate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "CJ-Access-Token": token,
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${CJ_BASE_URL}/logistic/freightCalculate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "CJ-Access-Token": token,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(7000),
+    });
+  } catch {
+    // Live supplier rates are best-effort; never hold the product page open
+    // indefinitely when the supplier API is slow or unavailable.
+    return [];
+  }
 
   if (!res.ok) return [];
 
@@ -79,13 +89,14 @@ export async function GET(
       normalizeCountryCode(req.nextUrl.searchParams.get("country")) ?? "RW";
     const variantId = req.nextUrl.searchParams.get("variantId");
 
-    const supabase = await createClient();
+    const session = await createClient();
+    const supabase = createAdminClient();
 
     const { data: product, error: productError } = await supabase
       .from("products")
       .select(
         `
-        id, source,
+        id, source, product_type, is_digital, status, is_active, deleted_at,
         product_shipping_options (
           id, method_name, carrier, estimated_delivery,
           min_delivery_days, max_delivery_days,
@@ -99,9 +110,12 @@ export async function GET(
       `,
       )
       .eq("id", productId)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
       .maybeSingle();
 
-    if (productError || !product) {
+    if (productError || !product || !isStorefrontVisibleProduct(product)) {
       return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
     }
 
@@ -123,7 +137,10 @@ export async function GET(
       });
     }
 
-    if (product.source !== "cj") {
+    const isPhysicalProduct =
+      product.product_type === "physical" ||
+      (product.product_type == null && product.is_digital !== true);
+    if (!isPhysicalProduct || product.source !== "cj") {
       return NextResponse.json({ success: true, country, options: [], source: "none" });
     }
 
@@ -140,7 +157,7 @@ export async function GET(
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await session.auth.getUser();
     if (!user) {
       return NextResponse.json({
         success: true,

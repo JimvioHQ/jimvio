@@ -26,6 +26,7 @@ export type CartItem = {
     pricing_type?: string;
     billing_period?: string;
     product_source?: "vendor" | "shopify" | "cj";
+    is_supplier_fulfilled?: boolean;
     variant_id?: string;
     cj_vid?: string;
     cj_pid?: string;
@@ -39,6 +40,7 @@ export type CartItem = {
         cj_pid?: string;
         cj_sku?: string;
         cj_weight?: number;
+        weight?: number;
         [key: string]: unknown;
     };
 };

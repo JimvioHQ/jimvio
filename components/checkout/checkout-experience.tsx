@@ -37,11 +37,15 @@ function defaultPayment(currency: string | null): MethodId {
    return "nowpayments";
 }
 function hasCJItems(orders: CartOrder[]): boolean {
-   return orders.some((o) => o.order_items.some((i) => i.product_source === "cj"));
+   return orders.some((o) =>
+      o.order_items.some((i) => i.is_supplier_fulfilled === true || i.product_source === "cj")
+   );
 }
 
 function getCJCartItems(orders: CartOrder[]): CartItem[] {
-   return orders.flatMap((o) => o.order_items.filter((i) => i.product_source === "cj"));
+   return orders.flatMap((o) =>
+      o.order_items.filter((i) => i.is_supplier_fulfilled === true || i.product_source === "cj")
+   );
 }
 
 const USER_FACING_ERRORS: Record<string, string> = {
@@ -98,7 +102,7 @@ function getCJVid(item: CartItem): string | null {
 }
 
 function getCJWeight(item: CartItem): number | null {
-   return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
+   return item.variant_weight ?? item.source_metadata?.weight ?? item.source_metadata?.cj_weight ?? null;
 }
 
 type Stage = "shipping" | "delivery" | "payment" | "mobile_money";

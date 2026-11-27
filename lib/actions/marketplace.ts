@@ -1223,6 +1223,7 @@ import { grantDigitalAccess } from "./digital-access";
 import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { toPublicProduct } from "@/lib/marketplace/public-product";
 import { resolvePurchaseLine } from "@/lib/products/resolve-purchase-line";
 import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 import {
@@ -1513,17 +1514,19 @@ const EMPTY_NAVBAR_COUNTS: NavbarCounts = {
   walletCurrency: "USD",
 };
 
-let navbarCountsInFlight: Promise<NavbarCounts> | null = null;
+const navbarCountsInFlight = new Map<string, Promise<NavbarCounts>>();
 
 export async function getNavbarCounts(): Promise<NavbarCounts> {
-  if (navbarCountsInFlight) return navbarCountsInFlight;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return EMPTY_NAVBAR_COUNTS;
 
-  navbarCountsInFlight = (async () => {
-    try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return EMPTY_NAVBAR_COUNTS;
+    // Never share one in-flight promise across different signed-in users.
+    const existing = navbarCountsInFlight.get(user.id);
+    if (existing) return existing;
 
+    const request = (async (): Promise<NavbarCounts> => {
       const [cartResult, messageResult, notifResult, walletResult, xpResult, affResult] =
         await Promise.all([
           supabase
@@ -1548,9 +1551,7 @@ export async function getNavbarCounts(): Promise<NavbarCounts> {
 
           (supabase as any)
             .from("wallets")
-            .select(
-              "available_balance, pending_balance, locked_balance, rewards_balance, currency",
-            )
+            .select("available_balance, pending_balance, locked_balance, rewards_balance, currency")
             .eq("user_id", user.id)
             .maybeSingle(),
 
@@ -1591,15 +1592,20 @@ export async function getNavbarCounts(): Promise<NavbarCounts> {
         rewardsBalance: Math.max(0, Math.trunc(Number(xpResult.data?.xp ?? 0))),
         walletCurrency: PLATFORM_CURRENCY,
       };
-    } catch (err) {
-      console.error("[getNavbarCounts] error:", err);
-      return EMPTY_NAVBAR_COUNTS;
-    } finally {
-      navbarCountsInFlight = null;
-    }
-  })();
+    })();
 
-  return navbarCountsInFlight;
+    navbarCountsInFlight.set(user.id, request);
+    try {
+      return await request;
+    } finally {
+      if (navbarCountsInFlight.get(user.id) === request) {
+        navbarCountsInFlight.delete(user.id);
+      }
+    }
+  } catch (err) {
+    console.error("[getNavbarCounts] error:", err);
+    return EMPTY_NAVBAR_COUNTS;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1911,7 +1917,7 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
           "@/lib/commerce-os/cart/scoped"
         );
         const store = await resolveJimvioStoreIdByHandle(
-          supabase,
+          catalogReader(),
           opts.jimvioStoreHandle
         );
         storeId = store?.id ?? null;
@@ -1919,15 +1925,19 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
       // Default marketplace cart when no store scope requested
       if (storeId === undefined) storeId = null;
 
-      let cartQuery = supabase
+      // Read the buyer-owned cart through the server-only catalog client. The
+      // products table intentionally has column-level SELECT grants, so a
+      // browser session cannot join product rows here. Ownership remains
+      // enforced by the authenticated user id and exact store scope below.
+      let cartQuery = catalogReader()
         .from("carts")
         .select(`
           id, user_id, currency, item_count, subtotal, last_activity_at, created_at, updated_at, jimvio_store_id,
           cart_items (
             id, cart_id, product_id, variant_id, vendor_id, quantity, unit_price_at_add, currency_at_add,
-            product_source, affiliate_link_id, added_at, updated_at,
+            affiliate_link_id, added_at, updated_at,
             products (
-              id, name, slug, images, source, cj_last_synced_at,
+              id, name, slug, images,
               pricing_type, billing_period, product_type
             ),
             product_variants (
@@ -2293,6 +2303,7 @@ export async function checkProductInCart(
       .from("carts")
       .select("id")
       .eq("user_id", user.id)
+      .is("jimvio_store_id", null)
       .maybeSingle();
 
     if (!cart) return { inCart: false };
@@ -2323,6 +2334,7 @@ export async function removeProductFromCart(
       .from("carts")
       .select("id")
       .eq("user_id", user.id)
+      .is("jimvio_store_id", null)
       .maybeSingle();
 
     if (!cart) return { success: false, error: "Item not in cart" };
@@ -2686,10 +2698,21 @@ export async function buyDirectCheckout(
 
 export async function getProductVariants(productId: string) {
   try {
-    const supabase = await createClient();
+    if (!/^[0-9a-f-]{36}$/i.test(productId)) {
+      return { success: false, error: "Invalid product", variants: [] };
+    }
+
+    // Variant supplier fields are intentionally unavailable to browser roles.
+    // Read them server-side, validate the public product, then strip supplier
+    // identifiers before the variants reach the product-detail client.
+    const admin = catalogReader();
     const [{ data: product }, { data, error }] = await Promise.all([
-      supabase.from("products").select("track_inventory").eq("id", productId).maybeSingle(),
-      supabase
+      admin
+        .from("products")
+        .select("track_inventory, status, is_active, deleted_at, product_type, is_digital, digital_verification_state")
+        .eq("id", productId)
+        .maybeSingle(),
+      admin
         .from("product_variants")
         .select(`
           id, name, sku, price, compare_at_price,
@@ -2703,10 +2726,21 @@ export async function getProductVariants(productId: string) {
         .order("created_at", { ascending: true }),
     ]);
 
+    if (!product || product.status !== "active" || product.is_active !== true || product.deleted_at) {
+      return { success: true, variants: [] };
+    }
+    const isDigitalProduct =
+      product.product_type != null
+        ? product.product_type !== "physical"
+        : product.is_digital === true;
+    if (isDigitalProduct && product.digital_verification_state !== "published") {
+      return { success: true, variants: [] };
+    }
     if (error) throw error;
 
-    const trackInventory = Boolean(product?.track_inventory);
-    const variants = filterStorefrontVariants(data ?? [], trackInventory);
+    const trackInventory = Boolean(product.track_inventory);
+    const variants = filterStorefrontVariants(data ?? [], trackInventory)
+      .map((variant) => toPublicProduct(variant));
 
     return { success: true, variants };
   } catch (error: any) {

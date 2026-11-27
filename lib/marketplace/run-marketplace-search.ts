@@ -40,7 +40,7 @@ const PRODUCT_SELECT = `
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
-  short_description, description, tags, view_count, sku, source, is_trending, has_supplier_video, is_partner_verified,
+  short_description, description, tags, view_count, sku, is_trending, has_supplier_video, is_partner_verified,
   vendors(id, business_name, verification_status)
 `;
 
