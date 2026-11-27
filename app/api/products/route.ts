@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
       .from("products")
       .select(`
         id, name, slug, short_description, price, currency, compare_at_price,
-        images, rating, review_count, is_featured, is_digital, product_type, source,
+        images, rating, review_count, is_featured, is_digital, product_type,
         affiliate_enabled, affiliate_commission_rate, sale_count, view_count,
         vendors!inner(id, business_name, business_slug, rating, verification_status, business_country),
         product_categories(name, slug)
