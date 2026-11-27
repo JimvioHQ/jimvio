@@ -7403,6 +7403,8 @@ export type Database = {
           nowpayments_payment_id: number | null
           order_number: string
           paid_at: string | null
+          payment_provider: string | null
+          gateway_used: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           referral_code: string | null
           shipped_at: string | null
@@ -7447,6 +7449,8 @@ export type Database = {
           nowpayments_payment_id?: number | null
           order_number?: string
           paid_at?: string | null
+          payment_provider?: string | null
+          gateway_used?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           referral_code?: string | null
           shipped_at?: string | null
