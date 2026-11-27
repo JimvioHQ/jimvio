@@ -1,5 +1,5 @@
 export const runtime = "nodejs";
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const source = new URL("/icons/apple-touch-icon.png", request.url);
