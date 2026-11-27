@@ -2333,6 +2333,7 @@ export async function removeProductFromCart(
       .from("carts")
       .select("id")
       .eq("user_id", user.id)
+      .is("jimvio_store_id", null)
       .maybeSingle();
 
     if (!cart) return { success: false, error: "Item not in cart" };
