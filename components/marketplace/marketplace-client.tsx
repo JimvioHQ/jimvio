@@ -813,7 +813,7 @@ export function MarketplaceClient({
         images, rating, review_count, is_featured, is_digital,
         product_type, status, affiliate_enabled, affiliate_commission_rate,
         sale_count, view_count, wishlist_count, inventory_quantity,
-        created_at, source, currency, button_text,
+        created_at, currency, button_text,
         pricing_type, billing_period,
         vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
         product_categories ( id, name, slug )
