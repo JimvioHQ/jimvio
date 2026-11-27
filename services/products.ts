@@ -322,7 +322,7 @@ export async function getProducts(query: ProductQuery = {}) {
       images, rating, review_count, is_featured, is_digital,
       product_type, status, affiliate_enabled, affiliate_commission_rate, affiliate_price,
       sale_count, view_count, wishlist_count, inventory_quantity,
-      created_at, source, currency, button_text, brand,
+      created_at, currency, button_text, brand,
       pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
       product_categories${category ? "!inner" : ""} ( id, name, slug )
@@ -651,7 +651,7 @@ export async function getProductPageData(
           .from("products")
           .select(`
             id, name, slug, price, compare_at_price, currency, images,
-            rating, review_count, sale_count, source, product_type,
+            rating, review_count, sale_count, product_type,
             inventory_quantity, track_inventory, low_stock_threshold,
             affiliate_enabled, affiliate_commission_rate
           `)
@@ -701,7 +701,7 @@ export async function getVendorProducts(vendorId: string) {
   const { data } = await db
     .from("products")
     .select(`
-      id, name, slug, price, compare_at_price, status, product_type, source,
+      id, name, slug, price, compare_at_price, status, product_type,
       images, inventory_quantity, track_inventory, low_stock_threshold,
       sale_count, rating, review_count,
       affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency,
@@ -732,7 +732,7 @@ export async function queryVendorStoreProducts(
     .from("products")
     .select(
       `
-      id, name, slug, sku, short_description, price, compare_at_price, status, product_type, source,
+      id, name, slug, sku, short_description, price, compare_at_price, status, product_type,
       images, inventory_quantity, track_inventory, low_stock_threshold,
       sale_count, rating, review_count, vendor_id,
       affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency,
