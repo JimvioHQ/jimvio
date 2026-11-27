@@ -59,9 +59,9 @@ const FEATURES: { icon: LucideIcon; label: string }[] = [
 
 const CATEGORIES = [
   { key: "links", title: "Scam & Malicious Link Detection", text: "Check websites and links for threats, phishing, and security risks.", icon: ShieldCheck, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: ScamArt, mode: "url" as Mode },
-  { key: "engagement", title: "Engagement & Traffic Detection", text: "Analyze real engagement, audience quality, and traffic authenticity.", icon: ChartColumnIncreasing, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: EngagementArt, mode: "url" as Mode },
+  { key: "engagement", title: "Engagement & Traffic Detection", text: "Review available public engagement signals and platform metadata. Private reach and website traffic cannot be verified.", icon: ChartColumnIncreasing, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: EngagementArt, mode: "url" as Mode },
   { key: "product", title: "Digital Product Verification", text: "Verify e-books, PDFs, templates, and other digital products.", icon: Layers, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: ProductArt, mode: "file" as Mode },
-  { key: "media", title: "Media Metadata & Provenance", text: "Check images and videos for authenticity, origin, and AI generation.", icon: ImageIcon, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: MediaArt, mode: "file" as Mode },
+  { key: "media", title: "Media Metadata & Provenance", text: "Inspect available media metadata and provenance markers. This is not a deepfake detector or global copyright search.", icon: ImageIcon, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: MediaArt, mode: "file" as Mode },
 ];
 
 const STEPS = [
@@ -250,7 +250,7 @@ export function TrustCheckerPage() {
             Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
           </h1>
           <p className="tc-rise mt-2 max-w-[1100px] text-[15px] leading-6 text-[#1F2937] [animation-delay:160ms] sm:text-[17px]">
-            Verify the authenticity, safety, and legitimacy of links, digital products, images, videos, and more with AI-powered analysis.
+            Review links, public engagement signals, digital product files, and media metadata with evidence-based findings and clear verification limits.
           </p>
           <span className="tc-rise mt-4 inline-flex items-center gap-2.5 rounded-full border border-[#FFE0CF] bg-[#FFF1E9] px-6 py-2.5 text-[15px] font-extrabold text-[#FF5A1F] shadow-[0_4px_14px_rgba(255,90,31,0.10)] [animation-delay:240ms]">
             <Sparkles className="h-5 w-5 fill-[#FF5A1F] text-[#FF5A1F]" /> AI-Powered Verification Engine
