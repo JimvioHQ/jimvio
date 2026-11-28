@@ -296,7 +296,7 @@ export function CoursesManagement() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7>
+      <header className="flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#FF5A1F]">Jimvio Learning</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#111827]">Course Studio</h1>
