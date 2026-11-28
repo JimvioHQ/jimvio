@@ -458,11 +458,11 @@ const siteManifest = read("public/site.webmanifest");
 const nextManifest = read("app/manifest.ts");
 const browserConfig = read("public/browserconfig.xml");
 assert(
-  seo.includes("/favicon.ico?v=20261127") &&
-    seo.includes("/favicon.svg?v=20261127") &&
-    seo.includes("/favicon-16x16.png?v=20261127") &&
-    seo.includes("/favicon-32x32.png?v=20261127") &&
-    seo.includes("/apple-touch-icon.png?v=20261127") &&
+  seo.includes("/api/site-icons/favicon-ico") &&
+    seo.includes("/api/site-icons/favicon-svg") &&
+    seo.includes("/api/site-icons/favicon-16") &&
+    seo.includes("/api/site-icons/favicon-32") &&
+    seo.includes("/api/site-icons/apple-touch") &&
     seo.includes('manifest: "/site.webmanifest"'),
   "Browser, classic, SVG, Apple, and manifest metadata must use the current Jimvio icon package"
 );
@@ -476,7 +476,7 @@ assert(
 );
 assert(
   browserConfig.includes("#F95405") &&
-    existsSync(join(root, "app/favicon.ico")) &&
+    existsSync(join(root, "app/favicon.ico/route.ts")) &&
     existsSync(join(root, "public/favicon.svg")) &&
     existsSync(join(root, "app/apple-touch-icon.png/route.ts")) &&
     existsSync(join(root, "app/favicon-16x16.png/route.ts")) &&
