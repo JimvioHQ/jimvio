@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
-import DOMPurify from "isomorphic-dompurify";
 import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditEvent } from "@/services/ops/audit";
@@ -18,6 +17,86 @@ export const runtime = "nodejs";
 
 type IconAsset = { path: string; contentType: string; size: number; width: number; height: number; updatedAt: string };
 type IconSettings = { assets: Record<string, IconAsset>; history: Record<string, IconAsset[]>; updatedAt: string };
+
+const SAFE_SVG_TAGS = new Set([
+  "svg", "g", "path", "circle", "rect", "ellipse", "line", "polyline", "polygon",
+  "defs", "linearGradient", "radialGradient", "stop", "clipPath", "mask",
+]);
+const SAFE_SVG_ATTRIBUTES = new Set([
+  "xmlns", "viewBox", "width", "height", "preserveAspectRatio", "version", "id",
+  "d", "points", "fill", "fill-rule", "fill-opacity", "stroke", "stroke-width",
+  "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray",
+  "stroke-dashoffset", "stroke-opacity", "opacity", "transform", "x", "y", "cx",
+  "cy", "r", "rx", "ry", "x1", "y1", "x2", "y2", "offset", "stop-color",
+  "stop-opacity", "gradientUnits", "gradientTransform", "clip-path", "mask",
+]);
+
+/** Rebuild SVG from a conservative element/attribute allow-list. */
+function sanitizeUploadedSvg(input: string): string | null {
+  const source = input.replace(/^\uFEFF/, "").trim().replace(/^<\?xml[^>]*>\s*/i, "");
+  if (!source || source.length > SITE_ICON_MAX_BYTES || /<!DOCTYPE|<!ENTITY|<\?|<!--|-->/i.test(source)) return null;
+  const tokens = source.match(/<[^>]*>|[^<]+/g);
+  if (!tokens || tokens.join("") !== source) return null;
+
+  const output: string[] = [];
+  const stack: string[] = [];
+  let rootSeen = false;
+  let rootClosed = false;
+
+  for (const token of tokens) {
+    if (!token.startsWith("<")) {
+      if (token.trim()) return null;
+      continue;
+    }
+    const closing = token.match(/^<\/([A-Za-z][A-Za-z0-9]*)\s*>$/);
+    if (closing) {
+      const tag = closing[1];
+      if (stack.pop() !== tag) return null;
+      output.push(`</${tag}>`);
+      if (tag === "svg" && stack.length === 0) rootClosed = true;
+      continue;
+    }
+
+    const opening = token.match(/^<([A-Za-z][A-Za-z0-9]*)([\s\S]*?)(\/?)>$/);
+    if (!opening) return null;
+    const tag = opening[1];
+    const rawAttributes = opening[2];
+    const selfClosing = opening[3] === "/";
+    if (!SAFE_SVG_TAGS.has(tag) || rootClosed) return null;
+    if (!rootSeen && tag !== "svg") return null;
+    if (tag === "svg") {
+      if (rootSeen || stack.length !== 0) return null;
+      rootSeen = true;
+    } else if (!rootSeen || stack.length === 0) {
+      return null;
+    }
+
+    const attributes: string[] = [];
+    const seen = new Set<string>();
+    let rest = rawAttributes;
+    while (rest.trim()) {
+      const match = rest.match(/^\s+([A-Za-z_:][A-Za-z0-9_.:-]*)\s*=\s*("[^"]*"|'[^']*')/);
+      if (!match) return null;
+      const name = match[1];
+      const value = match[2].slice(1, -1);
+      if (!SAFE_SVG_ATTRIBUTES.has(name) || seen.has(name)) return null;
+      if (/[<>\u0000-\u001f]/.test(value) || (name !== "xmlns" && /(?:javascript:|data:|https?:|\/\/|\\|@import|expression\s*\()/i.test(value))) return null;
+      if (/url\s*\(/i.test(value) && !/^url\(#[A-Za-z0-9_.-]+\)$/i.test(value)) return null;
+      if (name === "xmlns" && value !== "http://www.w3.org/2000/svg") return null;
+      if (/[&](?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-f]+;)/i.test(value)) return null;
+      seen.add(name);
+      attributes.push(`${name}="${value}"`);
+      rest = rest.slice(match[0].length);
+    }
+
+    output.push(`<${tag}${attributes.length ? " " + attributes.join(" ") : ""}${selfClosing ? " />" : ">" }`);
+    if (!selfClosing) stack.push(tag);
+    else if (tag === "svg" && stack.length === 0) rootClosed = true;
+  }
+
+  if (!rootSeen || !rootClosed || stack.length !== 0) return null;
+  return output.join("");
+}
 
 function emptySettings(): IconSettings {
   return { assets: {}, history: {}, updatedAt: new Date(0).toISOString() };
@@ -43,9 +122,9 @@ async function saveSettings(admin: ReturnType<typeof createAdminClient>, setting
 }
 
 export async function GET() {
-  const auth = await assertPlatformAdmin();
-  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
   try {
+    const auth = await assertPlatformAdmin();
+    if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
     const settings = await loadSettings(createAdminClient());
     return NextResponse.json(settings, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
@@ -55,7 +134,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await assertPlatformAdmin();
+  let auth: Awaited<ReturnType<typeof assertPlatformAdmin>>;
+  try {
+    auth = await assertPlatformAdmin();
+  } catch (error) {
+    console.error("[admin/site-icons] authorization check failed", error);
+    return NextResponse.json({ error: "Could not verify administrator access. Refresh and sign in again." }, { status: 503 });
+  }
   if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
 
   const limited = rateLimit(`site-icon-admin:${auth.user.id}`, 30, 60_000);
@@ -66,8 +151,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Icon upload request is too large" }, { status: 413 });
   }
 
-  const admin = createAdminClient();
   try {
+    const admin = createAdminClient();
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const body = await request.json().catch(() => null) as { action?: string; slot?: string; versionPath?: string } | null;
@@ -97,7 +182,7 @@ export async function POST(request: NextRequest) {
         metadata: { slot, previousPath: current?.path ?? null, activePath: settings.assets[slot]?.path ?? null },
         ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
         userAgent: request.headers.get("user-agent"),
-      });
+      }).catch((auditError) => console.warn("[admin/site-icons] audit write failed after settings save", auditError));
       return NextResponse.json({ ok: true, settings });
     }
 
@@ -148,11 +233,10 @@ export async function POST(request: NextRequest) {
       detectedType = "image/x-icon";
     } else {
       const raw = bytes.toString("utf8");
-      if (!/<svg(?:\s|>)/i.test(raw.slice(0, 2048)) || /<script|javascript:|<foreignObject|on[a-z]+\s*=|href\s*=|url\s*\(/i.test(raw)) {
-        return NextResponse.json({ error: "SVG contains unsupported or unsafe markup" }, { status: 400 });
+      const sanitized = sanitizeUploadedSvg(raw);
+      if (!sanitized) {
+        return NextResponse.json({ error: "SVG is invalid or contains unsupported or unsafe elements. Use a simple SVG with standard vector shapes only." }, { status: 400 });
       }
-      const sanitized = DOMPurify.sanitize(raw, { USE_PROFILES: { svg: true, svgFilters: true } });
-      if (!/<svg(?:\s|>)/i.test(sanitized)) return NextResponse.json({ error: "Invalid SVG file" }, { status: 400 });
       body = Buffer.from(sanitized, "utf8");
       detectedType = "image/svg+xml";
       extension = "svg";
@@ -185,7 +269,7 @@ export async function POST(request: NextRequest) {
       metadata: { slot, path, contentType: detectedType, size: body.length, previousPath: previous?.path ?? null },
       ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       userAgent: request.headers.get("user-agent"),
-    });
+    }).catch((auditError) => console.warn("[admin/site-icons] audit write failed after upload", auditError));
 
     return NextResponse.json({ ok: true, slot, asset, settings });
   } catch (error) {

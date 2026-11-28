@@ -9,6 +9,21 @@ type Settings = { assets: Record<string, Asset>; history: Record<string, Asset[]
 
 const groups = ["Browser", "Apple & iOS", "Android & PWA", "Windows & Safari", "Storefronts"] as const;
 
+async function readApiJson(response: Response): Promise<Record<string, any>> {
+  const raw = await response.text();
+  if (!raw.trim()) {
+    throw new Error(`Icon service returned an empty response (HTTP ${response.status}). Please refresh and try again.`);
+  }
+  let data: Record<string, any>;
+  try {
+    data = JSON.parse(raw) as Record<string, any>;
+  } catch {
+    throw new Error(`Icon service returned an invalid response (HTTP ${response.status}). Please refresh and try again.`);
+  }
+  if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Icon request failed (HTTP ${response.status})`);
+  return data;
+}
+
 export function SiteIconManager() {
   const [settings, setSettings] = useState<Settings>({ assets: {}, history: {}, updatedAt: "" });
   const [loading, setLoading] = useState(true);
@@ -19,9 +34,8 @@ export function SiteIconManager() {
     setLoading(true);
     try {
       const response = await fetch("/api/admin/site-icons", { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not load icons");
-      setSettings(data);
+      const data = await readApiJson(response);
+      setSettings(data as Settings);
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Could not load icons" });
     } finally {
@@ -42,9 +56,8 @@ export function SiteIconManager() {
       form.set("slot", slot);
       form.set("file", file);
       const response = await fetch("/api/admin/site-icons", { method: "POST", body: form });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Upload failed");
-      setSettings(data.settings);
+      const data = await readApiJson(response);
+      setSettings(data.settings as Settings);
       setMessage({ type: "success", text: "Icon saved. The live site will begin serving this version immediately." });
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Upload failed" });
@@ -62,9 +75,8 @@ export function SiteIconManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ slot, action, versionPath }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Could not update icon");
-      setSettings(data.settings);
+      const data = await readApiJson(response);
+      setSettings(data.settings as Settings);
       setMessage({ type: "success", text: action === "reset" ? "Default Jimvio icon restored." : "Previous icon version restored." });
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Could not update icon" });

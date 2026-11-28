@@ -17,7 +17,7 @@ for (const key of ["favicon-ico", "favicon-svg", "favicon-16", "favicon-32", "ap
 }
 assert.match(adminRoute, /assertPlatformAdmin/);
 assert.match(adminRoute, /SITE_ICON_MAX_BYTES/);
-assert.match(adminRoute, /DOMPurify\.sanitize/);
+assert.match(adminRoute, /sanitizeUploadedSvg/);
 assert.match(adminRoute, /sharp\(bytes/);
 assert.match(adminRoute, /writeAuditEvent/);
 assert.match(publicRoute, /SITE_ICON_BUCKET/);
