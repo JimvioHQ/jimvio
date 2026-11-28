@@ -52,7 +52,7 @@ function sanitizeUploadedSvg(input: string): string | null {
     if (closing) {
       const tag = closing[1];
       if (stack.pop() !== tag) return null;
-      output.push(\`</\${tag}>\`);
+      output.push(`</${tag}>`);
       if (tag === "svg" && stack.length === 0) rootClosed = true;
       continue;
     }
@@ -85,11 +85,11 @@ function sanitizeUploadedSvg(input: string): string | null {
       if (name === "xmlns" && value !== "http://www.w3.org/2000/svg") return null;
       if (/[&](?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-f]+;)/i.test(value)) return null;
       seen.add(name);
-      attributes.push(\`\${name}="\${value}"\`);
+      attributes.push(`${name}="${value}"`);
       rest = rest.slice(match[0].length);
     }
 
-    output.push(\`<\${tag}\${attributes.length ? " " + attributes.join(" ") : ""}\${selfClosing ? " />" : ">" }\`);
+    output.push(`<${tag}${attributes.length ? " " + attributes.join(" ") : ""}${selfClosing ? " />" : ">" }`);
     if (!selfClosing) stack.push(tag);
     else if (tag === "svg" && stack.length === 0) rootClosed = true;
   }
