@@ -48,6 +48,14 @@ type Lesson = {
   attachments?: Array<{ url?: string }>;
 };
 type Module = { id: string; title: string; sort_order?: number; course_lessons: Lesson[] };
+type Assignment = {
+  id: string;
+  title: string;
+  instructions: string | null;
+  lesson_id: string | null;
+  required: boolean;
+  pass_score: number;
+};
 
 function statusOf(course: ManagedCourse) {
   if (course.archived_at) return "Archived";
@@ -80,7 +88,7 @@ export function CoursesManagement() {
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [lessonModule, setLessonModule] = useState("");
   const [roster, setRoster] = useState<Array<Record<string, unknown>>>([]);
-  const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);
+  const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);\n  const [assignments, setAssignments] = useState<Assignment[]>([]);\n  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!community?.id) return;
@@ -113,7 +121,7 @@ export function CoursesManagement() {
     setModules(tree);
     setLessonModule(tree[0]?.id ?? "");
     setRoster(json.roster?.enrollments ?? []);
-    setSubmissions(json.roster?.submissions ?? []);
+    setSubmissions(json.roster?.submissions ?? []);\n    setAssignments(json.assignments ?? []);
     if (json.course) {
       setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, ...json.course } : course)));
     }
@@ -143,7 +151,7 @@ export function CoursesManagement() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Request failed");
-      toast.success("Saved");
+      toast.success(action.startsWith("delete") ? "Deleted successfully" : "Saved successfully");
       await refreshList();
       await loadCourse(courseId);
       return json;
@@ -562,6 +570,18 @@ export function CoursesManagement() {
                         >
                           Edit
                         </button>
+                        <button
+                          type="button"
+                          className="ml-3 text-xs font-semibold text-red-600"
+                          disabled={!!busy}
+                          onClick={() => {
+                            if (window.confirm("Delete this module and all its lessons?")) {
+                              void run(selected.id, "deleteModule", { id: module.id });
+                            }
+                          }}
+                        >
+                          Delete
+                        </button>
                       </div>
                       <ul className="mt-1 space-y-1 pl-3 text-sm text-[#6B7280]">
                         {(module.course_lessons ?? []).map((lesson) => (
@@ -580,6 +600,26 @@ export function CoursesManagement() {
                               }}
                             >
                               Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs font-semibold text-red-600"
+                              disabled={!!busy}
+                              onClick={() => {
+                                if (window.confirm("Delete this lesson? Its quiz will also be removed and linked assignments will become course-level assignments.")) {
+                                  void run(selected.id, "deleteLesson", { id: lesson.id }).then((result) => {
+                                    if (result && editingLessonId === lesson.id) {
+                                      setEditingLessonId(null);
+                                      setLessonTitle("");
+                                      setLessonBody("");
+                                      setLessonVideo("");
+                                      setLessonResource("");
+                                    }
+                                  });
+                                }
+                              }}
+                            >
+                              Delete
                             </button>
                           </li>
                         ))}
@@ -630,23 +670,82 @@ export function CoursesManagement() {
                     const form = event.currentTarget;
                     const data = new FormData(form);
                     void run(selected.id, "assignment", {
+                      id: editingAssignmentId ?? undefined,
                       title: String(data.get("assignmentTitle") ?? ""),
                       instructions: String(data.get("instructions") ?? ""),
                       lessonId: String(data.get("assignmentLesson") ?? "") || undefined,
+                    }).then((result) => {
+                      if (result) {
+                        form.reset();
+                        setEditingAssignmentId(null);
+                      }
                     });
-                    form.reset();
                   }}
                 >
-                  <Input name="assignmentTitle" placeholder="Assignment title" required />
-                  <Input name="instructions" placeholder="Instructions" />
-                  <select name="assignmentLesson" className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm">
-                    <option value="">Lesson (optional)</option>
+                  <Input
+                    name="assignmentTitle"
+                    placeholder="Assignment title"
+                    defaultValue={assignments.find((item) => item.id === editingAssignmentId)?.title ?? ""}
+                    key={editingAssignmentId ?? "new-assignment-title"}
+                    required
+                  />
+                  <Input
+                    name="instructions"
+                    placeholder="Instructions"
+                    defaultValue={assignments.find((item) => item.id === editingAssignmentId)?.instructions ?? ""}
+                    key={editingAssignmentId ?? "new-assignment-instructions"}
+                  />
+                  <select
+                    name="assignmentLesson"
+                    className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
+                    defaultValue={assignments.find((item) => item.id === editingAssignmentId)?.lesson_id ?? ""}
+                    key={editingAssignmentId ?? "new-assignment-lesson"}
+                  >
+                    <option value="">Course-level assignment</option>
                     {modules.flatMap((module) => module.course_lessons ?? []).map((lesson) => (
                       <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
                     ))}
                   </select>
-                  <Button type="submit" variant="outline" disabled={!!busy}>Add assignment</Button>
+                  <Button type="submit" variant="outline" disabled={!!busy}>
+                    {editingAssignmentId ? "Save assignment" : "Add assignment"}
+                  </Button>
+                  {editingAssignmentId && (
+                    <Button type="button" variant="ghost" onClick={() => setEditingAssignmentId(null)}>
+                      Cancel edit
+                    </Button>
+                  )}
                 </form>
+                {assignments.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {assignments.map((assignment) => (
+                      <li key={assignment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E5E7EB] p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#111827]">{assignment.title}</p>
+                          <p className="text-xs text-[#6B7280]">
+                            {assignment.lesson_id
+                              ? modules.flatMap((module) => module.course_lessons ?? []).find((lesson) => lesson.id === assignment.lesson_id)?.title ?? "Lesson linked"
+                              : "Course-level"} · {assignment.required ? "Required" : "Optional"} · Pass {assignment.pass_score}%
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button type="button" className="text-xs font-semibold text-[#FF5A1F]" onClick={() => setEditingAssignmentId(assignment.id)}>Edit</button>
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-red-600"
+                            disabled={!!busy}
+                            onClick={() => {
+                              if (window.confirm("Delete this assignment? Student submissions are protected and will prevent deletion.")) {
+                                void run(selected.id, "deleteAssignment", { id: assignment.id });
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="border-t border-[#E5E7EB] pt-4">
