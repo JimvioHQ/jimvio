@@ -36,7 +36,6 @@ $$;
 CREATE OR REPLACE FUNCTION public.sync_community_course_totals_from_curriculum()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -98,3 +97,5 @@ WHERE
 
 REVOKE ALL ON FUNCTION public.refresh_community_course_totals(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sync_community_course_totals_from_curriculum() FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.refresh_community_course_totals(uuid) TO authenticated, service_role;
