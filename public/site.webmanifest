@@ -34,6 +34,12 @@
       "purpose": "any"
     },
     {
+      "src": "/api/site-icons/pwa-384",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/api/site-icons/apple-touch",
       "sizes": "180x180",
       "type": "image/png",
