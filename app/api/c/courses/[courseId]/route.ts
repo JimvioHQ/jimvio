@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { assertCourseAccess } from "@/lib/community/courses/access";
 import { normalizeAccessMode, isCatalogVisible } from "@/lib/community/courses/rules";
 import { getUserMembership, isMembershipActive } from "@/services/communityService";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export async function GET(
   const { data: course, error } = await admin
     .from("community_courses")
     .select(
-      "*, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username, avatar_url)"
+      "*, communities(name, slug, is_private, visibility, visibility_mode, is_active, archived_at), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username, avatar_url)"
     )
     .eq("id", courseId)
     .maybeSingle();
@@ -40,7 +41,10 @@ export async function GET(
     accessMode: course.access_mode,
   }) : null;
   const membership = user ? await getUserMembership(user.id, course.community_id) : null;
-  const visible = isCatalogVisible({
+  const communityVisible =
+    Boolean(course.communities && communityIsPubliclyDiscoverable(course.communities)) ||
+    Boolean(user && (isMembershipActive(membership) || access?.isStaff || access?.enrollment));
+  const visible = communityVisible && isCatalogVisible({
     isPublished: Boolean(course.is_published),
     archived: Boolean(course.archived_at),
     accessMode: normalizeAccessMode(course.access_mode),
