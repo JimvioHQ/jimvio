@@ -12,7 +12,7 @@ const sidebar = read("components/admin/admin-sidebar.tsx");
 const manager = read("components/admin/site-icon-manager.tsx");
 const proxy = read("proxy.ts");
 
-for (const key of ["favicon-ico", "favicon-svg", "favicon-16", "favicon-32", "apple-touch", "pwa-192", "pwa-512", "pwa-maskable-192", "pwa-maskable-512", "android-foreground-432", "android-preview-432", "icon-24", "icon-180", "icon-1024", "windows-tile", "safari-pinned"]) {
+for (const key of ["favicon-ico", "favicon-svg", "favicon-16", "favicon-32", "apple-touch", "pwa-192", "pwa-512", "pwa-maskable-192", "pwa-maskable-512", "android-foreground-432", "android-preview-432", "icon-24", "icon-180", "icon-1024", "windows-tile", "safari-pinned", "storefront-empty"]) {
   assert.ok(config.includes(`slot: "${key}"`), `missing icon slot: ${key}`);
 }
 assert.match(adminRoute, /assertPlatformAdmin/);
