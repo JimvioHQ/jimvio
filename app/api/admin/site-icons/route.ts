@@ -122,9 +122,9 @@ async function saveSettings(admin: ReturnType<typeof createAdminClient>, setting
 }
 
 export async function GET() {
-  const auth = await assertPlatformAdmin();
-  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
   try {
+    const auth = await assertPlatformAdmin();
+    if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
     const settings = await loadSettings(createAdminClient());
     return NextResponse.json(settings, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
@@ -134,7 +134,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await assertPlatformAdmin();
+  let auth: Awaited<ReturnType<typeof assertPlatformAdmin>>;
+  try {
+    auth = await assertPlatformAdmin();
+  } catch (error) {
+    console.error("[admin/site-icons] authorization check failed", error);
+    return NextResponse.json({ error: "Could not verify administrator access. Refresh and sign in again." }, { status: 503 });
+  }
   if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
 
   const limited = rateLimit(`site-icon-admin:${auth.user.id}`, 30, 60_000);
@@ -176,7 +182,7 @@ export async function POST(request: NextRequest) {
         metadata: { slot, previousPath: current?.path ?? null, activePath: settings.assets[slot]?.path ?? null },
         ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
         userAgent: request.headers.get("user-agent"),
-      });
+      }).catch((auditError) => console.warn("[admin/site-icons] audit write failed after settings save", auditError));
       return NextResponse.json({ ok: true, settings });
     }
 
@@ -263,7 +269,7 @@ export async function POST(request: NextRequest) {
       metadata: { slot, path, contentType: detectedType, size: body.length, previousPath: previous?.path ?? null },
       ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       userAgent: request.headers.get("user-agent"),
-    });
+    }).catch((auditError) => console.warn("[admin/site-icons] audit write failed after upload", auditError));
 
     return NextResponse.json({ ok: true, slot, asset, settings });
   } catch (error) {
