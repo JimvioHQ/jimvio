@@ -36,5 +36,6 @@ assert.match(proxy, /api\/site-icons/);
 assert.match(proxy, /site\.webmanifest/);
 assert.match(proxy, /browserconfig\.xml/);
 assert.match(proxy, /api\/storefront-favicon/);
+assert.match(proxy, /pathname !== "\/api\/site-icons\/storefront-empty"/);
 // Keep the icon-manager preview build explicitly enabled by the repository ignore-build policy.
 console.log("Site Icon Manager verification: PASS");
