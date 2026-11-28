@@ -79,8 +79,20 @@ export async function GET(
       price_cents: course.price_cents,
       currency: course.currency,
       thumbnail_url: course.thumbnail_url,
-      total_lessons: course.total_lessons,
-      total_duration: course.total_duration,
+      total_modules: modules?.length ?? 0,
+      total_lessons: (modules ?? []).reduce(
+        (total, module) => total + (module.course_lessons?.length ?? 0),
+        0
+      ),
+      total_duration: (modules ?? []).reduce(
+        (total, module) =>
+          total +
+          (module.course_lessons ?? []).reduce(
+            (moduleTotal, lesson) => moduleTotal + Math.max(0, Number(lesson.duration ?? 0)),
+            0
+          ),
+        0
+      ),
       certificate_enabled: course.certificate_enabled,
       learning_outcomes: course.learning_outcomes ?? [],
       prerequisites: course.prerequisites ?? [],

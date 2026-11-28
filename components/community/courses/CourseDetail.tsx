@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { GraduationCap, Loader2 } from "lucide-react";
 
 type Detail = {
   course: {
@@ -17,6 +17,7 @@ type Detail = {
     price_cents: number | null;
     currency: string | null;
     thumbnail_url: string | null;
+    total_modules: number | null;
     total_lessons: number | null;
     total_duration: number | null;
     certificate_enabled: boolean | null;
@@ -114,22 +115,24 @@ export function CourseDetail({ courseId }: { courseId: string }) {
   const course = data.course;
   const price = course.price_cents && course.price_cents > 0 ? course.price_cents / 100 : 0;
   const instructor = course.instructor?.full_name || course.instructor?.username || "Instructor";
+  const actualModules = data.modules.length;
+  const actualLessons = data.modules.reduce((total, module) => total + (module.course_lessons?.length ?? 0), 0);
+  const actualDuration = data.modules.reduce((total, module) => total + (module.course_lessons ?? []).reduce((sum, lesson) => sum + Math.max(0, Number(lesson.duration ?? 0)), 0), 0);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
-      <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+    <div className="mx-auto max-w-6xl space-y-7 px-4 py-6 sm:px-6 lg:py-10">
+      <div className="grid overflow-hidden rounded-3xl border border-[#E5E7EB] bg-white shadow-sm lg:grid-cols-[1.1fr_0.9fr]">
         {course.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={course.thumbnail_url} alt="" className="h-48 w-full object-cover" />
+          <img src={course.thumbnail_url} alt={`${course.title} course cover`} className="h-full min-h-64 w-full object-cover lg:min-h-[420px]" />
         ) : (
-          <div className="h-32 bg-[#FFF1EB]" />
+          <div className="flex min-h-64 items-center justify-center bg-gradient-to-br from-[#111827] via-[#374151] to-[#FF5A1F] text-white lg:min-h-[420px]"><GraduationCap className="h-20 w-20 opacity-90" /></div>
         )}
-        <div className="space-y-3 p-5">
+        <div className="flex flex-col items-start justify-center gap-4 p-6 sm:p-8 lg:p-10">
           <p className="text-xs font-bold uppercase tracking-wide text-[#FF5A1F]">{course.community?.name}</p>
           <h1 className="text-2xl font-semibold text-[#111827]">{course.title}</h1>
           <p className="text-sm text-[#6B7280]">
-            {instructor} · {course.difficulty} · {course.language} · {course.total_lessons ?? 0} lessons
-            {course.total_duration ? ` · ${course.total_duration} min` : ""}
+            {instructor} · {course.difficulty ?? "Beginner"} · {course.language ?? "English"} · {actualModules} modules · {actualLessons} lessons{actualDuration ? ` · ${actualDuration} min` : ""}
           </p>
           <p className="text-sm leading-6 text-[#374151]">{course.description}</p>
           <p className="text-lg font-semibold text-[#111827]">{price > 0 ? `$${price.toFixed(2)}` : "Free"}</p>
@@ -176,15 +179,15 @@ export function CourseDetail({ courseId }: { courseId: string }) {
           </ul>
         </section>
       )}
-      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-        <h2 className="font-semibold">Curriculum</h2>
-        <div className="mt-3 space-y-3">
+      <section className="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#FF5A1F]">Course outline</p><h2 className="mt-1 text-xl font-semibold text-[#111827]">Curriculum</h2></div><p className="text-sm text-[#6B7280]">{actualModules} modules · {actualLessons} lessons</p></div>
+        <div className="mt-5 space-y-4">
           {data.modules.map((module) => (
-            <div key={module.id}>
-              <p className="text-sm font-semibold">{module.title}</p>
-              <ul className="mt-1 space-y-1 pl-3 text-sm text-[#6B7280]">
+            <div key={module.id} className="rounded-2xl border border-[#E5E7EB] p-4">
+              <p className="text-sm font-semibold text-[#111827]">{module.title}</p>
+              <ul className="mt-3 space-y-2 pl-1 text-sm text-[#6B7280]">
                 {(module.course_lessons ?? []).map((lesson) => (
-                  <li key={lesson.id}>{lesson.title}{lesson.duration ? ` · ${lesson.duration} min` : ""}</li>
+                  <li key={lesson.id} className="flex items-center justify-between gap-3"><span>{lesson.title}</span>{lesson.duration ? <span className="shrink-0 text-xs text-[#9CA3AF]">{lesson.duration} min</span> : null}</li>
                 ))}
               </ul>
             </div>

@@ -101,14 +101,22 @@ export async function listCourseTree(courseId: string, userId?: string) {
     .eq("course_id", courseId)
     .order("sort_order");
   if (modulesError) throw modulesError;
+  const normalizedModules = (modules ?? []).map((module) => ({
+    ...module,
+    course_lessons: [...(module.course_lessons ?? [])].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    ),
+  }));
+  const lessonRows = normalizedModules.flatMap((module) => module.course_lessons);
   const tree = {
     ...course,
-    modules: (modules ?? []).map((module) => ({
-      ...module,
-      course_lessons: [...(module.course_lessons ?? [])].sort(
-        (a, b) => a.sort_order - b.sort_order
-      ),
-    })),
+    total_modules: normalizedModules.length,
+    total_lessons: lessonRows.length,
+    total_duration: lessonRows.reduce(
+      (total, lesson) => total + Math.max(0, Number(lesson.duration ?? 0)),
+      0
+    ),
+    modules: normalizedModules,
   };
   if (fullContent) return tree;
   // redact expects the room API's course_modules key; this API uses modules

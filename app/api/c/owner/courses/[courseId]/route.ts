@@ -102,15 +102,43 @@ export async function POST(
     }
     if (action === "quiz") {
       const questions = Array.isArray(body.questions) ? body.questions : [];
+      const lessonId = String(body.lessonId ?? "");
+      const passScore = Number(body.passScore ?? 70);
       if (!questions.length) return NextResponse.json({ error: "Add at least one question" }, { status: 400 });
+      if (!Number.isFinite(passScore) || passScore < 0 || passScore > 100) {
+        return NextResponse.json({ error: "Quiz pass score must be between 0 and 100" }, { status: 400 });
+      }
+      const { loadManaged } = await import("./guard");
+      await loadManaged(user, courseId);
+      const admin = createServiceRoleClient();
+      const { data: existingQuiz, error: existingQuizError } = await admin
+        .from("course_quizzes")
+        .select("id, questions")
+        .eq("course_id", courseId)
+        .eq("lesson_id", lessonId)
+        .maybeSingle();
+      if (existingQuizError) return NextResponse.json({ error: existingQuizError.message }, { status: 400 });
+      if (existingQuiz) {
+        const { count, error: attemptsError } = await admin
+          .from("course_quiz_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("quiz_id", existingQuiz.id);
+        if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+        if ((count ?? 0) > 0 && JSON.stringify(existingQuiz.questions) !== JSON.stringify(questions)) {
+          return NextResponse.json(
+            { error: "This quiz already has student attempts. You can update its title and pass score, but its questions and answers are locked to preserve previous attempts." },
+            { status: 409 }
+          );
+        }
+      }
       return NextResponse.json({
         quiz: await saveQuiz({
           userId: user,
           courseId,
-          lessonId: String(body.lessonId ?? ""),
+          lessonId,
           title: String(body.title ?? "Quiz"),
           questions,
-          passScore: Number(body.passScore ?? 70),
+          passScore,
         }),
       });
     }
@@ -142,12 +170,168 @@ export async function POST(
       if (payload.title.length < 2) {
         return NextResponse.json({ error: "Assignment title is required" }, { status: 400 });
       }
+      if (!Number.isFinite(payload.pass_score) || payload.pass_score < 0 || payload.pass_score > 100) {
+        return NextResponse.json({ error: "Assignment pass score must be between 0 and 100" }, { status: 400 });
+      }
       const query = typeof body.id === "string"
         ? admin.from("course_assignments").update(payload).eq("id", body.id).eq("course_id", courseId)
         : admin.from("course_assignments").insert(payload);
       const { data, error } = await query.select("*").single();
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ assignment: data });
+    }
+    if (action === "deleteLesson" || action === "deleteModule" || action === "deleteAssignment" || action === "deleteQuiz") {
+      const { loadManaged } = await import("./guard");
+      await loadManaged(user, courseId);
+      const admin = createServiceRoleClient();
+
+      if (action === "deleteQuiz") {
+        const quizId = String(body.id ?? "");
+        if (!quizId) return NextResponse.json({ error: "Quiz ID is required" }, { status: 400 });
+        const { data: ownedQuiz, error: quizLookupError } = await admin
+          .from("course_quizzes")
+          .select("id")
+          .eq("id", quizId)
+          .eq("course_id", courseId)
+          .maybeSingle();
+        if (quizLookupError) return NextResponse.json({ error: quizLookupError.message }, { status: 400 });
+        if (!ownedQuiz) return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
+        const { count, error: attemptsError } = await admin
+          .from("course_quiz_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("quiz_id", quizId);
+        if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+        if ((count ?? 0) > 0) {
+          return NextResponse.json(
+            { error: "This quiz has student attempts. Keep it to preserve learner records; you can edit the quiz or unpublish the course instead." },
+            { status: 409 }
+          );
+        }
+        const { data, error } = await admin
+          .from("course_quizzes")
+          .delete()
+          .eq("id", quizId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
+
+      if (action === "deleteLesson") {
+        const lessonId = String(body.id ?? "");
+        if (!lessonId) return NextResponse.json({ error: "Lesson ID is required" }, { status: 400 });
+        const { count: progressCount, error: progressError } = await admin
+          .from("lesson_progress")
+          .select("id", { count: "exact", head: true })
+          .eq("lesson_id", lessonId)
+          .eq("course_id", courseId);
+        if (progressError) return NextResponse.json({ error: progressError.message }, { status: 400 });
+        const { data: lessonQuizzes, error: quizLookupError } = await admin
+          .from("course_quizzes")
+          .select("id")
+          .eq("lesson_id", lessonId)
+          .eq("course_id", courseId);
+        if (quizLookupError) return NextResponse.json({ error: quizLookupError.message }, { status: 400 });
+        const quizIds = (lessonQuizzes ?? []).map((quiz) => quiz.id);
+        let attemptCount = 0;
+        if (quizIds.length) {
+          const { count, error: attemptsError } = await admin
+            .from("course_quiz_attempts")
+            .select("id", { count: "exact", head: true })
+            .in("quiz_id", quizIds);
+          if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+          attemptCount = count ?? 0;
+        }
+        if ((progressCount ?? 0) > 0 || attemptCount > 0) {
+          return NextResponse.json(
+            { error: "This lesson has learner progress or quiz attempts. Keep it to preserve student records; you can unpublish the course instead." },
+            { status: 409 }
+          );
+        }
+        const { data, error } = await admin
+          .from("course_lessons")
+          .delete()
+          .eq("id", lessonId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
+
+      if (action === "deleteModule") {
+        const moduleId = String(body.id ?? "");
+        if (!moduleId) return NextResponse.json({ error: "Module ID is required" }, { status: 400 });
+        const { data: moduleLessons, error: lessonsError } = await admin
+          .from("course_lessons")
+          .select("id")
+          .eq("module_id", moduleId)
+          .eq("course_id", courseId);
+        if (lessonsError) return NextResponse.json({ error: lessonsError.message }, { status: 400 });
+        const lessonIds = (moduleLessons ?? []).map((lesson) => lesson.id);
+        if (lessonIds.length) {
+          const [{ count: progressCount, error: progressError }, { data: moduleQuizzes, error: quizzesError }] = await Promise.all([
+            admin.from("lesson_progress").select("id", { count: "exact", head: true }).eq("course_id", courseId).in("lesson_id", lessonIds),
+            admin.from("course_quizzes").select("id").eq("course_id", courseId).in("lesson_id", lessonIds),
+          ]);
+          if (progressError) return NextResponse.json({ error: progressError.message }, { status: 400 });
+          if (quizzesError) return NextResponse.json({ error: quizzesError.message }, { status: 400 });
+          const quizIds = (moduleQuizzes ?? []).map((quiz) => quiz.id);
+          let attemptCount = 0;
+          if (quizIds.length) {
+            const { count, error: attemptsError } = await admin
+              .from("course_quiz_attempts")
+              .select("id", { count: "exact", head: true })
+              .in("quiz_id", quizIds);
+            if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+            attemptCount = count ?? 0;
+          }
+          if ((progressCount ?? 0) > 0 || attemptCount > 0) {
+            return NextResponse.json(
+              { error: "This module contains lessons with learner progress or quiz attempts. Keep it to preserve student records; you can unpublish the course instead." },
+              { status: 409 }
+            );
+          }
+        }
+        const { data, error } = await admin
+          .from("course_modules")
+          .delete()
+          .eq("id", moduleId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
+
+      const assignmentId = String(body.id ?? "");
+      if (!assignmentId) return NextResponse.json({ error: "Assignment ID is required" }, { status: 400 });
+      const { count, error: submissionsError } = await admin
+        .from("course_assignment_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("assignment_id", assignmentId)
+        .eq("course_id", courseId);
+      if (submissionsError) return NextResponse.json({ error: submissionsError.message }, { status: 400 });
+      if ((count ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "This assignment has student submissions. Keep it to preserve learner records; you can edit or unpublish it instead." },
+          { status: 409 }
+        );
+      }
+      const { data, error } = await admin
+        .from("course_assignments")
+        .delete()
+        .eq("id", assignmentId)
+        .eq("course_id", courseId)
+        .select("id")
+        .maybeSingle();
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data) return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+      return NextResponse.json({ deleted: true, id: data.id });
     }
     if (action === "grade") {
       const { loadManaged } = await import("./guard");

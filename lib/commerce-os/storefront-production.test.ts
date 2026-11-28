@@ -152,7 +152,7 @@ describe("store favicon priority", () => {
     assert.equal(bare.shortcut, "/api/site-icons/storefront-empty");
     const platform = constructMetadata();
     const platformShortcut = (platform.icons as { shortcut?: string }).shortcut;
-    assert.match(String(platformShortcut), /^\/api\/site-icons\/favicon-ico/);
+    assert.equal(platformShortcut, "/favicon.ico");
     assert.notEqual(platformShortcut, bare.shortcut);
   });
 

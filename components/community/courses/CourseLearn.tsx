@@ -15,7 +15,7 @@ type Lesson = {
 };
 type Module = { id: string; title: string; sort_order: number | null; course_lessons: Lesson[] };
 type Quiz = { id: string; lesson_id: string; title: string; questions: Array<{ prompt?: string; options?: string[] }>; pass_score: number };
-type Assignment = { id: string; title: string; instructions: string | null; lesson_id: string | null };
+type Assignment = { id: string; title: string; instructions: string | null; lesson_id: string | null; required?: boolean };
 type Submission = { assignment_id: string; status: string; score: number | null; feedback: string | null };
 
 export function CourseLearn({ courseId, communitySlug }: { courseId: string; communitySlug: string }) {
@@ -31,8 +31,9 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const [certificateEnabled, setCertificateEnabled] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<string | null>(null);
-  const [assignmentBody, setAssignmentBody] = useState("");
+  const [assignmentBodies, setAssignmentBodies] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [submittingAssignmentId, setSubmittingAssignmentId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +76,10 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const index = lessons.findIndex((lesson) => lesson.id === activeId);
   const lesson = lessons[index] ?? null;
   const quiz = quizzes.find((item) => item.lesson_id === lesson?.id) ?? null;
-  const assignment = assignments.find((item) => item.lesson_id === lesson?.id) ?? assignments[0] ?? null;
+  const visibleAssignments = [
+    ...assignments.filter((item) => item.lesson_id === lesson?.id),
+    ...(index === lessons.length - 1 ? assignments.filter((item) => !item.lesson_id) : []),
+  ];
 
   async function markComplete(lessonId: string) {
     const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
@@ -107,20 +111,33 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
     setQuizResult(json.attempt?.passed ? `Passed · ${json.attempt.score}%` : `Score ${json.attempt?.score}% · need ${quiz.pass_score}%`);
   }
 
-  async function submitAssignment() {
-    if (!assignment) return;
-    const res = await fetch(`/api/c/courses/${courseId}/learn`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "assignment", assignmentId: assignment.id, body: assignmentBody }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setNotice(json.error ?? "Could not submit");
+  async function submitAssignment(assignment: Assignment) {
+    const answer = (assignmentBodies[assignment.id] ?? "").trim();
+    if (!answer) {
+      setNotice("Please add your assignment response before submitting.");
       return;
     }
-    setSubmissions((current) => [...current.filter((item) => item.assignment_id !== assignment.id), json.submission]);
-    setNotice("Assignment submitted");
+    setSubmittingAssignmentId(assignment.id);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/c/courses/${courseId}/learn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "assignment", assignmentId: assignment.id, body: answer }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice(json.error ?? "Could not submit");
+        return;
+      }
+      setSubmissions((current) => [...current.filter((item) => item.assignment_id !== assignment.id), json.submission]);
+      setAssignmentBodies((current) => ({ ...current, [assignment.id]: "" }));
+      setNotice("Assignment submitted successfully");
+    } catch {
+      setNotice("A network error prevented submission. Please try again.");
+    } finally {
+      setSubmittingAssignmentId(null);
+    }
   }
 
   async function issueCertificate() {
@@ -153,10 +170,16 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const percent = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
 
   return (
-    <div className="grid min-h-[70vh] lg:grid-cols-[280px_1fr]">
-      <aside className="border-b border-[#E5E7EB] bg-white p-4 lg:border-b-0 lg:border-r">
-        <p className="text-xs font-bold uppercase text-[#FF5A1F]">{percent}% complete</p>
-        <h1 className="mt-1 text-lg font-semibold text-[#111827]">{title}</h1>
+    <div className="min-h-[80vh] bg-[#F8FAFC] lg:grid lg:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="border-b border-[#E5E7EB] bg-white p-5 lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <Link href={`/communities/${communitySlug}/courses/${courseId}`} className="text-xs font-semibold text-[#6B7280] hover:text-[#FF5A1F]">← Course overview</Link>
+        <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#FF5A1F]">Your learning progress</p>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <h1 className="text-lg font-semibold leading-snug text-[#111827]">{title}</h1>
+          <span className="shrink-0 text-sm font-bold tabular-nums text-[#FF5A1F]">{percent}%</span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#F1F5F9]"><div className="h-full rounded-full bg-[#FF5A1F] transition-all" style={{ width: `${percent}%` }} /></div>
+        <p className="mt-2 text-xs text-[#6B7280]">{done} of {lessons.length} lessons completed</p>
         <div className="mt-4 space-y-3">
           {modules.map((module) => (
             <div key={module.id}>
@@ -178,13 +201,13 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
           ))}
         </div>
       </aside>
-      <main className="space-y-4 p-4 sm:p-6">
+      <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-7 lg:p-10">
         {notice && <p className="rounded-xl bg-[#FFF7F3] px-3 py-2 text-sm text-[#9A3412]">{notice}</p>}
         {lesson ? (
           <>
-            <h2 className="text-xl font-semibold text-[#111827]">{lesson.title}</h2>
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-7"><p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#FF5A1F]">Lesson {index + 1} of {lessons.length}</p><h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#111827] sm:text-3xl">{lesson.title}</h2>{lesson.duration ? <p className="mt-2 text-sm text-[#6B7280]">{lesson.duration} minutes</p> : null}</div>
             {safeHttpUrl(lesson.video_url) && (
-              <video className="w-full rounded-xl bg-black" controls src={safeHttpUrl(lesson.video_url) ?? undefined} />
+              <video className="aspect-video w-full rounded-2xl bg-black shadow-sm" controls playsInline preload="metadata" src={safeHttpUrl(lesson.video_url) ?? undefined} />
             )}
             {lesson.body && <div className="whitespace-pre-wrap text-sm leading-6 text-[#374151]">{lesson.body}</div>}
             {Array.isArray(lesson.attachments) && lesson.attachments.length > 0 && (
@@ -232,25 +255,34 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
                 {quizResult && <p className="text-sm">{quizResult}</p>}
               </form>
             )}
-            {assignment && (
+            {visibleAssignments.map((assignment) => (
               <form
+                key={assignment.id}
                 className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-white p-4"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void submitAssignment();
+                  void submitAssignment(assignment);
                 }}
               >
-                <h3 className="font-semibold">{assignment.title}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold">{assignment.title}</h3>
+                  {assignment.required !== false && <span className="rounded-full bg-[#FFF1EB] px-2 py-1 text-[11px] font-semibold text-[#9A3412]">Required</span>}
+                </div>
                 {assignment.instructions && <p className="text-sm text-[#6B7280]">{assignment.instructions}</p>}
-                <textarea className="min-h-24 w-full rounded-xl border border-[#E5E7EB] p-3 text-sm" value={assignmentBody} onChange={(event) => setAssignmentBody(event.target.value)} required />
-                <button type="submit" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm font-semibold">Submit assignment</button>
+                <textarea
+                  className="min-h-24 w-full rounded-xl border border-[#E5E7EB] p-3 text-sm"
+                  value={assignmentBodies[assignment.id] ?? ""}
+                  onChange={(event) => setAssignmentBodies((current) => ({ ...current, [assignment.id]: event.target.value }))}
+                  required
+                />
+                <button type="submit" disabled={submittingAssignmentId === assignment.id} className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{submittingAssignmentId === assignment.id ? "Submitting…" : "Submit assignment"}</button>
                 {submissions.filter((item) => item.assignment_id === assignment.id).map((item) => (
                   <p key={item.assignment_id} className="text-sm text-[#6B7280]">
                     {item.status}{item.score != null ? ` · ${item.score}` : ""}{item.feedback ? ` · ${item.feedback}` : ""}
                   </p>
                 ))}
               </form>
-            )}
+            ))}
             <div className="flex flex-wrap gap-2">
               <button type="button" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm" disabled={index <= 0} onClick={() => setActiveId(lessons[index - 1]?.id ?? null)}>Previous</button>
               <button type="button" className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white" onClick={() => void markComplete(lesson.id)}>Mark complete</button>
