@@ -334,7 +334,7 @@ export function constructMetadata({
         { rel: "msapplication-config", url: "/browserconfig.xml" },
       ],
     },
-    manifest: "/site.webmanifest",
+    manifest: "/manifest.webmanifest",
     appleWebApp: {
       capable: true,
       title: SITE.name,
