@@ -27,7 +27,7 @@ assert.ok(fs.existsSync(path.join(process.cwd(), "app/favicon.svg/route.ts")));
 assert.ok(fs.existsSync(path.join(process.cwd(), "app/icons/safari-pinned-tab.svg/route.ts")));
 assert.match(seo, /\/api\/site-icons\/favicon-ico/);
 assert.match(seo, /\/api\/site-icons\/apple-touch/);
-assert.match(manifest, /\/api\/site-icons\/pwa-192/);
+assert.match(manifest, /icon\("pwa-192"\)/);
 assert.match(manifest, /encodeURIComponent/);
 assert.match(sidebar, /\/admin\/settings\/icons/);
 assert.match(manager, /Previous versions/);
