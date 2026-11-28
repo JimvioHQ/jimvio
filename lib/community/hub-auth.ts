@@ -20,7 +20,6 @@ export const HUB_RESERVED_SEGMENTS = new Set([
   "wallet",
   "analytics",
   "missions",
-  "courses",
   "events",
   "my-communities",
   "my-posts",
@@ -46,7 +45,6 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
   "/communities/live",
   "/communities/channels",
   "/communities/missions",
-  "/communities/courses",
   "/communities/events",
   "/communities/my-posts",
   "/communities/community/creator",
@@ -107,6 +105,12 @@ export function getCommunitySubroute(pathname: string): string | null {
 }
 
 export function isCommunityWorkspaceSubroute(pathname: string): boolean {
+  // Public course detail pages do not require the member workspace shell.
+  // The learner page remains inside the workspace after authentication.
+  if (/^\\/communities\\/[^/]+\\/courses\\/[^/]+(?:\\/|$)/.test(pathname) &&
+      !/\\/learn(?:\\/|$)/.test(pathname)) {
+    return false;
+  }
   const sub = getCommunitySubroute(pathname);
   return Boolean(sub && COMMUNITY_WORKSPACE_SUBROUTES.has(sub));
 }
@@ -131,6 +135,10 @@ export function isHubAuthRequired(pathname: string): boolean {
   for (const prefix of HUB_AUTH_REQUIRED_PREFIXES) {
     if (path === prefix || path.startsWith(`${prefix}/`)) return true;
   }
+
+  // Public course detail pages are browsable without an account; learning remains protected.
+  if (/^\\/communities\\/[^/]+\\/courses\\/[^/]+\\/learn(?:\\/|$)/.test(path)) return true;
+  if (/^\\/communities\\/[^/]+\\/courses\\/[^/]+(?:\\/|$)/.test(path)) return false;
 
   const slug = getCommunitySlugFromPath(path);
   if (!slug) return false;
