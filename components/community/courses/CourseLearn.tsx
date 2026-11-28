@@ -75,7 +75,10 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const index = lessons.findIndex((lesson) => lesson.id === activeId);
   const lesson = lessons[index] ?? null;
   const quiz = quizzes.find((item) => item.lesson_id === lesson?.id) ?? null;
-  const visibleAssignments = [\n    ...assignments.filter((item) => item.lesson_id === lesson?.id),\n    ...(index === lessons.length - 1 ? assignments.filter((item) => !item.lesson_id) : []),\n  ];
+  const visibleAssignments = [
+    ...assignments.filter((item) => item.lesson_id === lesson?.id),
+    ...(index === lessons.length - 1 ? assignments.filter((item) => !item.lesson_id) : []),
+  ];
 
   async function markComplete(lessonId: string) {
     const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
