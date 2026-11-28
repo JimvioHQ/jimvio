@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
     const { data: file, error: downloadError } = await admin.storage.from(SITE_ICON_BUCKET).download(selected.path);
     if (downloadError || !file) throw downloadError ?? new Error("Icon file unavailable");
     const bytes = Buffer.from(await file.arrayBuffer());
-    return new NextResponse(bytes, {
+    return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": selected.contentType ?? definition.contentType,
         "Content-Length": String(bytes.byteLength),
