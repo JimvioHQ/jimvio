@@ -305,6 +305,7 @@ export function constructMetadata({
       },
     icons: {
       icon: [
+        { url: "/favicon.ico", sizes: "16x16 32x32 48x48", type: "image/x-icon" },
         { url: "/api/site-icons/favicon-ico", sizes: "16x16 32x32 48x48" },
         { url: "/api/site-icons/favicon-svg", type: "image/svg+xml" },
         { url: "/api/site-icons/favicon-16", sizes: "16x16", type: "image/png" },
@@ -322,7 +323,7 @@ export function constructMetadata({
         { url: "/api/site-icons/pwa-192", sizes: "192x192", type: "image/png" },
         { url: "/api/site-icons/pwa-512", sizes: "512x512", type: "image/png" },
       ],
-      shortcut: "/api/site-icons/favicon-ico",
+      shortcut: "/favicon.ico",
       apple: [
         { url: "/api/site-icons/apple-touch", sizes: "180x180", type: "image/png" },
         { url: "/api/site-icons/apple-152", sizes: "152x152", type: "image/png" },
