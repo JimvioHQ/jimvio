@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
     if (!selected?.path) {
       return NextResponse.redirect(new URL(definition.defaultPath, request.url), {
         status: 307,
-        headers: { "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600" },
+        headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" },
       });
     }
     const { data: file, error: downloadError } = await admin.storage.from(SITE_ICON_BUCKET).download(selected.path);
@@ -29,7 +29,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
       headers: {
         "Content-Type": selected.contentType ?? definition.contentType,
         "Content-Length": String(bytes.byteLength),
-        "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": "no-store, max-age=0, must-revalidate",
+        "Pragma": "no-cache",
         "X-Content-Type-Options": "nosniff",
         "ETag": `"${selected.updatedAt ?? data?.updated_at ?? "default"}"`,
       },
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
     console.error("[site-icons] serve failed", error);
     return NextResponse.redirect(new URL(definition.defaultPath, request.url), {
       status: 307,
-      headers: { "Cache-Control": "public, max-age=30, s-maxage=60" },
+      headers: { "Cache-Control": "no-store, max-age=0, must-revalidate" },
     });
   }
 }
