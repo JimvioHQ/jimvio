@@ -345,18 +345,24 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Session expired or incomplete — mark it failed and issue a fresh one
-    await supabase
+    // Session expired or incomplete — mark it failed and issue a fresh one.
+    // The buyer was authenticated and ownership of the order was verified above.
+    // Use the server-only admin client with strict owner/order predicates because
+    // transactions intentionally has no client UPDATE policy.
+    await getAdminDB()
       .from("transactions")
       .update({ status: "failed" })
-      .eq("id", existingTx.id);
+      .eq("id", existingTx.id)
+      .eq("order_id", orderId)
+      .eq("user_id", user.id);
   }
 
   // Expire any other stale Binance transactions outside the reuse window.
-  await supabase
+  await getAdminDB()
     .from("transactions")
     .update({ status: "failed" })
     .eq("order_id", orderId)
+    .eq("user_id", user.id)
     .eq("provider", "binance")
     .in("status", ["pending", "processing"])
     .lt("created_at", cutoff);
