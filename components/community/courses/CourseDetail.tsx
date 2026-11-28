@@ -17,6 +17,7 @@ type Detail = {
     price_cents: number | null;
     currency: string | null;
     thumbnail_url: string | null;
+    total_modules: number | null;
     total_lessons: number | null;
     total_duration: number | null;
     certificate_enabled: boolean | null;
@@ -128,7 +129,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
           <p className="text-xs font-bold uppercase tracking-wide text-[#FF5A1F]">{course.community?.name}</p>
           <h1 className="text-2xl font-semibold text-[#111827]">{course.title}</h1>
           <p className="text-sm text-[#6B7280]">
-            {instructor} · {course.difficulty} · {course.language} · {course.total_lessons ?? 0} lessons
+            {instructor} · {course.difficulty} · {course.language} · {course.total_modules ?? data.modules.length} modules · {course.total_lessons ?? 0} lessons
             {course.total_duration ? ` · ${course.total_duration} min` : ""}
           </p>
           <p className="text-sm leading-6 text-[#374151]">{course.description}</p>
