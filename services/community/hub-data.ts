@@ -764,7 +764,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       ? supabase
           .from("community_tasks")
           .select(
-            "id, title, description, due_date, completion_count, community_id, room_id, communities(name, slug, is_private, visibility, visibility_mode, is_active, archived_at), rooms(slug)"
+            "id, title, description, due_date, completion_count, community_id, room_id, communities(name, slug), rooms(slug)"
           )
           .in("community_id", communityIds)
           .eq("is_active", true)
@@ -1196,7 +1196,7 @@ export async function getHubCourses(
   const supabase = await createClient();
   const communityIds = userId ? await getUserCommunityIds(supabase, userId) : [];
   const select =
-    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
+    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug, is_private, visibility, visibility_mode, is_active, archived_at), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
