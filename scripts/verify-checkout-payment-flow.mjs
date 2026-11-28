@@ -454,7 +454,7 @@ assert(
   "Order status API must use the shared lifecycle and enforce vendor-only fulfillment transitions"
 );
 const seo = read("lib/seo.ts");
-const siteManifest = read("public/site.webmanifest");
+const siteManifest = read("app/manifest.ts");
 const nextManifest = read("app/manifest.ts");
 const browserConfig = read("public/browserconfig.xml");
 assert(
@@ -463,14 +463,15 @@ assert(
     seo.includes("/api/site-icons/favicon-16") &&
     seo.includes("/api/site-icons/favicon-32") &&
     seo.includes("/api/site-icons/apple-touch") &&
-    seo.includes('manifest: "/site.webmanifest"'),
+    seo.includes('manifest: "/manifest.webmanifest"'),
   "Browser, classic, SVG, Apple, and manifest metadata must use the current Jimvio icon package"
 );
 assert(
-  siteManifest.includes('"theme_color": "#F95405"') &&
-    siteManifest.includes('"sizes": "192x192"') &&
-    siteManifest.includes('"sizes": "512x512"') &&
-    siteManifest.includes('"purpose": "maskable"') &&
+  siteManifest.includes('theme_color: "#F95405"') &&
+    siteManifest.includes('icon("pwa-192")') &&
+    siteManifest.includes('icon("pwa-512")') &&
+    siteManifest.includes('icon("pwa-maskable-192")') &&
+    siteManifest.includes('icon("pwa-mono-512")') &&
     nextManifest.includes('theme_color: "#F95405"'),
   "PWA manifest must include standard, maskable, and orange-themed app icons"
 );
