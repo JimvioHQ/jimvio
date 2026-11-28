@@ -22,43 +22,43 @@
   ],
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "/api/site-icons/pwa-192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/api/site-icons/pwa-512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/api/site-icons/apple-touch",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/maskable-192.png",
+      "src": "/api/site-icons/pwa-maskable-192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/maskable-512.png",
+      "src": "/api/site-icons/pwa-maskable-512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icons/monochrome-192.png",
+      "src": "/api/site-icons/pwa-mono-192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "monochrome"
     },
     {
-      "src": "/icons/monochrome-512.png",
+      "src": "/api/site-icons/pwa-mono-512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "monochrome"
@@ -71,7 +71,7 @@
       "url": "/communities",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/api/site-icons/pwa-192",
           "sizes": "192x192"
         }
       ]
@@ -82,7 +82,7 @@
       "url": "/marketplace",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/api/site-icons/pwa-192",
           "sizes": "192x192"
         }
       ]
@@ -93,7 +93,7 @@
       "url": "/communities/messages",
       "icons": [
         {
-          "src": "/icons/icon-192.png",
+          "src": "/api/site-icons/pwa-192",
           "sizes": "192x192"
         }
       ]
