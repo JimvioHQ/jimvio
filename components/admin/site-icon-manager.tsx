@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { CheckCircle2, Clock3, ExternalLink, ImagePlus, Loader2, RotateCcw, UploadCloud } from "lucide-react";
 import { SITE_ICON_DEFINITIONS } from "@/lib/site-icons/config";
 
