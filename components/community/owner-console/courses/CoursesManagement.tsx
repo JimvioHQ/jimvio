@@ -549,6 +549,8 @@ export function CoursesManagement() {
                       title: lessonTitle,
                       body: lessonBody,
                       videoUrl: lessonVideo,
+                      duration: Number(lessonDuration) || 0,
+                      isFree: lessonIsFree,
                       attachments: lessonResource.trim()
                         ? [{ url: lessonResource.trim(), name: lessonTitle || "Resource", type: "file" }]
                         : editingLesson?.attachments ?? [],
@@ -560,6 +562,8 @@ export function CoursesManagement() {
                       setLessonTitle("");
                       setLessonBody("");
                       setLessonVideo("");
+                      setLessonDuration("0");
+                      setLessonIsFree(false);
                       setLessonResource("");
                       setEditingLessonId(null);
                     });
@@ -573,7 +577,16 @@ export function CoursesManagement() {
                   </select>
                   <Input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="Lesson title" required />
                   <Textarea value={lessonBody} onChange={(event) => setLessonBody(event.target.value)} placeholder="Lesson text" />
-                  <Input value={lessonVideo} onChange={(event) => setLessonVideo(event.target.value)} placeholder="Video or image URL (optional)" />
+                  <Input value={lessonVideo} onChange={(event) => setLessonVideo(event.target.value)} placeholder="Video URL (optional)" />
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <label className="text-xs font-medium text-[#6B7280]">Duration (minutes)
+                      <Input type="number" min={0} max={10000} value={lessonDuration} onChange={(event) => setLessonDuration(event.target.value)} />
+                    </label>
+                    <label className="flex items-center gap-2 self-end pb-2 text-sm">
+                      <input type="checkbox" checked={lessonIsFree} onChange={(event) => setLessonIsFree(event.target.checked)} />
+                      Free preview
+                    </label>
+                  </div>
                   <Input value={lessonResource} onChange={(event) => setLessonResource(event.target.value)} placeholder="Downloadable resource URL (optional)" />
                   <Button type="submit" variant="outline" disabled={!!busy || !lessonModule}>{editingLessonId ? "Save lesson" : "Add lesson"}</Button>
                 </form>
@@ -618,6 +631,8 @@ export function CoursesManagement() {
                                 setLessonTitle(lesson.title);
                                 setLessonBody(lesson.body ?? "");
                                 setLessonVideo(lesson.video_url ?? "");
+                                setLessonDuration(String(lesson.duration ?? 0));
+                                setLessonIsFree(Boolean(lesson.is_free));
                                 setLessonResource(lesson.attachments?.find((file) => file.url)?.url ?? "");
                               }}
                             >
@@ -635,6 +650,8 @@ export function CoursesManagement() {
                                       setLessonTitle("");
                                       setLessonBody("");
                                       setLessonVideo("");
+                                      setLessonDuration("0");
+                                      setLessonIsFree(false);
                                       setLessonResource("");
                                     }
                                   });
