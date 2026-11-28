@@ -477,7 +477,8 @@ assert(
 assert(
   browserConfig.includes("#F95405") &&
     existsSync(join(root, "app/favicon.ico/route.ts")) &&
-    existsSync(join(root, "public/favicon.svg")) &&
+    existsSync(join(root, "app/favicon.svg/route.ts")) &&
+    existsSync(join(root, "app/icons/safari-pinned-tab.svg/route.ts")) &&
     existsSync(join(root, "app/apple-touch-icon.png/route.ts")) &&
     existsSync(join(root, "app/favicon-16x16.png/route.ts")) &&
     existsSync(join(root, "app/favicon-32x32.png/route.ts")),
