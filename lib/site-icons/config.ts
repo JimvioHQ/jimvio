@@ -15,7 +15,7 @@ export const SITE_ICON_SETTING_KEY = "jimvio_site_icons";
 export const SITE_ICON_MAX_BYTES = 1024 * 1024;
 
 export const SITE_ICON_DEFINITIONS: SiteIconDefinition[] = [
-  { key: "favicon-ico", label: "Classic favicon", group: "Browser", filename: "favicon.ico", contentType: "image/x-icon", width: 48, height: 48, defaultPath: "/icons/icon-48.png", help: "ICO file; 16, 32 and 48 px layers recommended." },
+  { key: "favicon-ico", label: "Classic favicon", group: "Browser", filename: "favicon.ico", contentType: "image/x-icon", width: 48, height: 48, defaultPath: "/icons/favicon.ico", help: "ICO file; 16, 32 and 48 px layers recommended." },
   { key: "favicon-svg", label: "SVG favicon", group: "Browser", filename: "favicon.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/source/any.svg", help: "Sanitized square SVG mark." },
   { key: "favicon-16", label: "16 × 16 favicon", group: "Browser", filename: "icon-16.png", contentType: "image/png", width: 16, height: 16, defaultPath: "/icons/icon-16.png", help: "PNG, exactly 16 × 16." },
   { key: "favicon-32", label: "32 × 32 favicon", group: "Browser", filename: "icon-32.png", contentType: "image/png", width: 32, height: 32, defaultPath: "/icons/icon-32.png", help: "PNG, exactly 32 × 32." },
