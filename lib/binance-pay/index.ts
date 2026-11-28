@@ -92,8 +92,8 @@ async function binanceRequest<T>(
             status: res.status,
             statusText: res.statusText,
             headers: Object.fromEntries(res.headers.entries()),
-            body: rawBody,
-            requestBody: bodyStr,
+            // Never log request bodies: they contain order identifiers and checkout URLs.
+            body: rawBody.slice(0, 500),
         });
     }
 
