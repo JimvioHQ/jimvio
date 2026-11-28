@@ -305,6 +305,7 @@ export function constructMetadata({
       },
     icons: {
       icon: [
+        { url: "/favicon.png", sizes: "96x96", type: "image/png" },
         { url: "/favicon.ico", sizes: "16x16 32x32 48x48", type: "image/x-icon" },
         { url: "/api/site-icons/favicon-ico", sizes: "16x16 32x32 48x48" },
         { url: "/api/site-icons/favicon-svg", type: "image/svg+xml" },
