@@ -194,52 +194,57 @@ export async function POST(request: NextRequest) {
     if (file.size <= 0 || file.size > SITE_ICON_MAX_BYTES) return NextResponse.json({ error: "Icon must be smaller than 1 MB" }, { status: 400 });
 
     const bytes = Buffer.from(await file.arrayBuffer());
-    let body: Buffer = bytes;
-    let detectedType = "";
-    let width = definition.width;
-    let height = definition.height;
-    let extension = definition.filename.split(".").pop() ?? "png";
+    const sourceMeta = await sharp(bytes, { failOn: "error" }).metadata();
+    if (sourceMeta.format !== "png" || !sourceMeta.width || !sourceMeta.height) {
+      return NextResponse.json({ error: "Upload a valid PNG image. Other file formats are not accepted." }, { status: 400 });
+    }
 
-    if (definition.contentType === "image/png") {
-      const meta = await sharp(bytes, { failOn: "error" }).metadata();
-      if (meta.format !== "png" || meta.width !== definition.width || meta.height !== definition.height) {
-        return NextResponse.json({ error: `Upload a PNG that is exactly ${definition.width} × ${definition.height} pixels` }, { status: 400 });
-      }
-      detectedType = "image/png";
-    } else if (definition.contentType === "image/x-icon") {
-      if (bytes.length < 22 || bytes[0] !== 0 || bytes[1] !== 0 || bytes[2] !== 1 || bytes[3] !== 0) {
-        return NextResponse.json({ error: "Upload a valid Windows ICO file" }, { status: 400 });
-      }
-      const frameCount = bytes.readUInt16LE(4);
-      const directoryEnd = 6 + frameCount * 16;
-      if (frameCount < 1 || directoryEnd > bytes.length) {
-        return NextResponse.json({ error: "ICO directory is invalid" }, { status: 400 });
-      }
-      const frameSizes = new Set<number>();
-      for (let index = 0; index < frameCount; index += 1) {
-        const offset = 6 + index * 16;
-        const frameWidth = bytes[offset] || 256;
-        const frameHeight = bytes[offset + 1] || 256;
-        const frameBytes = bytes.readUInt32LE(offset + 8);
-        const frameOffset = bytes.readUInt32LE(offset + 12);
-        if (frameBytes <= 0 || frameOffset < directoryEnd || frameOffset + frameBytes > bytes.length) {
-          return NextResponse.json({ error: "ICO frame data is invalid" }, { status: 400 });
-        }
-        if (frameWidth === frameHeight && [16, 32, 48].includes(frameWidth)) frameSizes.add(frameWidth);
-      }
-      if (![16, 32, 48].every((size) => frameSizes.has(size))) {
-        return NextResponse.json({ error: "ICO must include 16, 32 and 48 pixel frames" }, { status: 400 });
-      }
-      detectedType = "image/x-icon";
+    let body: Buffer;
+    let detectedType = definition.contentType;
+    let width = definition.width || 512;
+    let height = definition.height || 512;
+    const extension = definition.filename.split(".").pop() ?? "png";
+
+    if (definition.contentType === "image/x-icon") {
+      const sizes = [16, 32, 48];
+      const frames = await Promise.all(sizes.map((size) =>
+        sharp(bytes, { failOn: "error" })
+          .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+          .png()
+          .toBuffer()
+      ));
+      const directoryEnd = 6 + frames.length * 16;
+      const totalBytes = frames.reduce((sum, frame) => sum + frame.length, 0);
+      body = Buffer.alloc(directoryEnd + totalBytes);
+      body.writeUInt16LE(0, 0);
+      body.writeUInt16LE(1, 2);
+      body.writeUInt16LE(frames.length, 4);
+      let dataOffset = directoryEnd;
+      frames.forEach((frame, index) => {
+        const entry = 6 + index * 16;
+        body[entry] = sizes[index];
+        body[entry + 1] = sizes[index];
+        body[entry + 2] = 0;
+        body[entry + 3] = 0;
+        body.writeUInt16LE(1, entry + 4);
+        body.writeUInt16LE(32, entry + 6);
+        body.writeUInt32LE(frame.length, entry + 8);
+        body.writeUInt32LE(dataOffset, entry + 12);
+        frame.copy(body, dataOffset);
+        dataOffset += frame.length;
+      });
+    } else if (definition.contentType === "image/svg+xml") {
+      const raster = await sharp(bytes, { failOn: "error" })
+        .resize(width, height, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+      const encoded = raster.toString("base64");
+      body = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image width="${width}" height="${height}" href="data:image/png;base64,${encoded}"/></svg>`, "utf8");
     } else {
-      const raw = bytes.toString("utf8");
-      const sanitized = sanitizeUploadedSvg(raw);
-      if (!sanitized) {
-        return NextResponse.json({ error: "SVG is invalid or contains unsupported or unsafe elements. Use a simple SVG with standard vector shapes only." }, { status: 400 });
-      }
-      body = Buffer.from(sanitized, "utf8");
-      detectedType = "image/svg+xml";
-      extension = "svg";
+      body = await sharp(bytes, { failOn: "error" })
+        .resize(width, height, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
     }
 
     const path = `site-icons/${slot}/${Date.now()}-${randomUUID()}.${extension}`;
