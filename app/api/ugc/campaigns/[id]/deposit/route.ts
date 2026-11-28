@@ -16,6 +16,7 @@ import { createBinancePayOrder } from "@/lib/binance-pay";
 import { orderTotalsForUsdGateway } from "@/lib/money";
 import { normalizeWalletDepositMethod } from "@/lib/payments/wallet-deposit-method";
 import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
+import { BINANCE_PAY_MAINTENANCE_ENABLED, binancePayMaintenancePayload } from "@/lib/payments/binance-pay-maintenance";
 import { campaignFunding } from "@/lib/ugc/escrow-funding";
 import {
   campaignFundingChargeUsd,
@@ -412,6 +413,9 @@ export async function POST(
   const paymentMethodRaw =
     typeof body.payment_method === "string" ? body.payment_method : "flutterwave";
   const payment_method = normalizeUgcPaymentMethod(paymentMethodRaw);
+  if (payment_method === "binancepay" && BINANCE_PAY_MAINTENANCE_ENABLED) {
+    return NextResponse.json(binancePayMaintenancePayload(), { status: 503 });
+  }
   const isTopUp = body.topUp === true;
   const requestedAmount =
     typeof body.amount === "number" && Number.isFinite(body.amount) ? Number(body.amount) : null;
