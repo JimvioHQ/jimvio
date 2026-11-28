@@ -13,6 +13,7 @@ type HubCourse = {
   difficulty: string;
   category?: string | null;
   total_lessons: number;
+  total_duration?: number | null;
   progress: number;
   community_name: string;
   community_slug: string;
