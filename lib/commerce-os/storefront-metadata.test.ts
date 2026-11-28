@@ -92,7 +92,7 @@ describe("storefront metadata", () => {
 
     const platform = constructMetadata();
     const platformShortcut = (platform.icons as { shortcut?: string })?.shortcut;
-    assert.match(String(platformShortcut), /^\/api\/site-icons\/favicon-ico/);
+    assert.equal(platformShortcut, "/favicon.ico");
     assert.notEqual(platformShortcut, shortcut);
   });
 
