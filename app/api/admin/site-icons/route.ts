@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       const settings = await loadSettings(admin);
       const current = settings.assets[slot];
       if (body?.action === "reset") {
+        if (current) settings.history[slot] = [current, ...(settings.history[slot] ?? []).filter((item) => item.path !== current.path)].slice(0, 8);
         delete settings.assets[slot];
       } else if (body?.action === "restore") {
         const version = settings.history[slot]?.find((item) => item.path === body.versionPath);
