@@ -5,8 +5,8 @@ import { resolvePublicOrigin } from "../auth/public-origin.ts";
 import { STOREFRONT_NEUTRAL_FAVICON_PATH } from "./storefront-icons.ts";
 
 describe("storefront favicon policy", () => {
-  it("neutral path is an empty svg asset", () => {
-    assert.equal(STOREFRONT_NEUTRAL_FAVICON_PATH, "/storefront-empty-favicon.svg");
+  it("neutral path is the independently managed storefront fallback endpoint", () => {
+    assert.equal(STOREFRONT_NEUTRAL_FAVICON_PATH, "/api/site-icons/storefront-empty");
   });
 });
 
