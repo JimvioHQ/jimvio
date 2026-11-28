@@ -27,4 +27,5 @@ assert.match(manifest, /\/api\/site-icons\/pwa-192/);
 assert.match(sidebar, /\/admin\/settings\/icons/);
 assert.match(manager, /Previous versions/);
 assert.match(manager, /Using repository default/);
+// Keep the icon-manager preview build explicitly enabled by the repository ignore-build policy.
 console.log("Site Icon Manager verification: PASS");
