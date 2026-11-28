@@ -189,11 +189,15 @@ export function CoursesManagement() {
         details.price_cents = Math.round(dollars * 100);
         details.currency = "USD";
       }
-      await fetch(`/api/c/owner/courses/${json.course.id}`, {
+      const detailsResponse = await fetch(`/api/c/owner/courses/${json.course.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "update", ...details }),
-      }).catch(() => undefined);
+      });
+      const detailsResult = await detailsResponse.json().catch(() => ({}));
+      if (!detailsResponse.ok) {
+        throw new Error(detailsResult.error ?? "Course was created, but its details could not be saved. Reopen the draft and try again.");
+      }
       setTitle("");
       setNewDescription("");
       setNewCover("");
