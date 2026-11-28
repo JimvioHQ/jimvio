@@ -142,6 +142,9 @@ export async function POST(
       if (payload.title.length < 2) {
         return NextResponse.json({ error: "Assignment title is required" }, { status: 400 });
       }
+      if (!Number.isFinite(payload.pass_score) || payload.pass_score < 0 || payload.pass_score > 100) {
+        return NextResponse.json({ error: "Assignment pass score must be between 0 and 100" }, { status: 400 });
+      }
       const query = typeof body.id === "string"
         ? admin.from("course_assignments").update(payload).eq("id", body.id).eq("course_id", courseId)
         : admin.from("course_assignments").insert(payload);
@@ -149,10 +152,36 @@ export async function POST(
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ assignment: data });
     }
-    if (action === "deleteLesson" || action === "deleteModule" || action === "deleteAssignment") {
+    if (action === "deleteLesson" || action === "deleteModule" || action === "deleteAssignment" || action === "deleteQuiz") {
       const { loadManaged } = await import("./guard");
       await loadManaged(user, courseId);
       const admin = createServiceRoleClient();
+
+      if (action === "deleteQuiz") {
+        const quizId = String(body.id ?? "");
+        if (!quizId) return NextResponse.json({ error: "Quiz ID is required" }, { status: 400 });
+        const { count, error: attemptsError } = await admin
+          .from("course_quiz_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("quiz_id", quizId);
+        if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+        if ((count ?? 0) > 0) {
+          return NextResponse.json(
+            { error: "This quiz has student attempts. Keep it to preserve learner records; you can edit the quiz or unpublish the course instead." },
+            { status: 409 }
+          );
+        }
+        const { data, error } = await admin
+          .from("course_quizzes")
+          .delete()
+          .eq("id", quizId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
 
       if (action === "deleteLesson") {
         const lessonId = String(body.id ?? "");
