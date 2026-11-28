@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { accessPlans, isAccessPlanKey } from "@/lib/community/access-pricing";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
+import { BINANCE_PAY_MAINTENANCE_ENABLED, binancePayMaintenancePayload } from "@/lib/payments/binance-pay-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,9 @@ export async function POST(
   }
 
   const provider = (paymentProvider || "flutterwave").toLowerCase();
+  if (provider === "binancepay" && BINANCE_PAY_MAINTENANCE_ENABLED) {
+    return NextResponse.json(binancePayMaintenancePayload(), { status: 503 });
+  }
   if (
     provider === "pesapal" ||
     provider === "paypal" ||
