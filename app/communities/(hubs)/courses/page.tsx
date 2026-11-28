@@ -33,7 +33,7 @@ export default function HubCoursesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "in-progress" | "completed">("all");
   const [category, setCategory] = useState("all");
-  const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("progress");
+  const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("recent");
   const [createHref, setCreateHref] = useState<string | null>(null);
   const [viewerAuthenticated, setViewerAuthenticated] = useState(false);
 
@@ -58,7 +58,6 @@ export default function HubCoursesPage() {
             setCourses([]);
             setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
             setViewerAuthenticated(Boolean(json.viewerAuthenticated));
-          if (!json.viewerAuthenticated) setSort("recent");
           }
           return;
         }
