@@ -55,7 +55,7 @@ const USER_FACING_ERRORS: Record<string, string> = {
    ORDER_ALREADY_PAID: "This order has already been paid. Check your order history.",
    BUYER_EMAIL_MISSING: "Your account is missing an email address. Please update your profile.",
    PAYMENT_LINK_FAILED: "The payment provider is temporarily unavailable. Please try again shortly.",
-   BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily unavailable. Please choose another payment method.",
+   BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily under maintenance while our team resolves an issue. It will be available again soon. Please choose another payment method for now.",
    INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
    UNSUPPORTED_COUNTRY: "Mobile Money is not available in this country.",
    UNSUPPORTED_NETWORK: "This Mobile Money provider is currently unavailable.",
