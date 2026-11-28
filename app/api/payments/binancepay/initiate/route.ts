@@ -8,6 +8,7 @@ import { formatTransactionValidationError } from "@/lib/payments/transaction-typ
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 
 import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { BINANCE_PAY_MAINTENANCE_ENABLED, binancePayMaintenancePayload } from "@/lib/payments/binance-pay-maintenance";
 // ─── Runtime ──────────────────────────────────────────────────────────────────
 // Force Node.js runtime — required on Render for crypto, fetch, and cookie APIs.
 // Do NOT use "edge" here; Supabase SSR and cookies() require Node runtime.
@@ -182,6 +183,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (authError || !user) {
     return errorResponse("Unauthorized — please sign in", 401, req);
+  }
+
+  // Do not create new provider sessions during maintenance. Existing webhooks
+  // remain active so previously-created payments can still be reconciled.
+  if (BINANCE_PAY_MAINTENANCE_ENABLED) {
+    return NextResponse.json(binancePayMaintenancePayload(), {
+      status: 503,
+      headers: buildCorsHeaders(req),
+    });
   }
 
   // ── 4. Load & validate order ───────────────────────────────────────────────
