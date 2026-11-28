@@ -24,7 +24,7 @@ type ManagedCourse = {
   is_published: boolean | null;
   archived_at: string | null;
   thumbnail_url: string | null;
-  total_lessons: number | null;
+  total_lessons: number | null;\n  total_modules?: number | null;
   certificate_enabled: boolean | null;
   learning_outcomes: string[] | null;
   prerequisites: string[] | null;
@@ -82,7 +82,7 @@ export function CoursesManagement() {
   const [moduleTitle, setModuleTitle] = useState("");
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonBody, setLessonBody] = useState("");
-  const [lessonVideo, setLessonVideo] = useState("");
+  const [lessonVideo, setLessonVideo] = useState("");\n  const [lessonDuration, setLessonDuration] = useState("0");\n  const [lessonIsFree, setLessonIsFree] = useState(false);
   const [lessonResource, setLessonResource] = useState("");
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
@@ -222,11 +222,27 @@ export function CoursesManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#FF5A1F]">Jimvio Learning</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#111827]">Course Studio</h1>
+          <p className="mt-1 max-w-xl text-sm text-[#6B7280]">Create structured learning experiences, manage lessons and assignments, and preview exactly what students will see.</p>
+        </div>
+        {!creating && (
+          <Button type="button" className="bg-[#FF5A1F] hover:bg-[#F04E14]" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" /> Create course
+          </Button>
+        )}
+      </header>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+          <p className="text-[12px] font-semibold text-[#6B7280]">Courses</p>
+          <p className="mt-1 text-2xl font-semibold text-[#111827]">{courses.length}</p>
+        </div>
         {[
           ["Enrollments", analytics?.enrollments ?? 0],
           ["Completion", `${analytics?.completionRate ?? 0}%`],
-          ["Revenue", `$${((analytics?.revenueCents ?? 0) / 100).toFixed(2)}`],
+          ["Revenue", `${((analytics?.revenueCents ?? 0) / 100).toFixed(2)}`],
         ].map(([label, value]) => (
           <div key={String(label)} className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
             <p className="text-[12px] font-semibold text-[#6B7280]">{label}</p>
@@ -499,7 +515,7 @@ export function CoursesManagement() {
               </label>
 
               <div className="border-t border-[#E5E7EB] pt-4">
-                <h2 className="text-sm font-semibold">Curriculum</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold">Curriculum</h2><p className="text-xs text-[#6B7280]">{modules.length} modules · {modules.reduce((total, module) => total + (module.course_lessons?.length ?? 0), 0)} lessons</p></div>
                   <form
                   className="mt-2 flex gap-2"
                   onSubmit={(event) => {
