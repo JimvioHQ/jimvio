@@ -100,14 +100,14 @@ export function SiteIconManager() {
         <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the currently active browser, mobile and app marks.</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { key: "favicon-32", label: "Browser tab" },
-            { key: "apple-touch", label: "iPhone home screen" },
-            { key: "pwa-192", label: "Android app" },
-            { key: "pwa-maskable-512", label: "Adaptive icon" },
+            { slot: "favicon-32", label: "Browser tab" },
+            { slot: "apple-touch", label: "iPhone home screen" },
+            { slot: "pwa-192", label: "Android app" },
+            { slot: "pwa-maskable-512", label: "Adaptive icon" },
           ].map((item) => (
-            <div key={item.key} className="flex min-w-0 flex-col items-center gap-2 rounded-lg border border-[var(--color-border)] p-3">
+            <div key={item.slot} className="flex min-w-0 flex-col items-center gap-2 rounded-lg border border-[var(--color-border)] p-3">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)]">
-                <img src={`/api/site-icons/${item.key}?v=${settings.updatedAt}`} alt={item.label} className="h-12 w-12 object-contain" />
+                <img src={`/api/site-icons/${item.slot}?v=${settings.updatedAt}`} alt={item.label} className="h-12 w-12 object-contain" />
               </div>
               <span className="text-center text-[11px] text-[var(--color-text-muted)]">{item.label}</span>
             </div>
@@ -123,14 +123,14 @@ export function SiteIconManager() {
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {SITE_ICON_DEFINITIONS.filter((item) => item.group === group).map((item) => {
-              const active = settings.assets[item.key];
-              const history = settings.history[item.key] ?? [];
-              const isBusy = busy === item.key;
+              const active = settings.assets[item.slot];
+              const history = settings.history[item.slot] ?? [];
+              const isBusy = busy === item.slot;
               return (
-                <article key={item.key} className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
+                <article key={item.slot} className="min-w-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
                   <div className="flex items-start gap-3">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
-                      <img src={`/api/site-icons/${item.key}?v=${settings.updatedAt}`} alt="" className="h-9 w-9 object-contain" />
+                      <img src={`/api/site-icons/${item.slot}?v=${settings.updatedAt}`} alt="" className="h-9 w-9 object-contain" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate text-sm font-semibold">{item.label}</h3>
@@ -147,15 +147,15 @@ export function SiteIconManager() {
                         accept={item.contentType === "image/png" ? "image/png" : item.contentType === "image/svg+xml" ? "image/svg+xml" : ".ico,image/x-icon"}
                         className="sr-only"
                         disabled={Boolean(busy)}
-                        onChange={(event) => { void upload(item.key, event.target.files?.[0]); event.currentTarget.value = ""; }}
+                        onChange={(event) => { void upload(item.slot, event.target.files?.[0]); event.currentTarget.value = ""; }}
                       />
                     </label>
                     {active ? (
-                      <button type="button" onClick={() => void mutate(item.key, "reset")} disabled={Boolean(busy)} className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] disabled:opacity-50">
+                      <button type="button" onClick={() => void mutate(item.slot, "reset")} disabled={Boolean(busy)} className="inline-flex items-center gap-1 rounded-lg border border-[var(--color-border)] px-2.5 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] disabled:opacity-50">
                         <RotateCcw className="h-3.5 w-3.5" /> Default
                       </button>
                     ) : <span className="text-[11px] text-[var(--color-text-muted)]">Using repository default</span>}
-                    <a href={`/api/site-icons/${item.key}?v=${settings.updatedAt}`} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
+                    <a href={`/api/site-icons/${item.slot}?v=${settings.updatedAt}`} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
                       Open <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
@@ -169,7 +169,7 @@ export function SiteIconManager() {
                         {history.map((version) => (
                           <div key={version.path} className="flex items-center justify-between gap-2 text-[10px]">
                             <span className="truncate text-[var(--color-text-muted)]">{new Date(version.updatedAt).toLocaleString()}</span>
-                            <button type="button" onClick={() => void mutate(item.key, "restore", version.path)} disabled={Boolean(busy)} className="shrink-0 rounded-md border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] disabled:opacity-50">Restore</button>
+                            <button type="button" onClick={() => void mutate(item.slot, "restore", version.path)} disabled={Boolean(busy)} className="shrink-0 rounded-md border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] disabled:opacity-50">Restore</button>
                           </div>
                         ))}
                       </div>
