@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { isCommunityWorkspaceSubroute, isHubAuthRequired } from "./hub-auth";
+import { communityIsPubliclyDiscoverable } from "./join-policy";
 
 describe("public course routes", () => {
   it("allows guests to browse the global public course catalog", () => {
@@ -21,5 +22,13 @@ describe("public course routes", () => {
 
   it("keeps the community-specific course management/list area protected", () => {
     assert.equal(isHubAuthRequired("/communities/academy/courses"), true);
+  });
+
+  it("does not expose courses from private, invite-only, hidden, or archived communities", () => {
+    assert.equal(communityIsPubliclyDiscoverable({ is_private: true }), false);
+    assert.equal(communityIsPubliclyDiscoverable({ visibility_mode: "invite_only" }), false);
+    assert.equal(communityIsPubliclyDiscoverable({ visibility: "hidden" }), false);
+    assert.equal(communityIsPubliclyDiscoverable({ is_active: false }), false);
+    assert.equal(communityIsPubliclyDiscoverable({ visibility: "public", is_active: true }), true);
   });
 });
