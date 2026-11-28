@@ -1,0 +1,169 @@
+import { randomUUID } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
+import DOMPurify from "isomorphic-dompurify";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { writeAuditEvent } from "@/services/ops/audit";
+import { rateLimit } from "@/lib/ops/rate-limit";
+import {
+  getSiteIconDefinition,
+  SITE_ICON_BUCKET,
+  SITE_ICON_MAX_BYTES,
+  SITE_ICON_SETTING_KEY,
+} from "@/lib/site-icons/config";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+type IconAsset = { path: string; contentType: string; size: number; width: number; height: number; updatedAt: string };
+type IconSettings = { assets: Record<string, IconAsset>; history: Record<string, IconAsset[]>; updatedAt: string };
+
+function emptySettings(): IconSettings {
+  return { assets: {}, history: {}, updatedAt: new Date(0).toISOString() };
+}
+
+async function loadSettings(admin: ReturnType<typeof createAdminClient>): Promise<IconSettings> {
+  const { data, error } = await admin.from("platform_settings").select("value").eq("key", SITE_ICON_SETTING_KEY).maybeSingle();
+  if (error) throw error;
+  const value = data?.value && typeof data.value === "object" ? data.value as Partial<IconSettings> : {};
+  return {
+    assets: value.assets && typeof value.assets === "object" ? value.assets : {},
+    history: value.history && typeof value.history === "object" ? value.history : {},
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : new Date(0).toISOString(),
+  };
+}
+
+async function saveSettings(admin: ReturnType<typeof createAdminClient>, settings: IconSettings) {
+  const { error } = await admin.from("platform_settings").upsert(
+    { key: SITE_ICON_SETTING_KEY, value: settings, updated_at: settings.updatedAt },
+    { onConflict: "key" },
+  );
+  if (error) throw error;
+}
+
+export async function GET() {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
+  try {
+    const settings = await loadSettings(createAdminClient());
+    return NextResponse.json(settings, { headers: { "Cache-Control": "private, no-store" } });
+  } catch (error) {
+    console.error("[admin/site-icons] load failed", error);
+    return NextResponse.json({ error: "Could not load icon settings" }, { status: 503 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "Unauthorized" : "Forbidden" }, { status: auth.status });
+
+  const limited = rateLimit(`site-icon-admin:${auth.user.id}`, 30, 60_000);
+  if (!limited.allowed) return NextResponse.json({ error: "Too many changes. Try again shortly." }, { status: 429 });
+
+  const admin = createAdminClient();
+  try {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      const body = await request.json().catch(() => null) as { action?: string; slot?: string; versionPath?: string } | null;
+      const slot = String(body?.slot ?? "");
+      const definition = getSiteIconDefinition(slot);
+      if (!definition) return NextResponse.json({ error: "Unknown icon slot" }, { status: 400 });
+      const settings = await loadSettings(admin);
+      const current = settings.assets[slot];
+      if (body?.action === "reset") {
+        delete settings.assets[slot];
+      } else if (body?.action === "restore") {
+        const version = settings.history[slot]?.find((item) => item.path === body.versionPath);
+        if (!version) return NextResponse.json({ error: "That saved version is unavailable" }, { status: 404 });
+        settings.history[slot] = [ ...(current ? [current] : []), ...(settings.history[slot] ?? []).filter((item) => item.path !== version.path) ].slice(0, 8);
+        settings.assets[slot] = version;
+      } else {
+        return NextResponse.json({ error: "Unsupported action" }, { status: 400 });
+      }
+      settings.updatedAt = new Date().toISOString();
+      await saveSettings(admin, settings);
+      await writeAuditEvent({
+        actorId: auth.user.id,
+        action: body.action === "reset" ? "site_icon_reset" : "site_icon_restored",
+        entityType: "site_icon",
+        entityId: slot,
+        metadata: { slot, previousPath: current?.path ?? null, activePath: settings.assets[slot]?.path ?? null },
+        ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+        userAgent: request.headers.get("user-agent"),
+      });
+      return NextResponse.json({ ok: true, settings });
+    }
+
+    const form = await request.formData();
+    const slot = String(form.get("slot") ?? "");
+    const file = form.get("file");
+    const definition = getSiteIconDefinition(slot);
+    if (!definition || !(file instanceof File)) return NextResponse.json({ error: "Choose a valid icon and file" }, { status: 400 });
+    if (file.size <= 0 || file.size > SITE_ICON_MAX_BYTES) return NextResponse.json({ error: "Icon must be smaller than 1 MB" }, { status: 400 });
+
+    const bytes = Buffer.from(await file.arrayBuffer());
+    let body: Buffer = bytes;
+    let detectedType = "";
+    let width = definition.width;
+    let height = definition.height;
+    let extension = definition.filename.split(".").pop() ?? "png";
+
+    if (definition.contentType === "image/png") {
+      const meta = await sharp(bytes, { failOn: "error" }).metadata();
+      if (meta.format !== "png" || meta.width !== definition.width || meta.height !== definition.height) {
+        return NextResponse.json({ error: `Upload a PNG that is exactly ${definition.width} × ${definition.height} pixels` }, { status: 400 });
+      }
+      detectedType = "image/png";
+    } else if (definition.contentType === "image/x-icon") {
+      if (bytes.length < 6 || bytes[0] !== 0 || bytes[1] !== 0 || bytes[2] !== 1 || bytes[3] !== 0) {
+        return NextResponse.json({ error: "Upload a valid Windows ICO file" }, { status: 400 });
+      }
+      detectedType = "image/x-icon";
+    } else {
+      const raw = bytes.toString("utf8");
+      if (!/<svg(?:\s|>)/i.test(raw.slice(0, 2048)) || /<script|javascript:|<foreignObject|on[a-z]+\s*=/i.test(raw)) {
+        return NextResponse.json({ error: "SVG contains unsupported or unsafe markup" }, { status: 400 });
+      }
+      const sanitized = DOMPurify.sanitize(raw, { USE_PROFILES: { svg: true, svgFilters: true } });
+      if (!/<svg(?:\s|>)/i.test(sanitized)) return NextResponse.json({ error: "Invalid SVG file" }, { status: 400 });
+      body = Buffer.from(sanitized, "utf8");
+      detectedType = "image/svg+xml";
+      extension = "svg";
+    }
+
+    const path = `site-icons/${slot}/${Date.now()}-${randomUUID()}.${extension}`;
+    const { error: uploadError } = await admin.storage.from(SITE_ICON_BUCKET).upload(path, body, {
+      contentType: detectedType,
+      cacheControl: "31536000",
+      upsert: false,
+    });
+    if (uploadError) {
+      console.error("[admin/site-icons] storage upload failed", uploadError.message);
+      return NextResponse.json({ error: "Icon upload failed. Please retry." }, { status: 503 });
+    }
+
+    const settings = await loadSettings(admin);
+    const previous = settings.assets[slot];
+    if (previous) settings.history[slot] = [previous, ...(settings.history[slot] ?? []).filter((item) => item.path !== previous.path)].slice(0, 8);
+    const asset: IconAsset = { path, contentType: detectedType, size: body.length, width, height, updatedAt: new Date().toISOString() };
+    settings.assets[slot] = asset;
+    settings.updatedAt = asset.updatedAt;
+    await saveSettings(admin, settings);
+
+    await writeAuditEvent({
+      actorId: auth.user.id,
+      action: "site_icon_uploaded",
+      entityType: "site_icon",
+      entityId: slot,
+      metadata: { slot, path, contentType: detectedType, size: body.length, previousPath: previous?.path ?? null },
+      ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+      userAgent: request.headers.get("user-agent"),
+    });
+
+    return NextResponse.json({ ok: true, slot, asset, settings });
+  } catch (error) {
+    console.error("[admin/site-icons] update failed", error);
+    return NextResponse.json({ error: "Could not update this icon" }, { status: 503 });
+  }
+}
