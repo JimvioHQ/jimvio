@@ -7,7 +7,7 @@ import { SITE_ICON_DEFINITIONS } from "@/lib/site-icons/config";
 type Asset = { path: string; contentType: string; size: number; width: number; height: number; updatedAt: string };
 type Settings = { assets: Record<string, Asset>; history: Record<string, Asset[]>; updatedAt: string };
 
-const groups = ["Browser", "Apple & iOS", "Android & PWA", "Windows & Safari"] as const;
+const groups = ["Browser", "Apple & iOS", "Android & PWA", "Windows & Safari", "Storefronts"] as const;
 
 export function SiteIconManager() {
   const [settings, setSettings] = useState<Settings>({ assets: {}, history: {}, updatedAt: "" });
