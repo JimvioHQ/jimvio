@@ -16,7 +16,7 @@ export const SITE_ICON_MAX_BYTES = 1024 * 1024;
 
 export const SITE_ICON_DEFINITIONS: SiteIconDefinition[] = [
   { key: "favicon-ico", label: "Classic favicon", group: "Browser", filename: "favicon.ico", contentType: "image/x-icon", width: 48, height: 48, defaultPath: "/icons/icon-48.png", help: "ICO file; 16, 32 and 48 px layers recommended." },
-  { key: "favicon-svg", label: "SVG favicon", group: "Browser", filename: "favicon.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/favicon.svg", help: "Sanitized square SVG mark." },
+  { key: "favicon-svg", label: "SVG favicon", group: "Browser", filename: "favicon.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/source/any.svg", help: "Sanitized square SVG mark." },
   { key: "favicon-16", label: "16 × 16 favicon", group: "Browser", filename: "icon-16.png", contentType: "image/png", width: 16, height: 16, defaultPath: "/icons/icon-16.png", help: "PNG, exactly 16 × 16." },
   { key: "favicon-32", label: "32 × 32 favicon", group: "Browser", filename: "icon-32.png", contentType: "image/png", width: 32, height: 32, defaultPath: "/icons/icon-32.png", help: "PNG, exactly 32 × 32." },
   { key: "favicon-48", label: "48 × 48 favicon", group: "Browser", filename: "icon-48.png", contentType: "image/png", width: 48, height: 48, defaultPath: "/icons/icon-48.png", help: "PNG, exactly 48 × 48." },
@@ -44,7 +44,7 @@ export const SITE_ICON_DEFINITIONS: SiteIconDefinition[] = [
   { key: "android-mono-432", label: "Android adaptive monochrome", group: "Android & PWA", filename: "android-monochrome-432.png", contentType: "image/png", width: 432, height: 432, defaultPath: "/icons/android-monochrome-432.png", help: "Transparent monochrome PNG, 432 × 432." },
   { key: "android-preview-432", label: "Android adaptive preview", group: "Android & PWA", filename: "android-adaptive-preview-432.png", contentType: "image/png", width: 432, height: 432, defaultPath: "/icons/android-adaptive-preview-432.png", help: "PNG composite preview, exactly 432 × 432." },
   { key: "windows-tile", label: "Windows tile", group: "Windows & Safari", filename: "mstile-150x150.png", contentType: "image/png", width: 150, height: 150, defaultPath: "/icons/mstile-150x150.png", help: "PNG, exactly 150 × 150." },
-  { key: "safari-pinned", label: "Safari pinned tab", group: "Windows & Safari", filename: "safari-pinned-tab.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/safari-pinned-tab.svg", help: "Single-colour SVG suitable for Safari mask icon." },
+  { key: "safari-pinned", label: "Safari pinned tab", group: "Windows & Safari", filename: "safari-pinned-tab.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/source/safariPinned.svg", help: "Single-colour SVG suitable for Safari mask icon." },
 ];
 
 export function getSiteIconDefinition(key: string) {
