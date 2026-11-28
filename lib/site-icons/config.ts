@@ -1,7 +1,7 @@
 export type SiteIconDefinition = {
   slot: string;
   label: string;
-  group: "Browser" | "Apple & iOS" | "Android & PWA" | "Windows & Safari";
+  group: "Browser" | "Apple & iOS" | "Android & PWA" | "Windows & Safari" | "Storefronts";
   filename: string;
   contentType: "image/png" | "image/svg+xml" | "image/x-icon";
   width: number;
@@ -45,6 +45,7 @@ export const SITE_ICON_DEFINITIONS: SiteIconDefinition[] = [
   { slot: "android-preview-432", label: "Android adaptive preview", group: "Android & PWA", filename: "android-adaptive-preview-432.png", contentType: "image/png", width: 432, height: 432, defaultPath: "/icons/android-adaptive-preview-432.png", help: "PNG composite preview, exactly 432 × 432." },
   { slot: "windows-tile", label: "Windows tile", group: "Windows & Safari", filename: "mstile-150x150.png", contentType: "image/png", width: 150, height: 150, defaultPath: "/icons/mstile-150x150.png", help: "PNG, exactly 150 × 150." },
   { slot: "safari-pinned", label: "Safari pinned tab", group: "Windows & Safari", filename: "safari-pinned-tab.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/source/safariPinned.svg", help: "Single-colour SVG suitable for Safari mask icon." },
+  { slot: "storefront-empty", label: "Empty storefront fallback", group: "Storefronts", filename: "storefront-empty-favicon.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/storefront-empty-favicon.svg", help: "Neutral icon shown only when a merchant storefront has no favicon or logo." },
 ];
 
 export function getSiteIconDefinition(key: string) {
