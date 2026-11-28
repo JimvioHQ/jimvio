@@ -13,25 +13,22 @@ export async function GET(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const sp = req.nextUrl.searchParams;
   try {
     const [courses, manageable] = await Promise.all([
-      getHubCourses(user.id, {
+      getHubCourses(user?.id ?? null, {
         q: sp.get("q"),
         category: sp.get("category"),
         difficulty: sp.get("difficulty"),
         instructorId: sp.get("instructorId"),
         lessonQ: sp.get("lessonQ"),
       }),
-      listManageableCommunities(supabase, user.id),
+      user ? listManageableCommunities(supabase, user.id) : Promise.resolve([]),
     ]);
     return NextResponse.json({
       courses,
-      createHref: courseCreationHref(manageable),
+      createHref: user ? courseCreationHref(manageable) : null,
+      viewerAuthenticated: Boolean(user),
     });
   } catch (error) {
     logCommunityFailure("courses.get", error);

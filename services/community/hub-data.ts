@@ -4,6 +4,7 @@ import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progr
 import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { resolveCommunityMemberCount, resolveSpaceMemberCount } from "@/lib/community/member-count";
 import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import {
   HUB_SPACES_PER_COMMUNITY_LIMIT,
   HUB_SPACES_SEARCH_MATCH_CAP,
@@ -1183,7 +1184,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
 }
 
 export async function getHubCourses(
-  userId: string,
+  userId: string | null,
   opts?: {
     q?: string | null;
     category?: string | null;
@@ -1193,9 +1194,9 @@ export async function getHubCourses(
   }
 ): Promise<HubCourseItem[]> {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(supabase, userId);
+  const communityIds = userId ? await getUserCommunityIds(supabase, userId) : [];
   const select =
-    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
+    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug, is_private, visibility, visibility_mode, is_active, archived_at), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = createServiceRoleClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1244,8 +1245,11 @@ export async function getHubCourses(
     throw new Error(publicErrorMessage(publicRes.error, "Could not load courses"));
   }
 
+  const publiclyDiscoverableRows = ((publicRes.data ?? []) as CourseRow[]).filter(
+    (row: CourseRow) => row.communities && communityIsPubliclyDiscoverable(row.communities)
+  );
   const merged = new Map<string, Record<string, unknown>>();
-  for (const row of [...(memberRes.data ?? []), ...(publicRes.data ?? [])]) {
+  for (const row of [...(memberRes.data ?? []), ...publiclyDiscoverableRows]) {
     merged.set(String(row.id), row);
   }
   const courses = [...merged.values()];
@@ -1261,7 +1265,15 @@ export async function getHubCourses(
     published_at?: string | null;
     room_id: string;
     creator_id: string;
-    communities: { name: string; slug: string } | null;
+    communities: {
+      name: string;
+      slug: string;
+      is_private?: boolean | null;
+      visibility?: string | null;
+      visibility_mode?: string | null;
+      is_active?: boolean | null;
+      archived_at?: string | null;
+    } | null;
     rooms: { slug: string | null } | null;
     profiles: { full_name: string | null; username: string | null } | null;
   };
@@ -1271,7 +1283,7 @@ export async function getHubCourses(
     const lessonQ = opts.lessonQ.trim();
     const ids = filtered.map((c) => c.id);
     if (ids.length === 0) return [];
-    const { data: lessons, error: lessonsError } = await supabase
+    const { data: lessons, error: lessonsError } = await admin
       .from("course_lessons")
       .select("course_id, title")
       .in("course_id", ids)
@@ -1281,7 +1293,7 @@ export async function getHubCourses(
       logCommunityFailure("courses.lesson-search", lessonsError);
       throw new Error(publicErrorMessage(lessonsError, "Could not search course lessons"));
     }
-    const hit = new Set((lessons ?? []).map((l) => l.course_id));
+    const hit = new Set((lessons ?? []).map((lesson: { course_id: string }) => lesson.course_id));
     filtered = filtered.filter((c) => hit.has(c.id));
   }
 
@@ -1307,7 +1319,7 @@ export async function getHubCourses(
     curriculumStats.set(moduleRow.course_id, current);
   }
   const progressResult =
-    courseIds.length > 0
+    userId && courseIds.length > 0
       ? await supabase
           .from("lesson_progress")
           .select("course_id, is_completed")
