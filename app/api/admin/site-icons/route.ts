@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
       detectedType = "image/x-icon";
     } else {
       const raw = bytes.toString("utf8");
-      if (!/<svg(?:\s|>)/i.test(raw.slice(0, 2048)) || /<script|javascript:|<foreignObject|on[a-z]+\s*=/i.test(raw)) {
+      if (!/<svg(?:\s|>)/i.test(raw.slice(0, 2048)) || /<script|javascript:|<foreignObject|on[a-z]+\s*=|href\s*=|url\s*\(/i.test(raw)) {
         return NextResponse.json({ error: "SVG contains unsupported or unsafe markup" }, { status: 400 });
       }
       const sanitized = DOMPurify.sanitize(raw, { USE_PROFILES: { svg: true, svgFilters: true } });
