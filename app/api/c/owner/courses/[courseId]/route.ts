@@ -157,6 +157,34 @@ export async function POST(
       if (action === "deleteLesson") {
         const lessonId = String(body.id ?? "");
         if (!lessonId) return NextResponse.json({ error: "Lesson ID is required" }, { status: 400 });
+        const { count: progressCount, error: progressError } = await admin
+          .from("lesson_progress")
+          .select("id", { count: "exact", head: true })
+          .eq("lesson_id", lessonId)
+          .eq("course_id", courseId);
+        if (progressError) return NextResponse.json({ error: progressError.message }, { status: 400 });
+        const { data: lessonQuizzes, error: quizLookupError } = await admin
+          .from("course_quizzes")
+          .select("id")
+          .eq("lesson_id", lessonId)
+          .eq("course_id", courseId);
+        if (quizLookupError) return NextResponse.json({ error: quizLookupError.message }, { status: 400 });
+        const quizIds = (lessonQuizzes ?? []).map((quiz) => quiz.id);
+        let attemptCount = 0;
+        if (quizIds.length) {
+          const { count, error: attemptsError } = await admin
+            .from("course_quiz_attempts")
+            .select("id", { count: "exact", head: true })
+            .in("quiz_id", quizIds);
+          if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+          attemptCount = count ?? 0;
+        }
+        if ((progressCount ?? 0) > 0 || attemptCount > 0) {
+          return NextResponse.json(
+            { error: "This lesson has learner progress or quiz attempts. Keep it to preserve student records; you can unpublish the course instead." },
+            { status: 409 }
+          );
+        }
         const { data, error } = await admin
           .from("course_lessons")
           .delete()
@@ -172,6 +200,37 @@ export async function POST(
       if (action === "deleteModule") {
         const moduleId = String(body.id ?? "");
         if (!moduleId) return NextResponse.json({ error: "Module ID is required" }, { status: 400 });
+        const { data: moduleLessons, error: lessonsError } = await admin
+          .from("course_lessons")
+          .select("id")
+          .eq("module_id", moduleId)
+          .eq("course_id", courseId);
+        if (lessonsError) return NextResponse.json({ error: lessonsError.message }, { status: 400 });
+        const lessonIds = (moduleLessons ?? []).map((lesson) => lesson.id);
+        if (lessonIds.length) {
+          const [{ count: progressCount, error: progressError }, { data: moduleQuizzes, error: quizzesError }] = await Promise.all([
+            admin.from("lesson_progress").select("id", { count: "exact", head: true }).eq("course_id", courseId).in("lesson_id", lessonIds),
+            admin.from("course_quizzes").select("id").eq("course_id", courseId).in("lesson_id", lessonIds),
+          ]);
+          if (progressError) return NextResponse.json({ error: progressError.message }, { status: 400 });
+          if (quizzesError) return NextResponse.json({ error: quizzesError.message }, { status: 400 });
+          const quizIds = (moduleQuizzes ?? []).map((quiz) => quiz.id);
+          let attemptCount = 0;
+          if (quizIds.length) {
+            const { count, error: attemptsError } = await admin
+              .from("course_quiz_attempts")
+              .select("id", { count: "exact", head: true })
+              .in("quiz_id", quizIds);
+            if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+            attemptCount = count ?? 0;
+          }
+          if ((progressCount ?? 0) > 0 || attemptCount > 0) {
+            return NextResponse.json(
+              { error: "This module contains lessons with learner progress or quiz attempts. Keep it to preserve student records; you can unpublish the course instead." },
+              { status: 409 }
+            );
+          }
+        }
         const { data, error } = await admin
           .from("course_modules")
           .delete()
