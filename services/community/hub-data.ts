@@ -1286,6 +1286,26 @@ export async function getHubCourses(
   }
 
   const courseIds = filtered.map((c) => c.id);
+  const curriculumRes = courseIds.length
+    ? await admin
+        .from("course_modules")
+        .select("course_id, course_lessons(id, duration)")
+        .in("course_id", courseIds)
+    : { data: [], error: null };
+  if (curriculumRes.error) {
+    logCommunityFailure("courses.curriculum", curriculumRes.error);
+    throw new Error(publicErrorMessage(curriculumRes.error, "Could not load course curriculum"));
+  }
+  const curriculumStats = new Map<string, { modules: number; lessons: number; duration: number }>();
+  for (const moduleRow of curriculumRes.data ?? []) {
+    const current = curriculumStats.get(moduleRow.course_id) ?? { modules: 0, lessons: 0, duration: 0 };
+    current.modules += 1;
+    for (const lesson of moduleRow.course_lessons ?? []) {
+      current.lessons += 1;
+      current.duration += Math.max(0, Number(lesson.duration ?? 0));
+    }
+    curriculumStats.set(moduleRow.course_id, current);
+  }
   const progressResult =
     courseIds.length > 0
       ? await supabase
@@ -1315,7 +1335,8 @@ export async function getHubCourses(
     const community = course.communities;
     const instructor = course.profiles;
     const progress = progressByCourse.get(course.id);
-    const totalLessons = course.total_lessons ?? 0;
+    const curriculum = curriculumStats.get(course.id);
+    const totalLessons = curriculum?.lessons ?? course.total_lessons ?? 0;
     const progressPct =
       totalLessons > 0 && progress
         ? Math.round((progress.completed / totalLessons) * 100)
@@ -1355,7 +1376,7 @@ export async function getHubCourses(
       currency: extra.currency ?? "USD",
       access_mode: extra.access_mode ?? "members",
       language: extra.language ?? "en",
-      total_duration: extra.total_duration ?? null,
+      total_duration: curriculum?.duration ?? extra.total_duration ?? null,
       thumbnail_url: extra.thumbnail_url ?? null,
       published_at: extra.published_at ?? null,
     };
