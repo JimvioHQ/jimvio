@@ -149,6 +149,66 @@ export async function POST(
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       return NextResponse.json({ assignment: data });
     }
+    if (action === "deleteLesson" || action === "deleteModule" || action === "deleteAssignment") {
+      const { loadManaged } = await import("./guard");
+      await loadManaged(user, courseId);
+      const admin = createServiceRoleClient();
+
+      if (action === "deleteLesson") {
+        const lessonId = String(body.id ?? "");
+        if (!lessonId) return NextResponse.json({ error: "Lesson ID is required" }, { status: 400 });
+        const { data, error } = await admin
+          .from("course_lessons")
+          .delete()
+          .eq("id", lessonId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
+
+      if (action === "deleteModule") {
+        const moduleId = String(body.id ?? "");
+        if (!moduleId) return NextResponse.json({ error: "Module ID is required" }, { status: 400 });
+        const { data, error } = await admin
+          .from("course_modules")
+          .delete()
+          .eq("id", moduleId)
+          .eq("course_id", courseId)
+          .select("id")
+          .maybeSingle();
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+        return NextResponse.json({ deleted: true, id: data.id });
+      }
+
+      const assignmentId = String(body.id ?? "");
+      if (!assignmentId) return NextResponse.json({ error: "Assignment ID is required" }, { status: 400 });
+      const { count, error: submissionsError } = await admin
+        .from("course_assignment_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("assignment_id", assignmentId)
+        .eq("course_id", courseId);
+      if (submissionsError) return NextResponse.json({ error: submissionsError.message }, { status: 400 });
+      if ((count ?? 0) > 0) {
+        return NextResponse.json(
+          { error: "This assignment has student submissions. Keep it to preserve learner records; you can edit or unpublish it instead." },
+          { status: 409 }
+        );
+      }
+      const { data, error } = await admin
+        .from("course_assignments")
+        .delete()
+        .eq("id", assignmentId)
+        .eq("course_id", courseId)
+        .select("id")
+        .maybeSingle();
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data) return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
+      return NextResponse.json({ deleted: true, id: data.id });
+    }
     if (action === "grade") {
       const { loadManaged } = await import("./guard");
       await loadManaged(user, courseId);
