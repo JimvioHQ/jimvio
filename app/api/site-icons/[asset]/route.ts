@@ -17,7 +17,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
     const value = data?.value && typeof data.value === "object" ? data.value as { assets?: Record<string, { path?: string; contentType?: string; updatedAt?: string }> } : {};
     const selected = value.assets?.[asset];
     if (!selected?.path) {
-      return NextResponse.redirect(new URL(definition.defaultPath, request.url), 307, {
+      return NextResponse.redirect(new URL(definition.defaultPath, request.url), {
+        status: 307,
         headers: { "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600" },
       });
     }
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ ass
     });
   } catch (error) {
     console.error("[site-icons] serve failed", error);
-    return NextResponse.redirect(new URL(definition.defaultPath, request.url), 307, {
+    return NextResponse.redirect(new URL(definition.defaultPath, request.url), {
+      status: 307,
       headers: { "Cache-Control": "public, max-age=30, s-maxage=60" },
     });
   }
