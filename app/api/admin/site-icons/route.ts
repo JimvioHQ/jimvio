@@ -57,7 +57,7 @@ function sanitizeUploadedSvg(input: string): string | null {
       continue;
     }
 
-    const opening = token.match(/^<([A-Za-z][A-Za-z0-9]*)([\s\S]*?)\s*(\/?)>$/);
+    const opening = token.match(/^<([A-Za-z][A-Za-z0-9]*)([\\s\\S]*?)(\\/?)>$/);
     if (!opening) return null;
     const tag = opening[1];
     const rawAttributes = opening[2];
@@ -80,7 +80,7 @@ function sanitizeUploadedSvg(input: string): string | null {
       const name = match[1];
       const value = match[2].slice(1, -1);
       if (!SAFE_SVG_ATTRIBUTES.has(name) || seen.has(name)) return null;
-      if (/[<>\u0000-\u001f]/.test(value) || /(?:javascript:|data:|https?:|\/\/|\\|@import|expression\s*\()/i.test(value)) return null;
+      if (/[<>\\u0000-\\u001f]/.test(value) || (name !== "xmlns" && /(?:javascript:|data:|https?:|\\/\\/|\\\\|@import|expression\\s*\\()/i.test(value))) return null;
       if (/url\s*\(/i.test(value) && !/^url\(#[A-Za-z0-9_.-]+\)$/i.test(value)) return null;
       if (name === "xmlns" && value !== "http://www.w3.org/2000/svg") return null;
       if (/[&](?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9a-f]+;)/i.test(value)) return null;
