@@ -1183,7 +1183,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
 }
 
 export async function getHubCourses(
-  userId: string,
+  userId: string | null,
   opts?: {
     q?: string | null;
     category?: string | null;
@@ -1193,7 +1193,7 @@ export async function getHubCourses(
   }
 ): Promise<HubCourseItem[]> {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(supabase, userId);
+  const communityIds = userId ? await getUserCommunityIds(supabase, userId) : [];
   const select =
     "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, published_at, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1271,7 +1271,7 @@ export async function getHubCourses(
     const lessonQ = opts.lessonQ.trim();
     const ids = filtered.map((c) => c.id);
     if (ids.length === 0) return [];
-    const { data: lessons, error: lessonsError } = await supabase
+    const { data: lessons, error: lessonsError } = await admin
       .from("course_lessons")
       .select("course_id, title")
       .in("course_id", ids)
@@ -1307,7 +1307,7 @@ export async function getHubCourses(
     curriculumStats.set(moduleRow.course_id, current);
   }
   const progressResult =
-    courseIds.length > 0
+    userId && courseIds.length > 0
       ? await supabase
           .from("lesson_progress")
           .select("course_id, is_completed")
