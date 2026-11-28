@@ -35,7 +35,7 @@ export default function HubCoursesPage() {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("progress");
   const [createHref, setCreateHref] = useState<string | null>(null);
-  const [viewerAuthenticated, setViewerAuthenticated] = useState(true);
+  const [viewerAuthenticated, setViewerAuthenticated] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +58,7 @@ export default function HubCoursesPage() {
             setCourses([]);
             setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
             setViewerAuthenticated(Boolean(json.viewerAuthenticated));
+          if (!json.viewerAuthenticated) setSort("recent");
           }
           return;
         }
@@ -159,7 +160,7 @@ export default function HubCoursesPage() {
               {categories.map((item) => <option key={item} value={item}>{item === "all" ? "All categories" : item}</option>)}
             </select>
             <select aria-label="Sort" value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] font-semibold">
-              <option value="progress">Progress</option>
+              {viewerAuthenticated ? <option value="progress">Progress</option> : null}
               <option value="title">Title</option>
               <option value="price">Price</option>
               <option value="recent">Recently published</option>
@@ -189,7 +190,7 @@ export default function HubCoursesPage() {
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <HubLinkButton href="/communities">Explore communities</HubLinkButton>
-              <HubLinkButton href="/creator/courses" variant="secondary">Create a course</HubLinkButton>
+              {createHref ? <HubLinkButton href={createHref} variant="secondary">Create a course</HubLinkButton> : null}
             </div>
           </HubCard>
         ) : (
