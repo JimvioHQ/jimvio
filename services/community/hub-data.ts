@@ -1245,8 +1245,8 @@ export async function getHubCourses(
     throw new Error(publicErrorMessage(publicRes.error, "Could not load courses"));
   }
 
-  const publiclyDiscoverableRows = (publicRes.data ?? []).filter(
-    (row) => row.communities && communityIsPubliclyDiscoverable(row.communities)
+  const publiclyDiscoverableRows = ((publicRes.data ?? []) as CourseRow[]).filter(
+    (row: CourseRow) => row.communities && communityIsPubliclyDiscoverable(row.communities)
   );
   const merged = new Map<string, Record<string, unknown>>();
   for (const row of [...(memberRes.data ?? []), ...publiclyDiscoverableRows]) {
@@ -1293,7 +1293,7 @@ export async function getHubCourses(
       logCommunityFailure("courses.lesson-search", lessonsError);
       throw new Error(publicErrorMessage(lessonsError, "Could not search course lessons"));
     }
-    const hit = new Set((lessons ?? []).map((l) => l.course_id));
+    const hit = new Set((lessons ?? []).map((lesson: { course_id: string }) => lesson.course_id));
     filtered = filtered.filter((c) => hit.has(c.id));
   }
 
