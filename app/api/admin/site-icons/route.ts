@@ -61,6 +61,11 @@ export async function POST(request: NextRequest) {
   const limited = rateLimit(`site-icon-admin:${auth.user.id}`, 30, 60_000);
   if (!limited.allowed) return NextResponse.json({ error: "Too many changes. Try again shortly." }, { status: 429 });
 
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > SITE_ICON_MAX_BYTES + 64 * 1024) {
+    return NextResponse.json({ error: "Icon upload request is too large" }, { status: 413 });
+  }
+
   const admin = createAdminClient();
   try {
     const contentType = request.headers.get("content-type") ?? "";
