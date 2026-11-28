@@ -109,10 +109,10 @@ export function SiteIconManager() {
 
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold"><ImagePlus className="h-4 w-4" /> Preview</div>
-        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the currently active browser, mobile and app marks.</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the active Google Search favicon, browser, mobile and app marks. Upload one PNG per icon; Jimvio generates the required formats and sizes.</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { slot: "favicon-32", label: "Browser tab" },
+            { slot: "favicon-ico", label: "Google Search & browser favicon" },
             { slot: "apple-touch", label: "iPhone home screen" },
             { slot: "pwa-192", label: "Android app" },
             { slot: "pwa-maskable-512", label: "Adaptive icon" },
@@ -156,7 +156,7 @@ export function SiteIconManager() {
                       Upload
                       <input
                         type="file"
-                        accept={item.contentType === "image/png" ? "image/png" : item.contentType === "image/svg+xml" ? "image/svg+xml" : ".ico,image/x-icon"}
+                        accept="image/png"
                         className="sr-only"
                         disabled={Boolean(busy)}
                         onChange={(event) => { void upload(item.slot, event.target.files?.[0]); event.currentTarget.value = ""; }}
@@ -193,7 +193,7 @@ export function SiteIconManager() {
           </div>
         </section>
       ))}
-      <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">Uploaded icons are served from versioned storage URLs through Jimvio’s icon endpoint. Existing repository icons remain the fallback. Some browsers and already-installed PWAs may retain their own icon cache until refreshed or reinstalled.</p>
+      <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">PNG is the only accepted upload format. Jimvio resizes PNGs for each target and generates ICO/SVG variants where required. Google Search uses the stable root /favicon.ico URL; Google must recrawl the homepage and may take days or weeks to refresh its result icon.</p>
     </div>
   );
 }
