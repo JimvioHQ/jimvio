@@ -15,7 +15,7 @@ type Lesson = {
 };
 type Module = { id: string; title: string; sort_order: number | null; course_lessons: Lesson[] };
 type Quiz = { id: string; lesson_id: string; title: string; questions: Array<{ prompt?: string; options?: string[] }>; pass_score: number };
-type Assignment = { id: string; title: string; instructions: string | null; lesson_id: string | null };
+type Assignment = { id: string; title: string; instructions: string | null; lesson_id: string | null; required?: boolean };
 type Submission = { assignment_id: string; status: string; score: number | null; feedback: string | null };
 
 export function CourseLearn({ courseId, communitySlug }: { courseId: string; communitySlug: string }) {
@@ -31,7 +31,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const [certificateEnabled, setCertificateEnabled] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [quizResult, setQuizResult] = useState<string | null>(null);
-  const [assignmentBody, setAssignmentBody] = useState("");
+  const [assignmentBodies, setAssignmentBodies] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const index = lessons.findIndex((lesson) => lesson.id === activeId);
   const lesson = lessons[index] ?? null;
   const quiz = quizzes.find((item) => item.lesson_id === lesson?.id) ?? null;
-  const assignment = assignments.find((item) => item.lesson_id === lesson?.id) ?? assignments[0] ?? null;
+  const visibleAssignments = [\n    ...assignments.filter((item) => item.lesson_id === lesson?.id),\n    ...(index === lessons.length - 1 ? assignments.filter((item) => !item.lesson_id) : []),\n  ];
 
   async function markComplete(lessonId: string) {
     const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
@@ -112,7 +112,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
     const res = await fetch(`/api/c/courses/${courseId}/learn`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "assignment", assignmentId: assignment.id, body: assignmentBody }),
+      body: JSON.stringify({ action: "assignment", assignmentId: assignment.id, body }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -120,7 +120,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
       return;
     }
     setSubmissions((current) => [...current.filter((item) => item.assignment_id !== assignment.id), json.submission]);
-    setNotice("Assignment submitted");
+    setAssignmentBodies((current) => ({ ...current, [assignment.id]: "" }));\n    setNotice("Assignment submitted");
   }
 
   async function issueCertificate() {
@@ -232,17 +232,26 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
                 {quizResult && <p className="text-sm">{quizResult}</p>}
               </form>
             )}
-            {assignment && (
+            {visibleAssignments.map((assignment) => (
               <form
+                key={assignment.id}
                 className="space-y-2 rounded-2xl border border-[#E5E7EB] bg-white p-4"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void submitAssignment();
+                  void submitAssignment(assignment);
                 }}
               >
-                <h3 className="font-semibold">{assignment.title}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold">{assignment.title}</h3>
+                  {assignment.required !== false && <span className="rounded-full bg-[#FFF1EB] px-2 py-1 text-[11px] font-semibold text-[#9A3412]">Required</span>}
+                </div>
                 {assignment.instructions && <p className="text-sm text-[#6B7280]">{assignment.instructions}</p>}
-                <textarea className="min-h-24 w-full rounded-xl border border-[#E5E7EB] p-3 text-sm" value={assignmentBody} onChange={(event) => setAssignmentBody(event.target.value)} required />
+                <textarea
+                  className="min-h-24 w-full rounded-xl border border-[#E5E7EB] p-3 text-sm"
+                  value={assignmentBodies[assignment.id] ?? ""}
+                  onChange={(event) => setAssignmentBodies((current) => ({ ...current, [assignment.id]: event.target.value }))}
+                  required
+                />
                 <button type="submit" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm font-semibold">Submit assignment</button>
                 {submissions.filter((item) => item.assignment_id === assignment.id).map((item) => (
                   <p key={item.assignment_id} className="text-sm text-[#6B7280]">
@@ -250,7 +259,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
                   </p>
                 ))}
               </form>
-            )}
+            ))}
             <div className="flex flex-wrap gap-2">
               <button type="button" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm" disabled={index <= 0} onClick={() => setActiveId(lessons[index - 1]?.id ?? null)}>Previous</button>
               <button type="button" className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white" onClick={() => void markComplete(lesson.id)}>Mark complete</button>
