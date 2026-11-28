@@ -117,8 +117,28 @@ export async function POST(request: NextRequest) {
       }
       detectedType = "image/png";
     } else if (definition.contentType === "image/x-icon") {
-      if (bytes.length < 6 || bytes[0] !== 0 || bytes[1] !== 0 || bytes[2] !== 1 || bytes[3] !== 0) {
+      if (bytes.length < 22 || bytes[0] !== 0 || bytes[1] !== 0 || bytes[2] !== 1 || bytes[3] !== 0) {
         return NextResponse.json({ error: "Upload a valid Windows ICO file" }, { status: 400 });
+      }
+      const frameCount = bytes.readUInt16LE(4);
+      const directoryEnd = 6 + frameCount * 16;
+      if (frameCount < 1 || directoryEnd > bytes.length) {
+        return NextResponse.json({ error: "ICO directory is invalid" }, { status: 400 });
+      }
+      const frameSizes = new Set<number>();
+      for (let index = 0; index < frameCount; index += 1) {
+        const offset = 6 + index * 16;
+        const frameWidth = bytes[offset] || 256;
+        const frameHeight = bytes[offset + 1] || 256;
+        const frameBytes = bytes.readUInt32LE(offset + 8);
+        const frameOffset = bytes.readUInt32LE(offset + 12);
+        if (frameBytes <= 0 || frameOffset < directoryEnd || frameOffset + frameBytes > bytes.length) {
+          return NextResponse.json({ error: "ICO frame data is invalid" }, { status: 400 });
+        }
+        if (frameWidth === frameHeight && [16, 32, 48].includes(frameWidth)) frameSizes.add(frameWidth);
+      }
+      if (![16, 32, 48].every((size) => frameSizes.has(size))) {
+        return NextResponse.json({ error: "ICO must include 16, 32 and 48 pixel frames" }, { status: 400 });
       }
       detectedType = "image/x-icon";
     } else {
