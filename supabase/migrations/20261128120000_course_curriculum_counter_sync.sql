@@ -4,10 +4,13 @@
 CREATE OR REPLACE FUNCTION public.refresh_community_course_totals(p_course_id uuid)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- Serialize counter refreshes per course so concurrent lesson/module writes
+  -- cannot leave the denormalized totals behind the authoritative rows.
+  PERFORM 1 FROM public.community_courses WHERE id = p_course_id FOR UPDATE;
+
   UPDATE public.community_courses AS course
   SET
     total_modules = (
