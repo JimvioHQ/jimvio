@@ -151,8 +151,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Icon upload request is too large" }, { status: 413 });
   }
 
-  const admin = createAdminClient();
   try {
+    const admin = createAdminClient();
     const contentType = request.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
       const body = await request.json().catch(() => null) as { action?: string; slot?: string; versionPath?: string } | null;
