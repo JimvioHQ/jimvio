@@ -296,7 +296,7 @@ export function CoursesManagement() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
+      <header className="flex flex-wrap items-end justify-between gap-4 rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7>
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#FF5A1F]">Jimvio Learning</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#111827]">Course Studio</h1>
@@ -435,8 +435,8 @@ export function CoursesManagement() {
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <ul className="space-y-2">
+        <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <ul className="space-y-3">
             {courses.map((course) => (
               <li key={course.id}>
                 <button
@@ -445,14 +445,22 @@ export function CoursesManagement() {
                     setSelectedId(course.id);
                     void loadCourse(course.id).catch((error) => toast.error(error.message));
                   }}
-                  className={`w-full rounded-xl border px-3 py-3 text-left ${
-                    selectedId === course.id ? "border-[#FF5A1F] bg-[#FFF7F3]" : "border-[#E5E7EB] bg-white"
+                  className={`w-full overflow-hidden rounded-2xl border text-left transition ${
+                    selectedId === course.id ? "border-[#FF5A1F] bg-[#FFF7F3] shadow-sm" : "border-[#E5E7EB] bg-white hover:border-[#FF5A1F]/40"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-[#111827]">{course.title}</p>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#6B7280]">
-                    {statusOf(course)} · {course.total_lessons ?? 0} lessons
-                  </p>
+                  <div className="flex gap-3 p-3">
+                    <div className="h-16 w-24 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#111827] to-[#FF5A1F]">
+                      {course.thumbnail_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={course.thumbnail_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      ) : <div className="flex h-full items-center justify-center text-[10px] font-bold text-white">JIMVIO</div>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-semibold leading-snug text-[#111827]">{course.title}</p>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">{statusOf(course)} · {course.total_lessons ?? 0} lessons · {course.total_modules ?? 0} modules</p>
+                    </div>
+                  </div>
                 </button>
               </li>
             ))}
@@ -790,8 +798,8 @@ export function CoursesManagement() {
                       required
                     >
                       <option value="">Lesson for quiz</option>
-                      {modules.flatMap((module) => module.course_lessons ?? []).map((lesson) => (
-                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                      {modules.flatMap((module) => (module.course_lessons ?? []).map((lesson, index) => ({ lesson, module, index }))).map(({ lesson, module, index }) => (
+                        <option key={lesson.id} value={lesson.id}>{module.title} — {lesson.title} (#{index + 1})</option>
                       ))}
                     </select>
                     <Input value={quizTitle} onChange={(event) => setQuizTitle(event.target.value)} placeholder="Quiz title" required />
@@ -918,8 +926,8 @@ export function CoursesManagement() {
                     key={editingAssignmentId ?? "new-assignment-lesson"}
                   >
                     <option value="">Course-level assignment</option>
-                    {modules.flatMap((module) => module.course_lessons ?? []).map((lesson) => (
-                      <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                    {modules.flatMap((module) => (module.course_lessons ?? []).map((lesson, index) => ({ lesson, module, index }))).map(({ lesson, module, index }) => (
+                      <option key={lesson.id} value={lesson.id}>{module.title} — {lesson.title} (#{index + 1})</option>
                     ))}
                   </select>
                   <Button type="submit" variant="outline" disabled={!!busy}>
