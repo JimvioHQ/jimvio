@@ -61,8 +61,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  if (subdomainHandle && (pathname === "/favicon.ico" || pathname === "/manifest.webmanifest" || pathname === "/site.webmanifest")) {
-    if (pathname === "/manifest.webmanifest" || pathname === "/site.webmanifest") {
+  if (subdomainHandle && (
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/site.webmanifest" ||
+    pathname === "/browserconfig.xml"
+  )) {
+    if (pathname === "/manifest.webmanifest" || pathname === "/site.webmanifest" || pathname === "/browserconfig.xml") {
       return new NextResponse("{}", {
         status: 404,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
