@@ -34,43 +34,55 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   const [assignmentBodies, setAssignmentBodies] = useState<Record<string, string>>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [submittingAssignmentId, setSubmittingAssignmentId] = useState<string | null>(null);
+  const [submittingQuiz, setSubmittingQuiz] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     void (async () => {
-      const res = await fetch(`/api/c/courses/${courseId}/learn`, { cache: "no-store" });
-      const json = await res.json();
-      if (cancelled) return;
-      if (!res.ok) {
-        setError(json.error ?? "Could not open course");
-        setLoading(false);
-        return;
+      try {
+        const res = await fetch(`/api/c/courses/${courseId}/learn`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setError(json.error ?? "Could not open course");
+          return;
+        }
+        const nextModules = (json.modules ?? []) as Module[];
+        nextModules.forEach((moduleRow) => {
+          moduleRow.course_lessons = [...(moduleRow.course_lessons ?? [])].sort(
+            (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+          );
+        });
+        setModules(nextModules.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
+        setQuizzes(json.quizzes ?? []);
+        setAssignments(json.assignments ?? []);
+        setSubmissions(json.submissions ?? []);
+        const map: Record<string, boolean> = {};
+        for (const row of json.progress?.progress ?? []) {
+          if (row.is_completed) map[row.lesson_id] = true;
+        }
+        setCompleted(map);
+        setTitle(json.course?.title ?? "Course");
+        setCertificateEnabled(Boolean(json.course?.certificate_enabled));
+        const first = nextModules.flatMap((moduleRow) => moduleRow.course_lessons)[0];
+        setActiveId(first?.id ?? null);
+      } catch {
+        if (!cancelled) setError("A network error prevented this course from loading. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      const nextModules = (json.modules ?? []) as Module[];
-      nextModules.forEach((moduleRow) => {
-        moduleRow.course_lessons = [...(moduleRow.course_lessons ?? [])].sort(
-          (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
-        );
-      });
-      setModules(nextModules.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)));
-      setQuizzes(json.quizzes ?? []);
-      setAssignments(json.assignments ?? []);
-      setSubmissions(json.submissions ?? []);
-      const map: Record<string, boolean> = {};
-      for (const row of json.progress?.progress ?? []) {
-        if (row.is_completed) map[row.lesson_id] = true;
-      }
-      setCompleted(map);
-      setTitle(json.course?.title ?? "Course");
-      setCertificateEnabled(Boolean(json.course?.certificate_enabled));
-      const first = nextModules.flatMap((moduleRow) => moduleRow.course_lessons)[0];
-      setActiveId((current) => current ?? first?.id ?? null);
-      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, [courseId]);
+
+  useEffect(() => {
+    setAnswers({});
+    setQuizResult(null);
+  }, [activeId]);
 
   const lessons = useMemo(() => modules.flatMap((module) => module.course_lessons), [modules]);
   const index = lessons.findIndex((lesson) => lesson.id === activeId);
@@ -82,33 +94,50 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   ];
 
   async function markComplete(lessonId: string) {
-    const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: true }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true }),
+      });
       const json = await res.json().catch(() => ({}));
-      setNotice(json.error ?? "Could not save progress");
-      return;
+      if (!res.ok) {
+        setNotice(json.error ?? "Could not save progress");
+        return;
+      }
+      setCompleted((current) => ({ ...current, [lessonId]: true }));
+      setNotice("Lesson marked complete");
+    } catch {
+      setNotice("A network error prevented progress from saving. Please try again.");
     }
-    setCompleted((current) => ({ ...current, [lessonId]: true }));
   }
 
   async function submitQuiz() {
-    if (!quiz) return;
-    const payload = quiz.questions.map((question) => answers[question.prompt ?? ""] ?? "");
-    const res = await fetch(`/api/c/courses/${courseId}/learn`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "quiz", quizId: quiz.id, answers: payload }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setQuizResult(json.error ?? "Quiz failed");
+    if (!quiz || submittingQuiz) return;
+    const payload = quiz.questions.map((_, index) => answers[String(index)] ?? "");
+    if (payload.some((answer) => !answer)) {
+      setQuizResult("Please answer every question before submitting.");
       return;
     }
-    setQuizResult(json.attempt?.passed ? `Passed · ${json.attempt.score}%` : `Score ${json.attempt?.score}% · need ${quiz.pass_score}%`);
+    setSubmittingQuiz(true);
+    setQuizResult(null);
+    try {
+      const res = await fetch(`/api/c/courses/${courseId}/learn`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "quiz", quizId: quiz.id, answers: payload }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setQuizResult(json.error ?? "Quiz failed");
+        return;
+      }
+      setQuizResult(json.attempt?.passed ? `Passed · ${json.attempt.score}%` : `Score ${json.attempt?.score}% · need ${quiz.pass_score}%`);
+    } catch {
+      setQuizResult("A network error prevented your quiz from being submitted. Please try again.");
+    } finally {
+      setSubmittingQuiz(false);
+    }
   }
 
   async function submitAssignment(assignment: Assignment) {
@@ -141,17 +170,21 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
   }
 
   async function issueCertificate() {
-    const res = await fetch(`/api/creator/courses/${courseId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "certificate" }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      setNotice(json.error ?? "Certificate not available yet");
-      return;
+    try {
+      const res = await fetch(`/api/creator/courses/${courseId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "certificate" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice(json.error ?? "Certificate not available yet");
+        return;
+      }
+      setNotice(`Certificate ${json.certificate.certificate_code}`);
+    } catch {
+      setNotice("A network error prevented certificate generation. Please try again.");
     }
-    setNotice(`Certificate ${json.certificate.certificate_code}`);
   }
 
   if (loading) return <div className="h-[70vh] animate-pulse bg-[#F3F4F6]" />;
@@ -243,7 +276,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
                             type="radio"
                             name={`q-${questionIndex}`}
                             value={option}
-                            onChange={() => setAnswers((current) => ({ ...current, [question.prompt ?? ""]: option }))}
+                            onChange={() => setAnswers((current) => ({ ...current, [String(questionIndex)]: option }))}
                           />
                           {option}
                         </label>
@@ -251,7 +284,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
                     </div>
                   </fieldset>
                 ))}
-                <button type="submit" className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white">Submit quiz</button>
+                <button type="submit" disabled={submittingQuiz} className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60">{submittingQuiz ? "Submitting…" : "Submit quiz"}</button>
                 {quizResult && <p className="text-sm">{quizResult}</p>}
               </form>
             )}
@@ -285,7 +318,7 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
             ))}
             <div className="flex flex-wrap gap-2">
               <button type="button" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm" disabled={index <= 0} onClick={() => setActiveId(lessons[index - 1]?.id ?? null)}>Previous</button>
-              <button type="button" className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white" onClick={() => void markComplete(lesson.id)}>Mark complete</button>
+              <button type="button" disabled={Boolean(completed[lesson.id])} className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void markComplete(lesson.id)}>{completed[lesson.id] ? "Completed" : "Mark complete"}</button>
               <button type="button" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm" disabled={index >= lessons.length - 1} onClick={() => setActiveId(lessons[index + 1]?.id ?? null)}>Next</button>
               {certificateEnabled && <button type="button" className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm" onClick={() => void issueCertificate()}>Get certificate</button>}
             </div>
