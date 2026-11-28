@@ -224,6 +224,7 @@ function runVerifies() {
   const required = [
     "verify-business-verification-fee.mjs",
     "verify-checkout-payment-flow.mjs",
+    "verify-site-icon-manager.mjs",
     "verify-create-upload-product.mjs",
     "verify-quantforg-webhook.mjs",
   ];
