@@ -50,7 +50,11 @@ export async function proxy(request: NextRequest) {
 
   // Merchant hosts must never leak the Jimvio platform's managed icons or PWA manifest.
   // All icon sizes resolve through the store favicon -> store logo -> neutral fallback chain.
-  if (subdomainHandle && pathname.startsWith("/api/site-icons/")) {
+  if (subdomainHandle && (
+    pathname.startsWith("/api/site-icons/") ||
+    pathname === "/favicon.svg" ||
+    pathname === "/icons/safari-pinned-tab.svg"
+  )) {
     const url = request.nextUrl.clone();
     url.pathname = `/api/storefront-favicon/${subdomainHandle}`;
     url.search = "";
@@ -111,6 +115,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Include favicon so merchant hosts can rewrite away from platform favicon.ico
+    "/favicon.svg",
+    "/icons/safari-pinned-tab.svg",
     "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
