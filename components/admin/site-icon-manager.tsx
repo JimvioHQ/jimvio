@@ -112,7 +112,8 @@ export function SiteIconManager() {
         <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the active Google Search favicon, browser, mobile and app marks. Upload one PNG per icon; Jimvio generates the required formats and sizes.</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { slot: "favicon-ico", label: "Google Search & browser favicon" },
+            { slot: "favicon-96", label: "Google Search result" },
+            { slot: "favicon-ico", label: "Browser tab" },
             { slot: "apple-touch", label: "iPhone home screen" },
             { slot: "pwa-192", label: "Android app" },
             { slot: "pwa-maskable-512", label: "Adaptive icon" },
