@@ -77,7 +77,33 @@ export async function listManagedCourses(communityId: string) {
     .eq("community_id", communityId)
     .order("updated_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  const courses = data ?? [];
+  if (courses.length === 0) return courses;
+  const courseIds = courses.map((course) => course.id);
+  const { data: modules, error: modulesError } = await db()
+    .from("course_modules")
+    .select("course_id, course_lessons(id, duration)")
+    .in("course_id", courseIds);
+  if (modulesError) throw new Error(modulesError.message);
+  const stats = new Map<string, { modules: number; lessons: number; duration: number }>();
+  for (const moduleRow of modules ?? []) {
+    const current = stats.get(moduleRow.course_id) ?? { modules: 0, lessons: 0, duration: 0 };
+    current.modules += 1;
+    for (const lesson of moduleRow.course_lessons ?? []) {
+      current.lessons += 1;
+      current.duration += Math.max(0, Number(lesson.duration ?? 0));
+    }
+    stats.set(moduleRow.course_id, current);
+  }
+  return courses.map((course) => {
+    const actual = stats.get(course.id) ?? { modules: 0, lessons: 0, duration: 0 };
+    return {
+      ...course,
+      total_modules: actual.modules,
+      total_lessons: actual.lessons,
+      total_duration: actual.duration,
+    };
+  });
 }
 
 export async function createDraftCourse(input: {
