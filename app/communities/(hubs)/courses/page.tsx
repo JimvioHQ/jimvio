@@ -35,6 +35,7 @@ export default function HubCoursesPage() {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("progress");
   const [createHref, setCreateHref] = useState<string | null>(null);
+  const [viewerAuthenticated, setViewerAuthenticated] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,12 +50,14 @@ export default function HubCoursesPage() {
           courses?: HubCourse[];
           error?: string;
           createHref?: string | null;
+          viewerAuthenticated?: boolean;
         };
         if (!res.ok) {
           if (!cancelled) {
             setError(json.error ?? "Could not load courses");
             setCourses([]);
             setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
+            setViewerAuthenticated(Boolean(json.viewerAuthenticated));
           }
           return;
         }
@@ -62,11 +65,13 @@ export default function HubCoursesPage() {
           setError(null);
           setCourses(json.courses ?? []);
           setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
+          setViewerAuthenticated(Boolean(json.viewerAuthenticated));
         }
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Could not load courses");
           setCourses([]);
+          setViewerAuthenticated(false);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -115,7 +120,7 @@ export default function HubCoursesPage() {
               Courses
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Learn from your joined communities
+              Explore published courses from communities across Jimvio
             </p>
           </div>
           {createHref ? (
@@ -135,7 +140,7 @@ export default function HubCoursesPage() {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {(["all", "in-progress", "completed"] as const).map((key) => (
+            {viewerAuthenticated ? (["all", "in-progress", "completed"] as const).map((key) => (
               <button
                 key={key}
                 type="button"
@@ -149,7 +154,7 @@ export default function HubCoursesPage() {
               >
                 {key === "in-progress" ? "In progress" : key.charAt(0).toUpperCase() + key.slice(1)}
               </button>
-            ))}
+            )) : null}
             <select aria-label="Category" value={category} onChange={(event) => setCategory(event.target.value)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] font-semibold">
               {categories.map((item) => <option key={item} value={item}>{item === "all" ? "All categories" : item}</option>)}
             </select>
@@ -180,7 +185,7 @@ export default function HubCoursesPage() {
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
             <p className="text-[14px] font-bold">No courses found</p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Published courses from your communities will appear here.
+              Published public courses will appear here.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <HubLinkButton href="/communities">Explore communities</HubLinkButton>
@@ -214,15 +219,17 @@ export default function HubCoursesPage() {
                       {course.total_duration ? <span>{course.total_duration} min</span> : null}
                       {course.category ? <span className="truncate">{course.category}</span> : null}
                     </div>
-                    <div className="mt-4">
-                      <div className="mb-1.5 flex justify-between text-[11px] font-bold">
-                        <span className="text-[var(--color-text-muted)]">Your progress</span>
-                        <span className="text-[#fd5000]">{course.progress}%</span>
+                    {viewerAuthenticated ? (
+                      <div className="mt-4">
+                        <div className="mb-1.5 flex justify-between text-[11px] font-bold">
+                          <span className="text-[var(--color-text-muted)]">Your progress</span>
+                          <span className="text-[#fd5000]">{course.progress}%</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                          <div className="h-full rounded-full bg-[#fd5000] transition-all" style={{ width: `${course.progress}%` }} />
+                        </div>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                        <div className="h-full rounded-full bg-[#fd5000] transition-all" style={{ width: `${course.progress}%` }} />
-                      </div>
-                    </div>
+                    ) : null}
                     <div className="mt-4 flex items-center justify-between text-xs font-bold">
                       <span className="text-[var(--color-text-muted)]">{course.instructor_name ? `By ${course.instructor_name}` : "Community course"}</span>
                       <span className="inline-flex items-center gap-1 text-[#fd5000]">Explore course <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
