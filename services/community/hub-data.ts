@@ -4,6 +4,7 @@ import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progr
 import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { resolveCommunityMemberCount, resolveSpaceMemberCount } from "@/lib/community/member-count";
 import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import {
   HUB_SPACES_PER_COMMUNITY_LIMIT,
   HUB_SPACES_SEARCH_MATCH_CAP,
@@ -763,7 +764,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       ? supabase
           .from("community_tasks")
           .select(
-            "id, title, description, due_date, completion_count, community_id, room_id, communities(name, slug), rooms(slug)"
+            "id, title, description, due_date, completion_count, community_id, room_id, communities(name, slug, is_private, visibility, visibility_mode, is_active, archived_at), rooms(slug)"
           )
           .in("community_id", communityIds)
           .eq("is_active", true)
@@ -1244,8 +1245,11 @@ export async function getHubCourses(
     throw new Error(publicErrorMessage(publicRes.error, "Could not load courses"));
   }
 
+  const publiclyDiscoverableRows = (publicRes.data ?? []).filter(
+    (row) => row.communities && communityIsPubliclyDiscoverable(row.communities)
+  );
   const merged = new Map<string, Record<string, unknown>>();
-  for (const row of [...(memberRes.data ?? []), ...(publicRes.data ?? [])]) {
+  for (const row of [...(memberRes.data ?? []), ...publiclyDiscoverableRows]) {
     merged.set(String(row.id), row);
   }
   const courses = [...merged.values()];
@@ -1261,7 +1265,15 @@ export async function getHubCourses(
     published_at?: string | null;
     room_id: string;
     creator_id: string;
-    communities: { name: string; slug: string } | null;
+    communities: {
+      name: string;
+      slug: string;
+      is_private?: boolean | null;
+      visibility?: string | null;
+      visibility_mode?: string | null;
+      is_active?: boolean | null;
+      archived_at?: string | null;
+    } | null;
     rooms: { slug: string | null } | null;
     profiles: { full_name: string | null; username: string | null } | null;
   };
