@@ -18,6 +18,7 @@ import {
   type WalletDepositDbMethod,
 } from "@/lib/payments/wallet-deposit-method";
 import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
+import { BINANCE_PAY_MAINTENANCE_ENABLED, binancePayMaintenancePayload } from "@/lib/payments/binance-pay-maintenance";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,12 @@ export async function POST(req: NextRequest) {
       { error: "Choose an available payment method" },
       { status: 400 },
     );
+  }
+
+  // Reject before wallet/deposit/transaction writes. Keep webhooks active for
+  // reconciliation of Binance payments that were already created.
+  if (method === "binancepay" && BINANCE_PAY_MAINTENANCE_ENABLED) {
+    return NextResponse.json(binancePayMaintenancePayload(), { status: 503 });
   }
 
   const db = createServiceRoleClient();
