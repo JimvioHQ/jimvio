@@ -187,42 +187,44 @@ export default function HubCoursesPage() {
             </div>
           </HubCard>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((course) => (
-              <Link key={course.id} href={course.href}>
-                <HubCard className="group flex h-full flex-col transition hover:border-[#fd5000]/30 hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-                        {course.community_name}
-                      </p>
-                      <h2 className="mt-0.5 line-clamp-2 text-[14px] font-bold group-hover:text-[#fd5000]">
-                        {course.title}
-                      </h2>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-[#fd5000]" />
+              <Link key={course.id} href={course.href} className="group block h-full">
+                <HubCard className="flex h-full flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] p-0 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-lg">
+                  <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-[#1F2937] via-[#374151] to-[#FF5A1F]">
+                    {course.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={course.thumbnail_url} alt={`${course.title} course cover`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+                    ) : (
+                      <div className="flex h-full items-end justify-between p-4 text-white">
+                        <GraduationCap className="h-9 w-9 opacity-90" />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.18em]">Jimvio Learning</span>
+                      </div>
+                    )}
+                    <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold capitalize text-[#111827] shadow-sm">{course.difficulty}</span>
+                    <span className="absolute bottom-3 right-3 rounded-full bg-[#111827]/85 px-3 py-1.5 text-xs font-bold text-white">{course.price_cents && course.price_cents > 0 ? `${course.currency ?? "USD"} ${(course.price_cents / 100).toFixed(2)}` : "Free"}</span>
                   </div>
-                  {course.description && (
-                    <p className="mt-2 line-clamp-2 flex-1 text-[12px] text-[var(--color-text-secondary)]">
-                      {course.description}
-                    </p>
-                  )}
-                  <div className="mt-3 flex flex-wrap gap-3 text-[10px] font-semibold text-[var(--color-text-muted)]">
-                    <span className="capitalize">{course.difficulty}</span>
-                    <span>{course.total_lessons} lessons</span>
-                    <span>{course.price_cents && course.price_cents > 0 ? `$${(course.price_cents / 100).toFixed(2)}` : "Free"}</span>
-                    {course.category && <span>{course.category}</span>}
-                  </div>
-                  <div className="mt-3">
-                    <div className="mb-1 flex justify-between text-[10px] font-bold">
-                      <span className="text-[var(--color-text-muted)]">Progress</span>
-                      <span className="text-[#fd5000]">{course.progress}%</span>
+                  <div className="flex flex-1 flex-col p-4 sm:p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#fd5000]">{course.community_name}</p>
+                    <h2 className="mt-2 line-clamp-2 text-base font-bold leading-snug text-[var(--color-text)] transition-colors group-hover:text-[#fd5000]">{course.title}</h2>
+                    {course.description ? <p className="mt-2 line-clamp-3 flex-1 text-[13px] leading-5 text-[var(--color-text-secondary)]">{course.description}</p> : <div className="flex-1" />}
+                    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-[var(--color-border)] pt-3 text-[11px] font-semibold text-[var(--color-text-muted)]">
+                      <span>{course.total_lessons} lessons</span>
+                      {course.total_duration ? <span>{course.total_duration} min</span> : null}
+                      {course.category ? <span className="truncate">{course.category}</span> : null}
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                      <div
-                        className="h-full rounded-full bg-[#fd5000] transition-all"
-                        style={{ width: `${course.progress}%` }}
-                      />
+                    <div className="mt-4">
+                      <div className="mb-1.5 flex justify-between text-[11px] font-bold">
+                        <span className="text-[var(--color-text-muted)]">Your progress</span>
+                        <span className="text-[#fd5000]">{course.progress}%</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                        <div className="h-full rounded-full bg-[#fd5000] transition-all" style={{ width: `${course.progress}%` }} />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-xs font-bold">
+                      <span className="text-[var(--color-text-muted)]">{course.instructor_name ? `By ${course.instructor_name}` : "Community course"}</span>
+                      <span className="inline-flex items-center gap-1 text-[#fd5000]">Explore course <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
                     </div>
                   </div>
                 </HubCard>
