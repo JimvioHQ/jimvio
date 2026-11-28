@@ -27,12 +27,14 @@ for (const [name, source] of [
   assert.match(source, /binancePayMaintenancePayload\(\)/, name + " must return the shared customer message");
 }
 
+const walletPost = wallet.slice(wallet.indexOf("export async function POST"));
+const ugcPost = ugc.slice(ugc.indexOf("export async function POST"));
 assert.ok(
-  wallet.indexOf("binancePayMaintenancePayload()") < wallet.indexOf("const db = createServiceRoleClient()"),
+  walletPost.indexOf("binancePayMaintenancePayload()") < walletPost.indexOf("const db = createServiceRoleClient()"),
   "wallet deposits must reject before creating database records",
 );
 assert.ok(
-  ugc.indexOf("binancePayMaintenancePayload()") < ugc.indexOf("requireCampaignPermission"),
+  ugcPost.indexOf("binancePayMaintenancePayload()") < ugcPost.indexOf("requireCampaignPermission"),
   "UGC funding must reject before funding-side effects",
 );
 assert.ok(
