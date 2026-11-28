@@ -123,7 +123,8 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
       return;
     }
     setSubmissions((current) => [...current.filter((item) => item.assignment_id !== assignment.id), json.submission]);
-    setAssignmentBodies((current) => ({ ...current, [assignment.id]: "" }));\n    setNotice("Assignment submitted");
+    setAssignmentBodies((current) => ({ ...current, [assignment.id]: "" }));
+    setNotice("Assignment submitted");
   }
 
   async function issueCertificate() {
