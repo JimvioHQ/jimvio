@@ -48,10 +48,26 @@ export async function proxy(request: NextRequest) {
 
   const sessionResponse = await updateSession(request);
 
-  // Merchant host /favicon.ico must not serve the platform Jimvio icon.
-  // The route redirects to the explicit favicon, the store logo, or a neutral svg.
-  if (subdomainHandle && (pathname === "/favicon.ico" || pathname === "/manifest.webmanifest")) {
-    if (pathname === "/manifest.webmanifest") {
+  // Merchant hosts must never leak the Jimvio platform's managed icons or PWA manifest.
+  // All icon sizes resolve through the store favicon -> store logo -> neutral fallback chain.
+  if (subdomainHandle && (
+    (pathname.startsWith("/api/site-icons/") && pathname !== "/api/site-icons/storefront-empty") ||
+    pathname === "/favicon.svg" ||
+    pathname === "/icons/safari-pinned-tab.svg"
+  )) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/api/storefront-favicon/${subdomainHandle}`;
+    url.search = "";
+    return NextResponse.rewrite(url);
+  }
+
+  if (subdomainHandle && (
+    pathname === "/favicon.ico" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/site.webmanifest" ||
+    pathname === "/browserconfig.xml"
+  )) {
+    if (pathname === "/manifest.webmanifest" || pathname === "/site.webmanifest" || pathname === "/browserconfig.xml") {
       return new NextResponse("{}", {
         status: 404,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
@@ -104,6 +120,8 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Include favicon so merchant hosts can rewrite away from platform favicon.ico
+    "/favicon.svg",
+    "/icons/safari-pinned-tab.svg",
     "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

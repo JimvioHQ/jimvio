@@ -205,18 +205,16 @@ console.log("  ✓ android-adaptive-preview-432.png (432px) ← composite");
 
 // ── favicon.ico (multi-size) ────────────────────────────────────────────────
 const ico = buildIco(faviconFrames);
-writeFileSync(join(ROOT, "public", "favicon.ico"), ico);
-writeFileSync(join(ROOT, "app", "favicon.ico"), ico);
-console.log("  ✓ favicon.ico (16/24/32/48)");
+writeFileSync(join(OUT_DIR, "favicon.ico"), ico);
+console.log("  ✓ icons/favicon.ico (16/24/32/48)");
 
 // ── Sync brand assets ───────────────────────────────────────────────────────
-copyFileSync(join(SOURCE_DIR, "any.svg"), join(ROOT, "public", "favicon.svg"));
-copyFileSync(join(SOURCE_DIR, "any.svg"), join(ROOT, "app", "icon.svg"));
-copyFileSync(join(SOURCE_DIR, "safariPinned.svg"), join(ROOT, "public", "icons", "safari-pinned-tab.svg"));
-copyFileSync(join(OUT_DIR, "apple-touch-icon.png"), join(ROOT, "app", "apple-icon.png"));
+// Platform favicons and app icons are served through the admin-managed icon endpoints.
+// Keep source SVGs and generated PNG/ICO assets in public/icons; do not recreate
+// root/app metadata files that would bypass the live Icon Manager.
 copyFileSync(join(OUT_DIR, "icon-512.png"), join(ROOT, "public", "jimvio-logo.png"));
 copyFileSync(join(OUT_DIR, "icon-512.png"), join(ROOT, "public", "jimvio-logo-mark.png"));
-console.log("  ✓ favicon.svg, app/icon.svg, safari-pinned-tab.svg, app/apple-icon.png");
+console.log("  ✓ favicon and app icon routes remain connected to the live Icon Manager");
 console.log("  ✓ jimvio-logo.png, jimvio-logo-mark.png (512px sync)");
 
 console.log("\nDone — icon ecosystem regenerated.\n");

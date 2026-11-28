@@ -454,30 +454,33 @@ assert(
   "Order status API must use the shared lifecycle and enforce vendor-only fulfillment transitions"
 );
 const seo = read("lib/seo.ts");
-const siteManifest = read("public/site.webmanifest");
+const siteManifest = read("app/manifest.ts");
 const nextManifest = read("app/manifest.ts");
 const browserConfig = read("public/browserconfig.xml");
 assert(
-  seo.includes("/favicon.ico?v=20261127") &&
-    seo.includes("/favicon.svg?v=20261127") &&
-    seo.includes("/favicon-16x16.png?v=20261127") &&
-    seo.includes("/favicon-32x32.png?v=20261127") &&
-    seo.includes("/apple-touch-icon.png?v=20261127") &&
-    seo.includes('manifest: "/site.webmanifest"'),
+  seo.includes("/api/site-icons/favicon-ico") &&
+    seo.includes("/api/site-icons/favicon-svg") &&
+    seo.includes("/api/site-icons/favicon-16") &&
+    seo.includes("/api/site-icons/favicon-32") &&
+    seo.includes("/api/site-icons/apple-touch") &&
+    seo.includes('manifest: "/manifest.webmanifest"'),
   "Browser, classic, SVG, Apple, and manifest metadata must use the current Jimvio icon package"
 );
 assert(
-  siteManifest.includes('"theme_color": "#F95405"') &&
-    siteManifest.includes('"sizes": "192x192"') &&
-    siteManifest.includes('"sizes": "512x512"') &&
-    siteManifest.includes('"purpose": "maskable"') &&
+  siteManifest.includes('theme_color: "#F95405"') &&
+    siteManifest.includes('icon("pwa-192")') &&
+    siteManifest.includes('icon("pwa-512")') &&
+    siteManifest.includes('icon("pwa-maskable-192")') &&
+    siteManifest.includes('icon("pwa-mono-512")') &&
     nextManifest.includes('theme_color: "#F95405"'),
   "PWA manifest must include standard, maskable, and orange-themed app icons"
 );
 assert(
   browserConfig.includes("#F95405") &&
-    existsSync(join(root, "app/favicon.ico")) &&
-    existsSync(join(root, "public/favicon.svg")) &&
+    browserConfig.includes("/api/site-icons/windows-tile") &&
+    existsSync(join(root, "app/favicon.ico/route.ts")) &&
+    existsSync(join(root, "app/favicon.svg/route.ts")) &&
+    existsSync(join(root, "app/icons/safari-pinned-tab.svg/route.ts")) &&
     existsSync(join(root, "app/apple-touch-icon.png/route.ts")) &&
     existsSync(join(root, "app/favicon-16x16.png/route.ts")) &&
     existsSync(join(root, "app/favicon-32x32.png/route.ts")),

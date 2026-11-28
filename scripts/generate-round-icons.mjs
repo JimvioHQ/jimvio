@@ -53,5 +53,5 @@ for (const spec of sizes) {
   await renderIcon(spec);
 }
 
-// Sync Next.js apple icon
-await sharp(join(outDir, "apple-touch-icon.png")).toFile(join(root, "app", "apple-icon.png"));
+// Do not recreate app/apple-icon.png: platform icon metadata is served through
+// the admin-managed /api/site-icons endpoints and dynamic manifest route.

@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
   Search,
   Sparkles,
+  Image as ImageIcon,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ const navSections = [
       { label: "Social Verification", href: "/admin/social-verifications", icon: Inbox },
       { label: "Support", href: "/admin/support", icon: Inbox },
       { label: "Audit log", href: "/admin/audit", icon: ClipboardList },
+      { label: "Icon Manager", href: "/admin/settings/icons", icon: ImageIcon },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },
     ],
   },

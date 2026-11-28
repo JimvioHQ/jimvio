@@ -1,11 +1,30 @@
 import type { MetadataRoute } from "next";
-import { SITE } from "@/lib/seo";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SITE_ICON_SETTING_KEY } from "@/lib/site-icons/config";
 
-export default function manifest(): MetadataRoute.Manifest {
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  let version = "default";
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("platform_settings")
+      .select("updated_at")
+      .eq("key", SITE_ICON_SETTING_KEY)
+      .maybeSingle();
+    if (data?.updated_at) version = encodeURIComponent(data.updated_at);
+  } catch {
+    // Keep the repository fallback icons available if settings cannot be read.
+  }
+
+  const icon = (key: string) => `/api/site-icons/${key}?v=${version}`;
+
   return {
-    name: SITE.name,
-    short_name: SITE.name,
-    description: SITE.description,
+    name: "Jimvio",
+    short_name: "Jimvio",
+    description: "All-in-one creator commerce and digital business platform",
     id: "/",
     start_url: "/",
     scope: "/",
@@ -18,74 +37,19 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: "ltr",
     categories: ["shopping", "social", "business"],
     icons: [
-      {
-        src: "/icons/icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icons/icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icons/icon-384.png",
-        sizes: "384x384",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icons/maskable-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "maskable",
-      },
-      {
-        src: "/icons/maskable-512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
-      },
-      {
-        src: "/icons/monochrome-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "monochrome",
-      },
-      {
-        src: "/icons/monochrome-512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "monochrome",
-      },
+      { src: icon("pwa-192"), sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: icon("pwa-384"), sizes: "384x384", type: "image/png", purpose: "any" },
+      { src: icon("pwa-512"), sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: icon("apple-touch"), sizes: "180x180", type: "image/png", purpose: "any" },
+      { src: icon("pwa-maskable-192"), sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: icon("pwa-maskable-512"), sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: icon("pwa-mono-192"), sizes: "192x192", type: "image/png", purpose: "monochrome" },
+      { src: icon("pwa-mono-512"), sizes: "512x512", type: "image/png", purpose: "monochrome" },
     ],
     shortcuts: [
-      {
-        name: "Feed",
-        short_name: "Feed",
-        url: "/communities",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
-      },
-      {
-        name: "Marketplace",
-        short_name: "Market",
-        url: "/marketplace",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
-      },
-      {
-        name: "Messages",
-        short_name: "Messages",
-        url: "/communities/messages",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
-      },
+      { name: "Feed", short_name: "Feed", url: "/communities", icons: [{ src: icon("pwa-192"), sizes: "192x192" }] },
+      { name: "Marketplace", short_name: "Market", url: "/marketplace", icons: [{ src: icon("pwa-192"), sizes: "192x192" }] },
+      { name: "Messages", short_name: "Messages", url: "/communities/messages", icons: [{ src: icon("pwa-192"), sizes: "192x192" }] },
     ],
   };
 }
