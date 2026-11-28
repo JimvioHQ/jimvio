@@ -16,7 +16,6 @@ export async function GET(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createServiceRoleClient();
   const { data: course, error } = await admin
@@ -29,7 +28,7 @@ export async function GET(
   if (error || !course) return NextResponse.json({ error: "Course not found" }, { status: 404 });
 
   const preview = req.nextUrl.searchParams.get("preview") === "1";
-  const access = await assertCourseAccess({
+  const access = user ? await assertCourseAccess({
     userId: user.id,
     roomId: course.room_id,
     courseId: course.id,
@@ -39,15 +38,15 @@ export async function GET(
     isPublished: course.is_published,
     archivedAt: course.archived_at,
     accessMode: course.access_mode,
-  });
-  const membership = await getUserMembership(user.id, course.community_id);
+  }) : null;
+  const membership = user ? await getUserMembership(user.id, course.community_id) : null;
   const visible = isCatalogVisible({
     isPublished: Boolean(course.is_published),
     archived: Boolean(course.archived_at),
     accessMode: normalizeAccessMode(course.access_mode),
-    viewerIsMember: isMembershipActive(membership) || access.isStaff,
+    viewerIsMember: Boolean(user && (isMembershipActive(membership) || access?.isStaff)),
   });
-  if (!visible && !access.isStaff && !access.enrollment && !(preview && access.isStaff)) {
+  if (!visible && !access?.isStaff && !access?.enrollment && !(preview && access?.isStaff)) {
     return NextResponse.json({ error: "Course not found" }, { status: 404 });
   }
 
@@ -104,10 +103,11 @@ export async function GET(
     },
     modules: modules ?? [],
     access: {
-      enrolled: Boolean(access.enrollment) || access.isStaff,
-      fullContent: access.fullContent,
-      isStaff: access.isStaff,
+      enrolled: Boolean(access?.enrollment) || Boolean(access?.isStaff),
+      fullContent: Boolean(access?.fullContent),
+      isStaff: Boolean(access?.isStaff),
     },
+    viewerAuthenticated: Boolean(user),
     reviews: reviews ?? [],
     rating: { average, count: ratings.length },
   });
