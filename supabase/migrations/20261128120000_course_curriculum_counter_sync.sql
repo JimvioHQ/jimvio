@@ -92,3 +92,6 @@ WHERE
     FROM public.course_lessons AS lesson
     WHERE lesson.course_id = course.id
   ), 0);
+
+REVOKE ALL ON FUNCTION public.refresh_community_course_totals(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sync_community_course_totals_from_curriculum() FROM PUBLIC, anon, authenticated;
