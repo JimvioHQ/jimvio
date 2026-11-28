@@ -58,6 +58,14 @@ type Assignment = {
   required: boolean;
   pass_score: number;
 };
+type QuizQuestion = { prompt: string; options: string[]; correctAnswer: string };
+type ManagedQuiz = {
+  id: string;
+  lesson_id: string;
+  title: string;
+  pass_score: number;
+  questions: QuizQuestion[];
+};
 
 function statusOf(course: ManagedCourse) {
   if (course.archived_at) return "Archived";
@@ -91,6 +99,12 @@ export function CoursesManagement() {
   const [lessonModule, setLessonModule] = useState("");
   const [roster, setRoster] = useState<Array<Record<string, unknown>>>([]);
   const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);\n  const [assignments, setAssignments] = useState<Assignment[]>([]);\n  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [quizzes, setQuizzes] = useState<ManagedQuiz[]>([]);
+  const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [quizLessonId, setQuizLessonId] = useState("");
+  const [quizTitle, setQuizTitle] = useState("");
+  const [quizPassScore, setQuizPassScore] = useState("70");
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([{ prompt: "", options: [], correctAnswer: "" }]);
 
   useEffect(() => {
     if (!community?.id) return;
@@ -124,6 +138,7 @@ export function CoursesManagement() {
     setLessonModule(tree[0]?.id ?? "");
     setRoster(json.roster?.enrollments ?? []);
     setSubmissions(json.roster?.submissions ?? []);\n    setAssignments(json.assignments ?? []);
+    setQuizzes(json.quizzes ?? []);
     if (json.course) {
       setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, ...json.course } : course)));
     }
@@ -671,37 +686,114 @@ export function CoursesManagement() {
                 <div className="border-t border-[#E5E7EB] pt-4">
                 <h2 className="text-sm font-semibold">Quiz and assignment</h2>
                 <form
-                  className="mt-2 grid gap-2 sm:grid-cols-2"
+                  className="mt-2 space-y-3"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    const form = event.currentTarget;
-                    const data = new FormData(form);
-                    const lessonId = String(data.get("lessonId") ?? "");
+                    const normalized = quizQuestions.map((question) => ({
+                      prompt: question.prompt.trim(),
+                      options: question.options.map((option) => option.trim()).filter(Boolean),
+                      correctAnswer: question.correctAnswer.trim(),
+                    }));
+                    if (!quizLessonId || !quizTitle.trim() || normalized.some((question) =>
+                      !question.prompt || question.options.length < 2 || !question.options.includes(question.correctAnswer)
+                    )) {
+                      toast.error("Each question needs a prompt, at least two options, and a correct answer from those options.");
+                      return;
+                    }
                     void run(selected.id, "quiz", {
-                      lessonId,
-                      title: String(data.get("quizTitle") ?? "Quiz"),
-                      passScore: 70,
-                      questions: [{
-                        prompt: String(data.get("prompt") ?? ""),
-                        options: String(data.get("options") ?? "").split(",").map((item) => item.trim()).filter(Boolean),
-                        correctAnswer: String(data.get("answer") ?? ""),
-                      }],
+                      lessonId: quizLessonId,
+                      title: quizTitle.trim(),
+                      passScore: Number(quizPassScore) || 70,
+                      questions: normalized,
+                    }).then((result) => {
+                      if (result) {
+                        setEditingQuizId(null);
+                        setQuizLessonId("");
+                        setQuizTitle("");
+                        setQuizPassScore("70");
+                        setQuizQuestions([{ prompt: "", options: [], correctAnswer: "" }]);
+                      }
                     });
-                    form.reset();
                   }}
                 >
-                  <select name="lessonId" className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm" required>
-                    <option value="">Lesson for quiz</option>
-                    {modules.flatMap((module) => module.course_lessons ?? []).map((lesson) => (
-                      <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
-                    ))}
-                  </select>
-                  <Input name="quizTitle" placeholder="Quiz title" required />
-                  <Input name="prompt" placeholder="Question" required />
-                  <Input name="options" placeholder="Options, comma separated" required />
-                  <Input name="answer" placeholder="Correct option" required />
-                  <Button type="submit" variant="outline" disabled={!!busy}>Save quiz</Button>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <select
+                      className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
+                      value={quizLessonId}
+                      onChange={(event) => setQuizLessonId(event.target.value)}
+                      disabled={!!editingQuizId}
+                      required
+                    >
+                      <option value="">Lesson for quiz</option>
+                      {modules.flatMap((module) => module.course_lessons ?? []).map((lesson) => (
+                        <option key={lesson.id} value={lesson.id}>{lesson.title}</option>
+                      ))}
+                    </select>
+                    <Input value={quizTitle} onChange={(event) => setQuizTitle(event.target.value)} placeholder="Quiz title" required />
+                    <label className="text-xs font-medium text-[#6B7280]">Pass score (%)
+                      <Input type="number" min={0} max={100} value={quizPassScore} onChange={(event) => setQuizPassScore(event.target.value)} />
+                    </label>
+                  </div>
+                  {quizQuestions.map((question, index) => (
+                    <div key={index} className="space-y-2 rounded-xl border border-[#E5E7EB] p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold">Question {index + 1}</p>
+                        {quizQuestions.length > 1 && (
+                          <button type="button" className="text-xs font-semibold text-red-600" onClick={() => setQuizQuestions((items) => items.filter((_, i) => i !== index))}>Remove</button>
+                        )}
+                      </div>
+                      <Input value={question.prompt} onChange={(event) => setQuizQuestions((items) => items.map((item, i) => i === index ? { ...item, prompt: event.target.value } : item))} placeholder="Question" required />
+                      <Input
+                        value={question.options.join(", ")}
+                        onChange={(event) => setQuizQuestions((items) => items.map((item, i) => i === index ? { ...item, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) } : item))}
+                        placeholder="Options, separated by commas"
+                        required
+                      />
+                      <select
+                        className="h-10 w-full rounded-md border border-[#E5E7EB] px-3 text-sm"
+                        value={question.correctAnswer}
+                        onChange={(event) => setQuizQuestions((items) => items.map((item, i) => i === index ? { ...item, correctAnswer: event.target.value } : item))}
+                        required
+                      >
+                        <option value="">Choose correct answer</option>
+                        {question.options.map((option) => <option key={option} value={option}>{option}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={() => setQuizQuestions((items) => [...items, { prompt: "", options: [], correctAnswer: "" }])}>Add question</Button>
+                    <Button type="submit" variant="outline" disabled={!!busy}>{editingQuizId ? "Save quiz" : "Create quiz"}</Button>
+                    {editingQuizId && <Button type="button" variant="ghost" onClick={() => { setEditingQuizId(null); setQuizLessonId(""); setQuizTitle(""); setQuizPassScore("70"); setQuizQuestions([{ prompt: "", options: [], correctAnswer: "" }]); }}>Cancel edit</Button>}
+                  </div>
                 </form>
+                {quizzes.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {quizzes.map((quiz) => (
+                      <li key={quiz.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#E5E7EB] p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">{quiz.title}</p>
+                          <p className="text-xs text-[#6B7280]">{quiz.questions?.length ?? 0} questions · Pass {quiz.pass_score}%</p>
+                        </div>
+                        <div className="flex gap-3">
+                          <button type="button" className="text-xs font-semibold text-[#FF5A1F]" onClick={() => {
+                            setEditingQuizId(quiz.id);
+                            setQuizLessonId(quiz.lesson_id);
+                            setQuizTitle(quiz.title);
+                            setQuizPassScore(String(quiz.pass_score));
+                            setQuizQuestions((quiz.questions ?? []).map((question) => ({
+                              prompt: question.prompt ?? "",
+                              options: question.options ?? [],
+                              correctAnswer: question.correctAnswer ?? "",
+                            })));
+                          }}>Edit</button>
+                          <button type="button" className="text-xs font-semibold text-red-600" disabled={!!busy} onClick={() => {
+                            if (window.confirm("Delete this quiz? Quizzes with student attempts are protected.")) void run(selected.id, "deleteQuiz", { id: quiz.id });
+                          }}>Delete</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <form
                   className="mt-2 flex flex-col gap-2 sm:flex-row"
                   onSubmit={(event) => {
@@ -712,6 +804,8 @@ export function CoursesManagement() {
                       id: editingAssignmentId ?? undefined,
                       title: String(data.get("assignmentTitle") ?? ""),
                       instructions: String(data.get("instructions") ?? ""),
+                      required: String(data.get("assignmentRequired") ?? "true") === "true",
+                      passScore: Number(data.get("assignmentPassScore") ?? 70),
                       lessonId: String(data.get("assignmentLesson") ?? "") || undefined,
                     }).then((result) => {
                       if (result) {
@@ -733,6 +827,24 @@ export function CoursesManagement() {
                     placeholder="Instructions"
                     defaultValue={assignments.find((item) => item.id === editingAssignmentId)?.instructions ?? ""}
                     key={editingAssignmentId ?? "new-assignment-instructions"}
+                  />
+                  <select
+                    name="assignmentRequired"
+                    className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
+                    defaultValue={String(assignments.find((item) => item.id === editingAssignmentId)?.required ?? true)}
+                    key={editingAssignmentId ?? "new-assignment-required"}
+                  >
+                    <option value="true">Required</option>
+                    <option value="false">Optional</option>
+                  </select>
+                  <Input
+                    name="assignmentPassScore"
+                    type="number"
+                    min={0}
+                    max={100}
+                    placeholder="Pass score (%)"
+                    defaultValue={String(assignments.find((item) => item.id === editingAssignmentId)?.pass_score ?? 70)}
+                    key={editingAssignmentId ?? "new-assignment-pass-score"}
                   />
                   <select
                     name="assignmentLesson"
