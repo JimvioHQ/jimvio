@@ -50,8 +50,20 @@ async function renderVariant(source: Buffer, slot: string, filename: string, con
     return { body: output, contentType: "image/x-icon", width: 48, height: 48 };
   }
 
+  const safeZoneScale = slot.startsWith("pwa-maskable") ? 0.8 : slot === "android-foreground-432" ? 0.66 : 1;
+  const innerWidth = Math.max(1, Math.round(w * safeZoneScale));
+  const innerHeight = Math.max(1, Math.round(h * safeZoneScale));
+  const left = Math.floor((w - innerWidth) / 2);
+  const top = Math.floor((h - innerHeight) / 2);
   let pipeline = sharp(source, { failOn: "error", limitInputPixels: 16_000_000 })
-    .resize(w, h, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
+    .resize(innerWidth, innerHeight, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .extend({
+      top,
+      bottom: h - innerHeight - top,
+      left,
+      right: w - innerWidth - left,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    });
 
   if (slot.includes("mono")) pipeline = pipeline.grayscale();
   const png = await pipeline.png().toBuffer();
