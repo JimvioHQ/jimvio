@@ -28,6 +28,7 @@ type Detail = {
   };
   modules: Array<{ id: string; title: string; course_lessons: Array<{ id: string; title: string; duration: number | null }> }>;
   access: { enrolled: boolean; fullContent: boolean };
+  viewerAuthenticated: boolean;
   rating: { average: number | null; count: number };
   reviews: Array<{ id: string; rating: number; body: string | null }>;
 };
@@ -44,17 +45,27 @@ export function CourseDetail({ courseId }: { courseId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      setError(null);
-      const res = await fetch(`/api/c/courses/${courseId}`, { cache: "no-store" });
-      const json = await res.json().catch(() => ({}));
-      if (cancelled) return;
-      if (!res.ok) {
-        setData(null);
-        setError(json.error ?? "Could not load course");
-      } else setData(json);
-      setLoading(false);
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/c/courses/${courseId}`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setData(null);
+          setError(json.error ?? "Could not load course");
+        } else {
+          setData(json);
+        }
+      } catch {
+        if (!cancelled) {
+          setData(null);
+          setError("A network error prevented this course from loading. Please try again.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
     return () => {
       cancelled = true;
@@ -64,37 +75,47 @@ export function CourseDetail({ courseId }: { courseId: string }) {
   async function enroll() {
     setBusy(true);
     setMessage(null);
-    const res = await fetch(`/api/c/courses/${courseId}/enroll`, { method: "POST" });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMessage(json.error ?? "Could not enroll");
-      return;
+    try {
+      const res = await fetch(`/api/c/courses/${courseId}/enroll`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(json.error ?? "Could not enroll");
+        return;
+      }
+      setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
+      router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
+    } catch {
+      setMessage("A network error prevented enrollment. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
-    router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
   }
 
   async function buy(method: "wallet" | "flutterwave") {
     setBusy(true);
     setMessage(null);
-    const res = await fetch(`/api/c/courses/${courseId}/checkout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method }),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) {
-      setMessage(json.error ?? "Checkout failed");
-      return;
+    try {
+      const res = await fetch(`/api/c/courses/${courseId}/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(json.error ?? "Checkout failed");
+        return;
+      }
+      if (json.checkoutUrl) {
+        window.location.href = json.checkoutUrl;
+        return;
+      }
+      setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
+      router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
+    } catch {
+      setMessage("A network error prevented checkout. Please try again.");
+    } finally {
+      setBusy(false);
     }
-    if (json.checkoutUrl) {
-      window.location.href = json.checkoutUrl;
-      return;
-    }
-    setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
-    router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
   }
 
   if (loading) return <div className="mx-auto h-64 max-w-3xl animate-pulse rounded-2xl bg-[#F3F4F6]" />;
@@ -115,6 +136,8 @@ export function CourseDetail({ courseId }: { courseId: string }) {
   const course = data.course;
   const price = course.price_cents && course.price_cents > 0 ? course.price_cents / 100 : 0;
   const instructor = course.instructor?.full_name || course.instructor?.username || "Instructor";
+  const courseHref = `/communities/${course.community?.slug}/courses/${course.id}`;
+  const signInHref = `/login?next=${encodeURIComponent(courseHref)}`;
   const actualModules = data.modules.length;
   const actualLessons = data.modules.reduce((total, module) => total + (module.course_lessons?.length ?? 0), 0);
   const actualDuration = data.modules.reduce((total, module) => total + (module.course_lessons ?? []).reduce((sum, lesson) => sum + Math.max(0, Number(lesson.duration ?? 0)), 0), 0);
@@ -140,7 +163,11 @@ export function CourseDetail({ courseId }: { courseId: string }) {
             <p className="text-sm text-[#6B7280]">{data.rating.average} / 5 from {data.rating.count} reviews</p>
           )}
           {message && <p className="text-sm text-red-600">{message}</p>}
-          {data.access.fullContent ? (
+          {!data.viewerAuthenticated ? (
+            <Link href={signInHref} className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white">
+              Sign in to enroll
+            </Link>
+          ) : data.access.fullContent ? (
             <Link
               href={`/communities/${course.community?.slug}/courses/${course.id}/learn`}
               className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white"
