@@ -53,12 +53,18 @@ export function SiteIconManager() {
     setMessage(null);
     try {
       const form = new FormData();
-      form.set("slot", slot);
       form.set("file", file);
-      const response = await fetch("/api/admin/site-icons", { method: "POST", body: form });
+      if (slot !== "main") form.set("slot", slot);
+      const endpoint = slot === "main" ? "/api/admin/site-icons/main" : "/api/admin/site-icons";
+      const response = await fetch(endpoint, { method: "POST", body: form });
       const data = await readApiJson(response);
       setSettings(data.settings as Settings);
-      setMessage({ type: "success", text: "Icon saved. The live site will begin serving this version immediately." });
+      setMessage({
+        type: "success",
+        text: slot === "main"
+          ? "Main Website Icon updated. Jimvio generated and activated " + data.generatedCount + " icon variants."
+          : "Icon saved. The live site will begin serving this version immediately.",
+      });
     } catch (error) {
       setMessage({ type: "error", text: error instanceof Error ? error.message : "Upload failed" });
     } finally {
@@ -107,9 +113,32 @@ export function SiteIconManager() {
         </div>
       )}
 
+      <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Main Website Icon</h2>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Upload one square PNG to update the browser favicon, Google Search favicon, Apple icons, Android adaptive assets and PWA icons together. Jimvio creates each required size and format and keeps the previous versions for rollback.
+            </p>
+          </div>
+          <label className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#FF5A1F] px-4 py-2.5 text-xs font-semibold text-white hover:brightness-95">
+            {busy === "main" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            Upload Main PNG
+            <input
+              type="file"
+              accept="image/png"
+              className="sr-only"
+              disabled={Boolean(busy)}
+              onChange={(event) => { void upload("main", event.target.files?.[0]); event.currentTarget.value = ""; }}
+            />
+          </label>
+        </div>
+        <p className="mt-2 text-[10px] text-[var(--color-text-muted)]">PNG only · max 1 MB · square artwork recommended · updates all managed site icon slots except the merchant storefront fallback.</p>
+      </section>
+
       <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <div className="flex items-center gap-2 text-sm font-semibold"><ImagePlus className="h-4 w-4" /> Preview</div>
-        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the active Google Search favicon, browser, mobile and app marks. Upload one PNG per icon; Jimvio generates the required formats and sizes.</p>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">Preview of the active Google Search favicon, browser, mobile and app marks. Main Website Icon updates all standard variants; individual cards remain available for specialized overrides.</p>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { slot: "favicon-96", label: "Google Search result" },
