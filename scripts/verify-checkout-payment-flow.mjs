@@ -477,6 +477,7 @@ assert(
 );
 assert(
   browserConfig.includes("#F95405") &&
+    browserConfig.includes("/api/site-icons/windows-tile") &&
     existsSync(join(root, "app/favicon.ico/route.ts")) &&
     existsSync(join(root, "app/favicon.svg/route.ts")) &&
     existsSync(join(root, "app/icons/safari-pinned-tab.svg/route.ts")) &&
