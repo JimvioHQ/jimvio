@@ -15,7 +15,8 @@ export const SITE_ICON_SETTING_KEY = "jimvio_site_icons";
 export const SITE_ICON_MAX_BYTES = 1024 * 1024;
 
 export const SITE_ICON_DEFINITIONS: SiteIconDefinition[] = [
-  { slot: "favicon-ico", label: "Google Search & Browser Favicon", group: "Browser", filename: "favicon.ico", contentType: "image/x-icon", width: 96, height: 96, defaultPath: "/icons/icon-48.png", help: "Upload one square PNG. Jimvio generates a multi-size ICO for Google Search and browsers." },
+  { slot: "favicon-ico", label: "Classic browser favicon", group: "Browser", filename: "favicon.ico", contentType: "image/x-icon", width: 48, height: 48, defaultPath: "/icons/icon-48.png", help: "Upload PNG; Jimvio generates a multi-size 16, 32 and 48 px ICO." },
+  { slot: "favicon-96", label: "Google Search Result Favicon", group: "Browser", filename: "favicon-96.png", contentType: "image/png", width: 96, height: 96, defaultPath: "/icons/icon-96.png", help: "Upload a square PNG. Google recommends a favicon larger than 48 × 48 px; this is served from the stable root /favicon.png URL." },
   { slot: "favicon-svg", label: "SVG favicon", group: "Browser", filename: "favicon.svg", contentType: "image/svg+xml", width: 0, height: 0, defaultPath: "/icons/source/any.svg", help: "Sanitized square SVG mark." },
   { slot: "favicon-16", label: "16 × 16 favicon", group: "Browser", filename: "icon-16.png", contentType: "image/png", width: 16, height: 16, defaultPath: "/icons/icon-16.png", help: "PNG, exactly 16 × 16." },
   { slot: "favicon-32", label: "32 × 32 favicon", group: "Browser", filename: "icon-32.png", contentType: "image/png", width: 32, height: 32, defaultPath: "/icons/icon-32.png", help: "PNG, exactly 32 × 32." },
