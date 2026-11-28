@@ -24,7 +24,8 @@ type ManagedCourse = {
   is_published: boolean | null;
   archived_at: string | null;
   thumbnail_url: string | null;
-  total_lessons: number | null;\n  total_modules?: number | null;
+  total_lessons: number | null;
+  total_modules?: number | null;
   certificate_enabled: boolean | null;
   learning_outcomes: string[] | null;
   prerequisites: string[] | null;
@@ -92,13 +93,17 @@ export function CoursesManagement() {
   const [moduleTitle, setModuleTitle] = useState("");
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonBody, setLessonBody] = useState("");
-  const [lessonVideo, setLessonVideo] = useState("");\n  const [lessonDuration, setLessonDuration] = useState("0");\n  const [lessonIsFree, setLessonIsFree] = useState(false);
+  const [lessonVideo, setLessonVideo] = useState("");
+  const [lessonDuration, setLessonDuration] = useState("0");
+  const [lessonIsFree, setLessonIsFree] = useState(false);
   const [lessonResource, setLessonResource] = useState("");
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [lessonModule, setLessonModule] = useState("");
   const [roster, setRoster] = useState<Array<Record<string, unknown>>>([]);
-  const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);\n  const [assignments, setAssignments] = useState<Assignment[]>([]);\n  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
   const [quizzes, setQuizzes] = useState<ManagedQuiz[]>([]);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [quizLessonId, setQuizLessonId] = useState("");
@@ -137,7 +142,8 @@ export function CoursesManagement() {
     setModules(tree);
     setLessonModule(tree[0]?.id ?? "");
     setRoster(json.roster?.enrollments ?? []);
-    setSubmissions(json.roster?.submissions ?? []);\n    setAssignments(json.assignments ?? []);
+    setSubmissions(json.roster?.submissions ?? []);
+    setAssignments(json.assignments ?? []);
     setQuizzes(json.quizzes ?? []);
     if (json.course) {
       setCourses((prev) => prev.map((course) => (course.id === courseId ? { ...course, ...json.course } : course)));
