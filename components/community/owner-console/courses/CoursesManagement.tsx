@@ -44,6 +44,8 @@ type Lesson = {
   module_id: string;
   body?: string | null;
   video_url?: string | null;
+  duration?: number | null;
+  is_free?: boolean | null;
   sort_order?: number;
   attachments?: Array<{ url?: string }>;
 };
