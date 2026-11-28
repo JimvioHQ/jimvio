@@ -102,15 +102,43 @@ export async function POST(
     }
     if (action === "quiz") {
       const questions = Array.isArray(body.questions) ? body.questions : [];
+      const lessonId = String(body.lessonId ?? "");
+      const passScore = Number(body.passScore ?? 70);
       if (!questions.length) return NextResponse.json({ error: "Add at least one question" }, { status: 400 });
+      if (!Number.isFinite(passScore) || passScore < 0 || passScore > 100) {
+        return NextResponse.json({ error: "Quiz pass score must be between 0 and 100" }, { status: 400 });
+      }
+      const { loadManaged } = await import("./guard");
+      await loadManaged(user, courseId);
+      const admin = createServiceRoleClient();
+      const { data: existingQuiz, error: existingQuizError } = await admin
+        .from("course_quizzes")
+        .select("id, questions")
+        .eq("course_id", courseId)
+        .eq("lesson_id", lessonId)
+        .maybeSingle();
+      if (existingQuizError) return NextResponse.json({ error: existingQuizError.message }, { status: 400 });
+      if (existingQuiz) {
+        const { count, error: attemptsError } = await admin
+          .from("course_quiz_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("quiz_id", existingQuiz.id);
+        if (attemptsError) return NextResponse.json({ error: attemptsError.message }, { status: 400 });
+        if ((count ?? 0) > 0 && JSON.stringify(existingQuiz.questions) !== JSON.stringify(questions)) {
+          return NextResponse.json(
+            { error: "This quiz already has student attempts. You can update its title and pass score, but its questions and answers are locked to preserve previous attempts." },
+            { status: 409 }
+          );
+        }
+      }
       return NextResponse.json({
         quiz: await saveQuiz({
           userId: user,
           courseId,
-          lessonId: String(body.lessonId ?? ""),
+          lessonId,
           title: String(body.title ?? "Quiz"),
           questions,
-          passScore: Number(body.passScore ?? 70),
+          passScore,
         }),
       });
     }
@@ -160,6 +188,14 @@ export async function POST(
       if (action === "deleteQuiz") {
         const quizId = String(body.id ?? "");
         if (!quizId) return NextResponse.json({ error: "Quiz ID is required" }, { status: 400 });
+        const { data: ownedQuiz, error: quizLookupError } = await admin
+          .from("course_quizzes")
+          .select("id")
+          .eq("id", quizId)
+          .eq("course_id", courseId)
+          .maybeSingle();
+        if (quizLookupError) return NextResponse.json({ error: quizLookupError.message }, { status: 400 });
+        if (!ownedQuiz) return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
         const { count, error: attemptsError } = await admin
           .from("course_quiz_attempts")
           .select("id", { count: "exact", head: true })
