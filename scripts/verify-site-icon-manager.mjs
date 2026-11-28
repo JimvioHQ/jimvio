@@ -28,11 +28,13 @@ assert.ok(fs.existsSync(path.join(process.cwd(), "app/icons/safari-pinned-tab.sv
 assert.match(seo, /\/api\/site-icons\/favicon-ico/);
 assert.match(seo, /\/api\/site-icons\/apple-touch/);
 assert.match(manifest, /\/api\/site-icons\/pwa-192/);
+assert.match(manifest, /encodeURIComponent/);
 assert.match(sidebar, /\/admin\/settings\/icons/);
 assert.match(manager, /Previous versions/);
 assert.match(manager, /Using repository default/);
 assert.match(proxy, /api\/site-icons/);
 assert.match(proxy, /site\.webmanifest/);
+assert.match(proxy, /browserconfig\.xml/);
 assert.match(proxy, /api\/storefront-favicon/);
 // Keep the icon-manager preview build explicitly enabled by the repository ignore-build policy.
 console.log("Site Icon Manager verification: PASS");
