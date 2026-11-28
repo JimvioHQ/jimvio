@@ -23,7 +23,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         // "/og?*" is longer than "/*?*", so link-preview crawlers may fetch OG cards.
-        allow: ["/", "/og?*"],
+        allow: ["/", "/favicon.ico", "/favicon.png", "/favicon.svg", "/og?*"],
         disallow: [
           "/login",
           "/register",
