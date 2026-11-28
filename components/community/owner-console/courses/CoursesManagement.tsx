@@ -237,6 +237,57 @@ export function CoursesManagement() {
     return <p className="text-sm text-[#6B7280]">You do not have permission to manage courses.</p>;
   }
 
+  async function shiftModule(moduleId: string, direction: -1 | 1) {
+    if (!selected) return;
+    const ordered = [...modules].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const index = ordered.findIndex((item) => item.id === moduleId);
+    const current = ordered[index];
+    const neighbor = ordered[index + direction];
+    if (!current || !neighbor) return;
+    const first = await run(selected.id, "module", {
+      id: current.id,
+      title: current.title,
+      sortOrder: neighbor.sort_order ?? index + direction,
+    });
+    if (!first) return;
+    await run(selected.id, "module", {
+      id: neighbor.id,
+      title: neighbor.title,
+      sortOrder: current.sort_order ?? index,
+    });
+  }
+
+  async function shiftLesson(module: Module, lesson: Lesson, direction: -1 | 1) {
+    if (!selected) return;
+    const ordered = [...(module.course_lessons ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const index = ordered.findIndex((item) => item.id === lesson.id);
+    const neighbor = ordered[index + direction];
+    if (!neighbor) return;
+    const first = await run(selected.id, "lesson", {
+      id: lesson.id,
+      moduleId: module.id,
+      title: lesson.title,
+      body: lesson.body ?? "",
+      videoUrl: lesson.video_url ?? "",
+      duration: lesson.duration ?? 0,
+      isFree: Boolean(lesson.is_free),
+      attachments: lesson.attachments ?? [],
+      sortOrder: neighbor.sort_order ?? index + direction,
+    });
+    if (!first) return;
+    await run(selected.id, "lesson", {
+      id: neighbor.id,
+      moduleId: module.id,
+      title: neighbor.title,
+      body: neighbor.body ?? "",
+      videoUrl: neighbor.video_url ?? "",
+      duration: neighbor.duration ?? 0,
+      isFree: Boolean(neighbor.is_free),
+      attachments: neighbor.attachments ?? [],
+      sortOrder: lesson.sort_order ?? index,
+    });
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
@@ -542,9 +593,11 @@ export function CoursesManagement() {
                       id: editingModuleId ?? undefined,
                       title: moduleTitle,
                       sortOrder: editingModule?.sort_order ?? modules.length,
-                    }).then(() => {
-                      setModuleTitle("");
-                      setEditingModuleId(null);
+                    }).then((result) => {
+                      if (result) {
+                        setModuleTitle("");
+                        setEditingModuleId(null);
+                      }
                     });
                   }}
                 >
@@ -610,6 +663,10 @@ export function CoursesManagement() {
                     <div key={module.id}>
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-semibold">{module.title}</p>
+                        <div className="flex items-center gap-2">
+                          <button type="button" aria-label="Move module up" title="Move module up" disabled={!!busy || modules.findIndex((item) => item.id === module.id) === 0} className="text-xs text-[#6B7280] disabled:opacity-30" onClick={() => void shiftModule(module.id, -1)}>↑</button>
+                          <button type="button" aria-label="Move module down" title="Move module down" disabled={!!busy || modules.findIndex((item) => item.id === module.id) === modules.length - 1} className="text-xs text-[#6B7280] disabled:opacity-30" onClick={() => void shiftModule(module.id, 1)}>↓</button>
+                        </div>
                         <button
                           type="button"
                           className="text-xs font-semibold text-[#FF5A1F]"
@@ -636,7 +693,9 @@ export function CoursesManagement() {
                       <ul className="mt-1 space-y-1 pl-3 text-sm text-[#6B7280]">
                         {(module.course_lessons ?? []).map((lesson) => (
                           <li key={lesson.id} className="flex items-center justify-between gap-2">
-                            <span>{lesson.title}</span>
+                            <span className="min-w-0 flex-1">{lesson.title}</span>
+                            <button type="button" aria-label="Move lesson up" title="Move lesson up" disabled={!!busy || (module.course_lessons ?? []).findIndex((item) => item.id === lesson.id) === 0} className="text-xs text-[#6B7280] disabled:opacity-30" onClick={() => void shiftLesson(module, lesson, -1)}>↑</button>
+                            <button type="button" aria-label="Move lesson down" title="Move lesson down" disabled={!!busy || (module.course_lessons ?? []).findIndex((item) => item.id === lesson.id) === (module.course_lessons ?? []).length - 1} className="text-xs text-[#6B7280] disabled:opacity-30" onClick={() => void shiftLesson(module, lesson, 1)}>↓</button>
                             <button
                               type="button"
                               className="text-xs font-semibold text-[#FF5A1F]"
